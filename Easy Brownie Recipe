@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        div>ul {
+            color: green;
+        }
+
+        div>ol {
+            color: mediumblue;
+        }
+
+        h1 {
+            color: darkred;
+            background-color: floralwhite;
+        }
+
+        h2 {
+            color: darkred;
+            background-color: floralwhite;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <table border="">
+            <header>
+                <div>
+                    <h1>Easy Brownies</h1>
+                </div>
+            </header>
+            <img src="https://www.kingarthurbaking.com/sites/default/files/styles/featured_image/public/recipe_legacy/1228-3-large.jpg?itok=ADPr9QfO"
+                alt="Brownies">
+            <section>
+                <div style="background-color: floralwhite;">
+                    <h2>Ingredients</h2>
+                </div>
+
+                <div>
+                    <ul>
+                        <li>½ cup (115g) unsalted butter</li>
+                        <li>1 cup (200g) granulated sugar</li>
+                        <li>2 large eggs</li>
+                        <li>1 teaspoon vanilla extract</li>
+                        <li>⅓ cup (40g) unsweetened cocoa powder</li>
+                        <li>½ cup (65g) all-purpose flour</li>
+                        <li>¼ teaspoon salt</li>
+                        <li>¼ teaspoon baking powder</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section>
+                <div style="background-color: floralwhite;">
+                    <h2>Instructions</h2>
+                </div>
+
+                <div>
+
+                    <ol>
+                        <li>Melt ½ cup butter.</li>
+                        <li>Mix in 1 cup sugar, 2 eggs, 1 tsp vanilla.</li>
+                        <li>Stir in ⅓ cup cocoa, ½ cup flour, pinch salt, ¼ tsp baking powder.</li>
+                        <li>Pour into a greased 8x8 pan.</li>
+                        <li>Bake at 350°F (175°C) for ~20–25 min.</li>
+                    </ol>
+                </div>
+            </section>
+            <footer>
+                <p style="font-style: italic;">Cool and Enjoy Your Brownies!</i></p>
+            </footer>
+        </table>
+    </div>
+</body>
+
+</html>
