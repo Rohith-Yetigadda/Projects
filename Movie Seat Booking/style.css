@@ -15,23 +15,20 @@ body {
   align-items: center;
 }
 
-/* Main card */
 .container {
   background: #ffffff;
   padding: 30px 40px;
   border-radius: 12px;
-  width: 940px; /* widened */
+  width: 940px; 
 }
 
-/* Title */
 .title {
   text-align: center;
   margin-bottom: 20px;
 }
 
-/* SCREEN */
 .screen {
-  width: 860px;                /* seat grid width */
+  width: 860px;
   margin: 0 auto 20px auto;
   background-color: #111827;
   color: white;
@@ -41,7 +38,6 @@ body {
   font-size: 14px;
 }
 
-/* Legend */
 .legend {
   display: flex;
   justify-content: center;
@@ -74,14 +70,12 @@ body {
   background-color: #9333ea;
 }
 
-/* Seat container */
 .seat-container {
-  width: 900px;                /* includes row-label space */
+  width: 900px;                
   margin: 0 auto 25px auto;
-  padding-left: 40px;          /* reserve space for row labels */
+  padding-left: 40px;
 }
 
-/* Tier headers */
 .tier-header {
   text-align: center;
   font-size: 13px;
@@ -102,7 +96,6 @@ body {
   vertical-align: middle;
 }
 
-/* Row */
 .row {
   position: relative;
   display: flex;
@@ -110,7 +103,6 @@ body {
   margin-bottom: 12px;
 }
 
-/* Row label (aligned with screen edge) */
 .row-label {
   position: absolute;
   left: 0;
@@ -120,27 +112,23 @@ body {
   line-height: 30px;
 }
 
-/* Seat blocks container */
 .seats {
   display: flex;
-  gap: 30px; /* aisle spacing */
+  gap: 30px; 
 }
 
-/* Side blocks (5 seats) */
 .seat-block.small {
   display: grid;
   grid-template-columns: repeat(5, 30px);
   gap: 8px;
 }
 
-/* Middle block (10 seats) */
 .seat-block.large {
   display: grid;
   grid-template-columns: repeat(10, 30px);
   gap: 8px;
 }
 
-/* Seat */
 .seat {
   width: 30px;
   height: 30px;
@@ -166,7 +154,6 @@ body {
   cursor: not-allowed;
 }
 
-/* Info */
 .info {
   display: flex;
   justify-content: space-between;
@@ -174,7 +161,6 @@ body {
   font-size: 14px;
 }
 
-/* Buttons */
 button {
   width: 100%;
   padding: 12px;
@@ -200,7 +186,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Message */
 .message {
   margin-top: 10px;
   text-align: center;

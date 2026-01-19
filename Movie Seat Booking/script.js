@@ -9,11 +9,11 @@ const messageEl = document.getElementById("message");
 const ROWS = 16; // A to P
 const SEATS_PER_ROW = 20;
 
-/* Pricing by row (front -> back) */
+/* Pricing by row */
 const ROW_PRICES = {
-  A: 180, B: 180, C: 180, D: 180, E: 180,           // Silver
-  F: 250, G: 250, H: 250, I: 250, J: 250, K: 250,   // Gold
-  L: 330, M: 330, N: 330, O: 330, P: 330            // Platinum 
+  A: 180, B: 180, C: 180, D: 180, E: 180,           
+  F: 250, G: 250, H: 250, I: 250, J: 250, K: 250,   
+  L: 330, M: 330, N: 330, O: 330, P: 330 
 };
 
 let selectedSeats = [];
@@ -47,7 +47,7 @@ for (let r = 0; r < ROWS; r++) {
   const seatsWrap = document.createElement("div");
   seatsWrap.className = "seats";
 
-  /* Seat blocks: 5 - 10 - 5 */
+  /* Seat blocks */
   const blocks = [
     { size: 5, className: "small" },
     { size: 10, className: "large" },
