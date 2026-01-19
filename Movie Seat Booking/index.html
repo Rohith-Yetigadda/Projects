@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Seat Booking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="container">
+
+    <h1 class="title">Movie Seat Booking</h1>
+
+    <div class="screen">SCREEN</div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <span class="legend-dot silver"></span> Silver (₹180)
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot gold"></span> Gold (₹250)
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot platinum"></span> Platinum (₹330)
+      </div>
+    </div>
+
+    <!-- Seats -->
+    <div id="seatContainer" class="seat-container"></div>
+
+    <!-- Info -->
+    <div class="info">
+      <p>Selected Seats: <span id="count">0</span></p>
+      <p>Total Price: ₹<span id="total">0</span></p>
+    </div>
+
+    <button id="bookBtn" disabled>Book Now</button>
+    <button id="resetBtn">Reset Booking</button>
+
+    <p id="message" class="message"></p>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

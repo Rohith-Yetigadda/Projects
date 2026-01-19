@@ -1,0 +1,209 @@
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #f5f7fa;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Main card */
+.container {
+  background: #ffffff;
+  padding: 30px 40px;
+  border-radius: 12px;
+  width: 940px; /* widened */
+}
+
+/* Title */
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* SCREEN */
+.screen {
+  width: 860px;                /* seat grid width */
+  margin: 0 auto 20px auto;
+  background-color: #111827;
+  color: white;
+  text-align: center;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.legend-dot.silver {
+  background-color: #d1d5db;
+}
+
+.legend-dot.gold {
+  background-color: #fbbf24;
+}
+
+.legend-dot.platinum {
+  background-color: #9333ea;
+}
+
+/* Seat container */
+.seat-container {
+  width: 900px;                /* includes row-label space */
+  margin: 0 auto 25px auto;
+  padding-left: 40px;          /* reserve space for row labels */
+}
+
+/* Tier headers */
+.tier-header {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #6b7280;
+  margin: 30px 0 15px;
+  letter-spacing: 1px;
+}
+
+.tier-header::before,
+.tier-header::after {
+  content: "";
+  display: inline-block;
+  width: 120px;
+  height: 1px;
+  background-color: #d1d5db;
+  margin: 0 12px;
+  vertical-align: middle;
+}
+
+/* Row */
+.row {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+/* Row label (aligned with screen edge) */
+.row-label {
+  position: absolute;
+  left: 0;
+  transform: translateX(-40px);
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 30px;
+}
+
+/* Seat blocks container */
+.seats {
+  display: flex;
+  gap: 30px; /* aisle spacing */
+}
+
+/* Side blocks (5 seats) */
+.seat-block.small {
+  display: grid;
+  grid-template-columns: repeat(5, 30px);
+  gap: 8px;
+}
+
+/* Middle block (10 seats) */
+.seat-block.large {
+  display: grid;
+  grid-template-columns: repeat(10, 30px);
+  gap: 8px;
+}
+
+/* Seat */
+.seat {
+  width: 30px;
+  height: 30px;
+  background-color: #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 11px;
+  color: #111827;
+}
+
+.seat.selected {
+  background-color: #2563eb;
+  color: white;
+}
+
+.seat.booked {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Info */
+.info {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+/* Buttons */
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#bookBtn {
+  background-color: #111827;
+  color: white;
+  margin-bottom: 10px;
+}
+
+#resetBtn {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Message */
+.message {
+  margin-top: 10px;
+  text-align: center;
+  color: #dc2626;
+  font-size: 14px;
+}
