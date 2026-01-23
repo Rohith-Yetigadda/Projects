@@ -1,0 +1,80 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #000010;
+    overflow: hidden;
+    margin: 0;
+    font-family: sans-serif;
+}
+
+.sun {
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, #ffdd33 0%, #ff8800 70%, #ff4400 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 50px 20px rgba(255, 200, 50, 0.5);
+    position: relative;
+    z-index: 3;
+}
+
+.earth-orbit {
+    width: 300px;
+    height: 300px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotateEarth 10s linear infinite;
+}
+
+.earth {
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle at 30% 30%, #4da6ff 0%, #003366 70%);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px 3px rgba(0, 150, 255, 0.7);
+    z-index: 2;
+}
+
+.moon-orbit {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotateMoon 2s linear infinite;
+}
+
+.moon {
+    width: 15px;
+    height: 15px;
+    background: radial-gradient(circle at 30% 30%, #eeeeee 0%, #aaaaaa 70%);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px 2px rgba(200, 200, 200, 0.5);
+    z-index: 2;
+}
+
+@keyframes rotateEarth {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes rotateMoon {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
