@@ -5,11 +5,11 @@ const bookBtn = document.getElementById("bookBtn");
 const resetBtn = document.getElementById("resetBtn");
 const messageEl = document.getElementById("message");
 
-/* Theatre configuration */
-const ROWS = 16; // A to P
+// Theatre Configuration
+const ROWS = 16; 
 const SEATS_PER_ROW = 20;
 
-/* Pricing by row */
+
 const ROW_PRICES = {
   A: 180, B: 180, C: 180, D: 180, E: 180,           
   F: 250, G: 250, H: 250, I: 250, J: 250, K: 250,   
@@ -19,7 +19,7 @@ const ROW_PRICES = {
 let selectedSeats = [];
 let bookedSeats = JSON.parse(localStorage.getItem("bookedSeats")) || [];
 
-/* Helper: add tier header */
+// Helper: ADD TIER HEADER
 function addTierHeader(text) {
   const header = document.createElement("div");
   header.className = "tier-header";
@@ -27,7 +27,7 @@ function addTierHeader(text) {
   seatContainer.appendChild(header);
 }
 
-/* Create seat layout */
+// Seat Layout
 let seatIndex = 1;
 
 for (let r = 0; r < ROWS; r++) {
@@ -47,7 +47,7 @@ for (let r = 0; r < ROWS; r++) {
   const seatsWrap = document.createElement("div");
   seatsWrap.className = "seats";
 
-  /* Seat blocks */
+ // Seat Blocks
   const blocks = [
     { size: 5, className: "small" },
     { size: 10, className: "large" },
@@ -85,7 +85,7 @@ for (let r = 0; r < ROWS; r++) {
   seatContainer.appendChild(row);
 }
 
-/* Seat selection */
+// Seat Selection
 seatContainer.addEventListener("click", function (e) {
   if (!e.target.classList.contains("seat")) return;
   if (e.target.classList.contains("booked")) return;
@@ -103,7 +103,7 @@ seatContainer.addEventListener("click", function (e) {
   updateSummary();
 });
 
-/* Update summary & pricing */
+// Update Summary and Pricing
 function updateSummary() {
   countEl.textContent = selectedSeats.length;
 
@@ -117,7 +117,7 @@ function updateSummary() {
   bookBtn.disabled = selectedSeats.length === 0;
 }
 
-/* Book seats */
+// Book Seats
 bookBtn.addEventListener("click", function () {
   bookedSeats.push(...selectedSeats);
   localStorage.setItem("bookedSeats", JSON.stringify(bookedSeats));
@@ -135,7 +135,7 @@ bookBtn.addEventListener("click", function () {
   setTimeout(() => messageEl.textContent = "", 3000);
 });
 
-/* Reset booking */
+// Reset Booking
 resetBtn.addEventListener("click", function () {
   localStorage.removeItem("bookedSeats");
   bookedSeats = [];
