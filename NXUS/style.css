@@ -490,8 +490,10 @@ td .dropdown-button:hover { background: rgba(255, 255, 255, 0.05); transform: tr
   .heatmap-grid.mobile-view { display: flex; justify-content: center; gap: 6px; background: var(--surface); padding: 15px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 10px; animation: fadeIn 0.3s ease; }
   .streak-widget { display: none; }
   .heat-box { width: 16px; height: 16px; }
-  .footer { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
-  button#addHabit { width: auto; padding: 10px 20px; font-size: 13px; }
-  .counter { font-size: 12px; text-align: right; }
+  .footer { flex-direction: column !important; align-items: stretch !important; gap: 16px; padding-top: 20px;}
+  button#addHabit { width: 100%; padding: 16px 0px; font-size: 15px; margin: 0;}
+  .footer-right {width: 100%; justify-content: space-between !important; padding:  0 4px; gap: 0 !important;}
+  .hide-mobile{display: inline !important;}
+  .counter { font-size: 13px; color: var(--muted);}
   th:first-child, td:first-child { border-right: 1px solid var(--border); }
 }
