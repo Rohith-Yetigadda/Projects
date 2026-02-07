@@ -495,3 +495,46 @@ td .dropdown-button:hover { background: rgba(255, 255, 255, 0.05); transform: tr
   .counter { font-size: 13px; color: var(--muted);}
   th:first-child, td:first-child { border-right: 1px solid var(--border); }
 }
+
+/* =========================================================
+   8. REAL DEVICE OPTIMIZATIONS
+========================================================= */
+
+/* 1. FIX DISAPPEARING GLOWS */
+/* Phones cut off shadows that spill outside the SVG box. This forces them visible. */
+svg {
+    overflow: visible !important; 
+}
+
+/* 2. FIX GRAPH SNAPPING */
+/* Tells the phone's GPU to prepare for shape changes ahead of time */
+.graph-path, .graph-area {
+    will-change: d; 
+    transform: translateZ(0); /* Forces Hardware Acceleration */
+    transition: d 0.6s cubic-bezier(0.4, 0, 0.2, 1); /* Ensure transition is explicit */
+}
+
+/* 3. FIX RING ANIMATIONS */
+.ring-progress {
+    will-change: stroke-dashoffset;
+    /* Use linear timing on mobile for smoother frame rates */
+    transition: stroke-dashoffset 0.8s linear; 
+}
+
+/* 4. REMOVE UGLY TAP HIGHLIGHTS */
+/* Stops the blue/grey flash when clicking buttons on mobile */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 5. BOOST TEXT RENDERING */
+/* Makes fonts look sharper on high-DPI phone screens */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 6. PREVENT "RUBBER BAND" SCROLLING ON BACKGROUND */
+html, body {
+    overscroll-behavior-y: none;
+}
