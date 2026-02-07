@@ -389,20 +389,18 @@ button#addHabit:hover { transform: translateY(-2px); filter: brightness(1.1); }
 
 /* MINIMAL FOOTER LOGOUT ICON */
 .logout-footer-btn {
-    color: var(--muted); /* Blends in with the text */
+    color: #ef4444; /* Blends in with the text */
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.5; /* Very subtle by default */
+    opacity: 0.8; /* Very subtle by default */
 }
 
 .logout-footer-btn:hover {
     opacity: 1;
-    color: #ef4444; /* Turns red only when you intend to click it */
     transform: translateX(3px);
-    background: transparent; /* Satisfying little spin animation */
 }
 
 .logout-footer-btn i {
