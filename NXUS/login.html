@@ -42,6 +42,7 @@
             display: flex;
             justify-content: center;
             animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: none;
         }
 
         .login-card {
@@ -180,48 +181,50 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // Your Config
-        const firebaseConfig = {
-          apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
-          authDomain: "nxus-tracker.firebaseapp.com",
-          projectId: "nxus-tracker",
-          storageBucket: "nxus-tracker.firebasestorage.app",
-          messagingSenderId: "1093056988911",
-          appId: "1:1093056988911:web:426a5a5b7cd2a0d36ffd1a",
-          measurementId: "G-S758JXL79M"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
+      authDomain: "nxus-tracker.firebaseapp.com",
+      projectId: "nxus-tracker",
+      storageBucket: "nxus-tracker.firebasestorage.app",
+      messagingSenderId: "1093056988911",
+      appId: "1:1093056988911:web:426a5a5b7cd2a0d36ffd1a",
+      measurementId: "G-S758JXL79M"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-        // 1. Initialize Icons
-        lucide.createIcons();
+    lucide.createIcons();
 
-        // 2. Check if already logged in (Auto-Redirect)
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log("Already logged in:", user.email);
+    // AUTH CHECKER (The "Bouncer")
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // 1. Logged In? -> Go to Dashboard immediately.
+            // (The login card stays hidden, so no flash!)
+            console.log("User found, redirecting...");
+            window.location.href = "index.html";
+        } else {
+            // 2. Not Logged In? -> Show the Login Page now.
+            document.querySelector(".login-container").style.display = "flex";
+        }
+    });
+
+    // Login Button Logic
+    document.getElementById("googleLoginBtn").addEventListener("click", () => {
+        signInWithPopup(auth, provider)
+            .then((result) => {
                 window.location.href = "index.html";
-            }
-        });
-
-        // 3. Handle Login Click
-        document.getElementById("googleLoginBtn").addEventListener("click", () => {
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    console.log("Logged in:", result.user.email);
-                    window.location.href = "index.html";
-                })
-                .catch((error) => {
-                    console.error("Login failed", error);
-                    alert("Login failed: " + error.message);
-                });
-        });
-    </script>
+            })
+            .catch((error) => {
+                console.error("Login failed", error);
+                alert("Login failed: " + error.message);
+            });
+    });
+</script>
 
 </body>
 </html>
