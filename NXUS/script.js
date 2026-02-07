@@ -54,30 +54,26 @@ let lastAddedHabitIndex = -1;
    2. DATA PERSISTENCE (FIRESTORE)
 ========================================================= */
 const loadHabits = async () => {
-  if (!currentUser) return; // Wait for auth
+  if (!currentUser) return;
 
   const y = parseInt(yearInput.value) || NOW.getFullYear();
-  const docId = `${y}-${currentMonth}`; // e.g. "2026-1"
+  const docId = `${y}-${currentMonth}`;
   const docRef = doc(db, "users", currentUser.uid, "monthly_data", docId);
 
   try {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Restore habits from cloud
       habits = data.habits.map((h) => ({
         name: h.name,
         type: h.type || "positive",
         weight: h.weight || 2,
         goal: h.goal || 28,
-        // Ensure days array matches current month length
         days: h.days || [] 
       }));
     } else {
-        // If no data for this month, start empty (or you could copy previous month here)
         habits = [];
     }
-    // Refresh UI after loading
     update();
   } catch (e) {
     console.error("Error loading document: ", e);
@@ -92,7 +88,6 @@ const save = async () => {
   const docRef = doc(db, "users", currentUser.uid, "monthly_data", docId);
 
   try {
-    // Save the entire habits array to Firestore
     await setDoc(docRef, { habits: habits }, { merge: true });
     console.log("Saved to cloud.");
   } catch (e) {
@@ -286,7 +281,6 @@ function renderHabits() {
   closeAllDropdowns();
 
   habits.forEach((h, i) => {
-    // Ensure days array is correct length
     if (!h.days || h.days.length !== days) {
       const newDays = Array(days).fill(false);
       if (h.days) h.days.forEach((val, idx) => { if (idx < days) newDays[idx] = val; });
@@ -349,7 +343,7 @@ function renderHabits() {
 
       cb.onchange = () => { 
           h.days[d] = cb.checked; 
-          save(); // Trigger cloud save
+          save(); 
           updateStats(); 
           if (!isEditMode) updateProgress(tr, h); 
           renderGraph(false); 
@@ -392,6 +386,7 @@ function renderHabits() {
     habitBody.appendChild(tr);
   });
   
+  // TRIGGER SCROLL AT THE END OF RENDER
   scrollToToday();
 }
 
@@ -409,40 +404,38 @@ function updateProgress(tr, h) {
   if (fill) fill.style.width = pct + "%";
 }
 
+// ============== THE FIXED SCROLL FUNCTION ==============
 function scrollToToday() {
-    // 1. Check if we need to scroll (only on first load or month change)
     if (!needsScrollToToday) return;
 
-    const y = parseInt(yearInput.value) || NOW.getFullYear();
-    const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
+    // Wait 100ms for the DOM to paint so we can measure widths
+    setTimeout(() => {
+        const y = parseInt(yearInput.value) || NOW.getFullYear();
+        const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
 
-    // 2. Only scroll if it's actually the current month and we aren't editing
-    if (isThisMonth && !isEditMode) {
-        const today = NOW.getDate();
-        
-        // We only scroll if the day is > 2 (otherwise we are already at the start)
-        if (today > 2) {
+        if (isThisMonth && !isEditMode) {
+            const today = NOW.getDate();
             const wrapper = document.querySelector(".table-wrapper");
             const todayHeader = document.getElementById(`header-day-${today}`);
-            const firstHeader = document.querySelector("th:first-child"); // The sticky "Habit" column
+            const firstColumn = document.querySelector("th:first-child"); 
 
-            if (wrapper && todayHeader && firstHeader) {
-                // 3. Calculate position:
-                // Column Position - Sticky Column Width - A little padding (100px) for context
-                const stickyWidth = firstHeader.offsetWidth;
-                const targetPos = todayHeader.offsetLeft - stickyWidth - 50;
+            if (wrapper && todayHeader && firstColumn) {
+                // Get the width of the sticky "Habit" column
+                const stickyOffset = firstColumn.getBoundingClientRect().width;
+                
+                // Calculate position: Element Left - Sticky Width - Padding
+                // We subtract extra (80px) so "Today" isn't hidden behind the sticky header
+                const targetX = todayHeader.offsetLeft - stickyOffset - 80;
 
-                // 4. Scroll smoothly
                 wrapper.scrollTo({
-                    left: targetPos,
+                    left: Math.max(0, targetX), 
                     behavior: "smooth"
                 });
             }
         }
-    }
-
-    // 5. Turn off the flag so it doesn't fight the user if they scroll manually later
-    needsScrollToToday = false; 
+        // Disable flag after running once
+        needsScrollToToday = false; 
+    }, 100);
 }
 
 /* =========================================================
@@ -658,10 +651,21 @@ function updateStats() {
             heatGrid.appendChild(div);
         }
     }
+    
+    // Updated Footer Logic (Responsive Text)
     const footerC = document.querySelector(".counter");
     if(footerC) {
-        const slipT = negTotal > 0 ? `<span style="opacity:0.3; margin:0 6px">|</span> <span style="color:#ef4444">${todaySlips}/${negTotal}</span> slips` : ``;
-        footerC.innerHTML = `Today: <span style="color:var(--green)">${todayDone}/${todayTotal}</span> done ${slipT}`;
+        // We wrap words in <span class="hide-mobile"> so we can hide them on phones
+        const prefix = `<span class="hide-mobile">Today: </span>`;
+        const suffix = `<span class="hide-mobile"> done</span>`;
+        
+        // Only show slips if they exist
+        const slipText = negTotal > 0 
+            ? `<span style="opacity:0.3; margin:0 6px">|</span> <span style="color:#ef4444">${todaySlips}/${negTotal}</span><span class="hide-mobile"> slips</span>` 
+            : ``;
+            
+        // Combine it all
+        footerC.innerHTML = `${prefix}<span style="color:var(--green)">${todayDone}/${todayTotal}</span>${suffix} ${slipText}`;
     }
 }
 
@@ -723,11 +727,10 @@ yearInput.addEventListener("input", () => { loadHabits(); update(); });
 const quotes = ["Consistency is key.", "Focus on the process.", "Small wins matter.", "Day one or one day.", "Keep showing up.", "Progress, not perfection.", "Show up daily.", "Little by little."];
 const qEl = document.getElementById("dailyQuote"); if(qEl) qEl.innerText = quotes[Math.floor(Math.random()*quotes.length)];
 
-// Logout Logic
+// LOGOUT LOGIC (With Confirmation)
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-        // ADDED CONFIRMATION CHECK
         if (confirm("Are you sure you want to sign out?")) {
             signOut(auth).then(() => {
                 console.log("User signed out");
@@ -752,7 +755,6 @@ onAuthStateChanged(auth, (user) => {
     loadHabits(); // Load data from cloud
     update();     // Render UI
   } else {
-    // If not logged in, force them to login page
     window.location.href = "login.html";
   }
 });
