@@ -1,4 +1,26 @@
 /* =========================================================
+   0. FIREBASE SETUP
+========================================================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
+  authDomain: "nxus-tracker.firebaseapp.com",
+  projectId: "nxus-tracker",
+  storageBucket: "nxus-tracker.firebasestorage.app",
+  messagingSenderId: "1093056988911",
+  appId: "1:1093056988911:web:426a5a5b7cd2a0d36ffd1a",
+  measurementId: "G-S758JXL79M"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+let currentUser = null;
+
+/* =========================================================
    1. UTILS & SETUP
 ========================================================= */
 const monthNames = [
