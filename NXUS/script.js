@@ -614,6 +614,7 @@ function updateStats() {
     let earnedSoFar = 0, totalPossibleSoFar = 0, todayDone = 0, todayTotal = 0, todaySlips = 0, negTotal = 0, momentumSum = 0;
     let totalHabitsDone = 0; 
     
+    // 1. Calculate General Stats
     habits.forEach((h) => {
         const w = Number(h.weight) || 2;
         const daysPassed = todayIdx + 1;
@@ -627,26 +628,61 @@ function updateStats() {
         momentumSum += (recentScore/3);
     });
     
+    // 2. Update Rings
     const efficiencyPct = totalPossibleSoFar ? (earnedSoFar/totalPossibleSoFar)*100 : 0;
     const todayPerf = ((todayDone + (negTotal - todaySlips)) / (todayTotal + negTotal || 1)) * 100;
     const momPct = habits.length ? (momentumSum / habits.length) * 100 : 0;
     setRing("ring-efficiency", efficiencyPct); setRing("ring-normalized", todayPerf); setRing("ring-momentum", momPct);
     
+    // 3. Update Headline %
     const totalPotentialChecks = (todayIdx + 1) * habits.length;
     const monthlyProgress = totalPotentialChecks > 0 ? (totalHabitsDone / totalPotentialChecks) * 100 : 0;
     const gradText = document.querySelector(".headline .gradient-text");
     if(gradText) gradText.innerText = Math.round(monthlyProgress) + "%";
 
+    // 4. FIXED STREAK CALCULATION (Live & Persistent)
     let streak = 0;
-    for (let d = todayIdx; d >= 0; d--) { let score = 0; habits.forEach(h => { if(h.days[d]) score += h.type==="positive"?1:-1; }); if(score > 0) streak++; else break; }
-    const streakEl = document.getElementById("streakValue"); if(streakEl) streakEl.innerText = streak;
-    const headerStreak = document.querySelector(".streak-info.mobile-view .streak-count");
-    if(headerStreak && window.lucide) { headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`; lucide.createIcons(); }
+    
+    // Step A: Calculate streak for YESTERDAY backwards (The "Safe" Streak)
+    for (let d = todayIdx - 1; d >= 0; d--) {
+        let dailyScore = 0;
+        habits.forEach(h => { 
+            if(h.days[d]) dailyScore += (h.type === "positive" ? 1 : -1); 
+        });
+        
+        if (dailyScore > 0) {
+            streak++; // Kept the streak alive this day
+        } else {
+            break; // Streak broke here
+        }
+    }
 
+    // Step B: Check TODAY. If good, add +1. If bad, don't kill the streak yet (it's just "in progress")
+    let todayScore = 0;
+    habits.forEach(h => { 
+        if(h.days[todayIdx]) todayScore += (h.type === "positive" ? 1 : -1); 
+    });
+    
+    if (todayScore > 0) {
+        streak++; // You extended the streak!
+    }
+
+    // 5. Update Streak UI
+    const streakEl = document.getElementById("streakValue"); 
+    if(streakEl) streakEl.innerText = streak;
+    
+    const headerStreak = document.querySelector(".streak-info.mobile-view .streak-count");
+    if(headerStreak && window.lucide) { 
+        headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`; 
+        lucide.createIcons(); 
+    }
+
+    // 6. Net Score Text
     const scoreEl = document.getElementById("todaySummary");
     let todayNet = 0; habits.forEach(h => { if(h.days[todayIdx]) todayNet += h.type==="positive"?1:-1; });
     if(scoreEl) scoreEl.innerText = `${todayNet>0?"+":""}${todayNet} Net Score`;
     
+    // 7. Heatmap
     const heatGrid = document.getElementById("streakHeatmap");
     if(heatGrid) {
         heatGrid.innerHTML = "";
@@ -660,19 +696,14 @@ function updateStats() {
         }
     }
     
-    // Updated Footer Logic (Responsive Text)
+    // 8. Footer Logic
     const footerC = document.querySelector(".counter");
     if(footerC) {
-        // We wrap words in <span class="hide-mobile"> so we can hide them on phones
         const prefix = `<span class="hide-mobile">Today: </span>`;
         const suffix = `<span class="hide-mobile"> done</span>`;
-        
-        // Only show slips if they exist
         const slipText = negTotal > 0 
             ? `<span style="opacity:0.3; margin:0 6px">|</span> <span style="color:#ef4444">${todaySlips}/${negTotal}</span><span class="hide-mobile"> slips</span>` 
             : ``;
-            
-        // Combine it all
         footerC.innerHTML = `${prefix}<span style="color:var(--green)">${todayDone}/${todayTotal}</span>${suffix} ${slipText}`;
     }
 }
