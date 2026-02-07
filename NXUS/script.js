@@ -74,6 +74,7 @@ const loadHabits = async () => {
     } else {
         habits = [];
     }
+    needsScrollToToday = true;
     update();
   } catch (e) {
     console.error("Error loading document: ", e);
@@ -406,9 +407,10 @@ function updateProgress(tr, h) {
 
 // ============== THE FIXED SCROLL FUNCTION ==============
 function scrollToToday() {
+    // Only scroll if the flag is true
     if (!needsScrollToToday) return;
 
-    // Wait 100ms for the DOM to paint so we can measure widths
+    // Use a timeout to ensure the table is fully drawn
     setTimeout(() => {
         const y = parseInt(yearInput.value) || NOW.getFullYear();
         const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
@@ -416,26 +418,32 @@ function scrollToToday() {
         if (isThisMonth && !isEditMode) {
             const today = NOW.getDate();
             const wrapper = document.querySelector(".table-wrapper");
+            
+            // Find the header for today (e.g., "header-day-7")
             const todayHeader = document.getElementById(`header-day-${today}`);
-            const firstColumn = document.querySelector("th:first-child"); 
+            // Find the sticky column (Habit Names)
+            const stickyCol = document.querySelector("th:first-child"); 
 
-            if (wrapper && todayHeader && firstColumn) {
-                // Get the width of the sticky "Habit" column
-                const stickyOffset = firstColumn.getBoundingClientRect().width;
+            if (wrapper && todayHeader && stickyCol) {
+                // 1. Get the sticky column width (e.g., 180px)
+                const stickyWidth = stickyCol.offsetWidth;
                 
-                // Calculate position: Element Left - Sticky Width - Padding
-                // We subtract extra (80px) so "Today" isn't hidden behind the sticky header
-                const targetX = todayHeader.offsetLeft - stickyOffset - 80;
+                // 2. Calculate where "Today" is
+                // We subtract the stickyWidth so "Today" slides out from behind it.
+                // We subtract an extra 50px so there is a little breathing room.
+                const scrollPos = todayHeader.offsetLeft - stickyWidth - 50;
 
+                // 3. Scroll there smoothly
                 wrapper.scrollTo({
-                    left: Math.max(0, targetX), 
+                    left: Math.max(0, scrollPos),
                     behavior: "smooth"
                 });
+                
+                // 4. NOW we can turn the flag off
+                needsScrollToToday = false; 
             }
         }
-        // Disable flag after running once
-        needsScrollToToday = false; 
-    }, 100);
+    }, 200); // 200ms delay to be safe
 }
 
 /* =========================================================
