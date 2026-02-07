@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>NXUS | Habit Tracker</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="date-picker">
+          <input type="number" id="year" placeholder="YYYY" />
+          <div class="dropdown" id="monthDropdown"></div>
+        </div>
+
+        <div class="headline">
+          <div class="headline-label">
+              <i data-lucide="trending-up" class="headline-icon"></i>
+              <span>ON TRACK</span>
+          </div>
+          <h1 id="successRate" class="gradient-text">0%</h1>
+          <span class="sub">monthly progress</span>
+        </div>
+      </header>
+
+      <section class="today-focus">
+        <div class="today-header">
+          <div class="today-header-title">
+            <i data-lucide="activity" style="color: var(--green)"></i>
+            <h2>Activity Graph</h2>
+          </div>
+          <div id="todaySummary" class="graph-summary">0 net score</div>
+        </div>
+        <div class="graph-container">
+          <svg id="activityGraph" width="100%" height="100%" viewBox="0 0 800 150" preserveAspectRatio="none"></svg>
+        </div>
+      </section>
+
+      <section class="analytics">
+        <div class="ring-block">
+          <div class="ring" id="ring-efficiency">
+            <svg viewBox="0 0 80 80">
+              <defs>
+                <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#63e6a4" />
+                  <stop offset="100%" stop-color="#34d399" />
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+              <circle class="ring-progress" cx="40" cy="40" r="34" stroke="url(#grad-green)" id="path-efficiency"></circle>
+            </svg>
+            <span id="efficiencyPct">0%</span>
+          </div>
+          <div class="ring-label">Efficiency</div>
+        </div>
+
+        <div class="ring-block">
+          <div class="ring" id="ring-normalized">
+            <svg viewBox="0 0 80 80">
+              <defs>
+                <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4fd1ff" />
+                  <stop offset="100%" stop-color="#0ea5e9" />
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+              <circle class="ring-progress" cx="40" cy="40" r="34" stroke="url(#grad-cyan)" id="path-normalized"></circle>
+            </svg>
+            <span id="normalizedPct">0%</span>
+          </div>
+          <div class="ring-label">Today</div>
+        </div>
+
+        <div class="ring-block">
+          <div class="ring" id="ring-momentum">
+            <svg viewBox="0 0 80 80">
+              <defs>
+                <linearGradient id="grad-yellow" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#facc15" />
+                  <stop offset="100%" stop-color="#fbbf24" />
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
+              <circle class="ring-progress" cx="40" cy="40" r="34" stroke="url(#grad-yellow)" id="path-momentum"></circle>
+            </svg>
+            <span id="momentumPct">0%</span>
+          </div>
+          <div class="ring-label">Momentum</div>
+        </div>
+
+        <div class="streak-widget">
+            <div class="streak-info">
+                <div class="streak-count">
+                    <i data-lucide="flame" class="streak-icon"></i>
+                    <span id="streakValue">0</span>
+                </div>
+                <div class="streak-label">Current Streak</div>
+            </div>
+
+            <div id="dailyQuote" class="quote-text">Loading...</div>
+            
+            <div class="heatmap-grid" id="streakHeatmap"></div>
+        </div>
+      </section>
+
+      <section class="habits">
+        <div class="section-title">Monthly overview</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr id="dayHeader"></tr>
+            </thead>
+            <tbody id="habitBody"></tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          <button id="addHabit">Add habit</button>
+          <div class="counter">
+            Today: <span id="completed">0</span>/<span id="total">0</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
