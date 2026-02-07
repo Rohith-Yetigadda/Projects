@@ -1,9 +1,9 @@
 /* =========================================================
-   0. FIREBASE SETUP
+   0. FIREBASE IMPORTS & CONFIG
 ========================================================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
@@ -15,6 +15,7 @@ const firebaseConfig = {
   measurementId: "G-S758JXL79M"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -31,7 +32,7 @@ const monthNames = [
 const NOW = new Date();
 let currentMonth = NOW.getMonth();
 const yearInput = document.getElementById("year");
-yearInput.value = NOW.getFullYear();
+if (yearInput) yearInput.value = NOW.getFullYear();
 
 const debounce = (func, wait) => {
   let timeout;
@@ -42,56 +43,68 @@ const debounce = (func, wait) => {
 };
 
 const getDays = (y, m) => new Date(y, m + 1, 0).getDate();
-const storageKey = (y, m) => `habits-${y}-${m}`;
 
-yearInput.addEventListener("wheel", (e) => e.preventDefault());
-
+// Variables
 let habits = [];
 let isEditMode = false;
 let needsScrollToToday = true;
 let lastAddedHabitIndex = -1;
 
 /* =========================================================
-   2. DATA PERSISTENCE
+   2. DATA PERSISTENCE (FIRESTORE)
 ========================================================= */
-const loadHabits = () => {
-  const y = parseInt(yearInput.value) || NOW.getFullYear();
-  const key = storageKey(y, currentMonth);
-  const stored = localStorage.getItem(key);
+const loadHabits = async () => {
+  if (!currentUser) return; // Wait for auth
 
-  if (stored) {
-    try { habits = JSON.parse(stored); } catch(e) { habits = []; }
-  } else {
-    habits = [];
-    let checkY = y; let checkM = currentMonth;
-    for (let i = 0; i < 12; i++) {
-      checkM--;
-      if (checkM < 0) { checkM = 11; checkY--; }
-      const prevKey = storageKey(checkY, checkM);
-      const prevData = localStorage.getItem(prevKey);
-      if (prevData) {
-        try {
-            const parsedPrev = JSON.parse(prevData);
-            habits = parsedPrev.map((h) => ({
-              name: h.name, type: h.type || "positive", weight: h.weight || 2, goal: h.goal || 28, days: [],
-            }));
-            break;
-        } catch(e) { continue; }
-      }
+  const y = parseInt(yearInput.value) || NOW.getFullYear();
+  const docId = `${y}-${currentMonth}`; // e.g. "2026-1"
+  const docRef = doc(db, "users", currentUser.uid, "monthly_data", docId);
+
+  try {
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // Restore habits from cloud
+      habits = data.habits.map((h) => ({
+        name: h.name,
+        type: h.type || "positive",
+        weight: h.weight || 2,
+        goal: h.goal || 28,
+        // Ensure days array matches current month length
+        days: h.days || [] 
+      }));
+    } else {
+        // If no data for this month, start empty (or you could copy previous month here)
+        habits = [];
     }
+    // Refresh UI after loading
+    update();
+  } catch (e) {
+    console.error("Error loading document: ", e);
   }
 };
 
-const save = () => {
+const save = async () => {
+  if (!currentUser) return;
+
   const y = parseInt(yearInput.value) || NOW.getFullYear();
-  localStorage.setItem(storageKey(y, currentMonth), JSON.stringify(habits));
+  const docId = `${y}-${currentMonth}`;
+  const docRef = doc(db, "users", currentUser.uid, "monthly_data", docId);
+
+  try {
+    // Save the entire habits array to Firestore
+    await setDoc(docRef, { habits: habits }, { merge: true });
+    console.log("Saved to cloud.");
+  } catch (e) {
+    console.error("Error saving document: ", e);
+  }
 };
-const debouncedSave = debounce(() => save(), 500);
+
+const debouncedSave = debounce(() => save(), 1000);
 
 /* =========================================================
-   3. SMART DROPDOWNS (Fixed Positioning & Auto-Clamp)
+   3. SMART DROPDOWNS
 ========================================================= */
-
 document.addEventListener("click", (e) => {
     if (!e.target.closest(".dropdown-menu")) {
         closeAllDropdowns();
@@ -108,6 +121,7 @@ function closeAllDropdowns() {
 }
 
 function makeDropdown(el, options, selectedIndex, onChange) {
+    if (!el) return;
     el.innerHTML = "";
     const btn = document.createElement("div");
     btn.className = "dropdown-button";
@@ -125,12 +139,10 @@ function makeDropdown(el, options, selectedIndex, onChange) {
 
     btn.onclick = (e) => {
         e.stopPropagation();
-
         if (btn.classList.contains("active-dropdown-btn")) {
             closeAllDropdowns();
             return;
         }
-
         closeAllDropdowns();
         btn.classList.add("active-dropdown-btn");
 
@@ -160,7 +172,6 @@ function makeDropdown(el, options, selectedIndex, onChange) {
         document.body.appendChild(menu);
 
         const rect = btn.getBoundingClientRect();
-        
         menu.style.visibility = "hidden";
         menu.style.display = "block";
         const menuHeight = menu.scrollHeight;
@@ -202,6 +213,8 @@ function makeDropdown(el, options, selectedIndex, onChange) {
 ========================================================= */
 function renderHeader() {
   const dayHeader = document.getElementById("dayHeader");
+  if (!dayHeader) return;
+  
   const y = parseInt(yearInput.value) || NOW.getFullYear();
   const days = getDays(y, currentMonth);
   const today = NOW.getDate();
@@ -262,7 +275,9 @@ function renderHeader() {
 
 function renderHabits() {
   const habitBody = document.getElementById("habitBody");
+  if (!habitBody) return;
   habitBody.innerHTML = "";
+  
   const y = parseInt(yearInput.value) || NOW.getFullYear();
   const days = getDays(y, currentMonth);
   const today = NOW.getDate();
@@ -271,6 +286,7 @@ function renderHabits() {
   closeAllDropdowns();
 
   habits.forEach((h, i) => {
+    // Ensure days array is correct length
     if (!h.days || h.days.length !== days) {
       const newDays = Array(days).fill(false);
       if (h.days) h.days.forEach((val, idx) => { if (idx < days) newDays[idx] = val; });
@@ -333,7 +349,7 @@ function renderHabits() {
 
       cb.onchange = () => { 
           h.days[d] = cb.checked; 
-          save(); 
+          save(); // Trigger cloud save
           updateStats(); 
           if (!isEditMode) updateProgress(tr, h); 
           renderGraph(false); 
@@ -577,7 +593,7 @@ function initGraphEvents(svg, tooltip) {
 function updateStats() {
     const y = parseInt(yearInput.value) || NOW.getFullYear();
     const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
-    const todayIdx = isThisMonth ? NOW.getDate() - 1 : habits[0]?.days.length - 1 || 0;
+    const todayIdx = isThisMonth ? NOW.getDate() - 1 : (habits[0]?.days.length - 1 || 0);
     
     let earnedSoFar = 0, totalPossibleSoFar = 0, todayDone = 0, todayTotal = 0, todaySlips = 0, negTotal = 0, momentumSum = 0;
     let totalHabitsDone = 0; 
@@ -609,7 +625,7 @@ function updateStats() {
     for (let d = todayIdx; d >= 0; d--) { let score = 0; habits.forEach(h => { if(h.days[d]) score += h.type==="positive"?1:-1; }); if(score > 0) streak++; else break; }
     const streakEl = document.getElementById("streakValue"); if(streakEl) streakEl.innerText = streak;
     const headerStreak = document.querySelector(".streak-info.mobile-view .streak-count");
-    if(headerStreak) { headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`; lucide.createIcons(); }
+    if(headerStreak && window.lucide) { headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`; lucide.createIcons(); }
 
     const scoreEl = document.getElementById("todaySummary");
     let todayNet = 0; habits.forEach(h => { if(h.days[todayIdx]) todayNet += h.type==="positive"?1:-1; });
@@ -674,6 +690,8 @@ function handleMobileLayout() {
   }
 }
 
+function update() { renderHeader(); renderHabits(); updateStats(); renderGraph(); handleMobileLayout(); if(window.lucide) lucide.createIcons(); }
+
 // INIT
 makeDropdown(document.getElementById("monthDropdown"), monthNames.map((m, i) => ({ label: m, value: i })), currentMonth, (m) => { currentMonth = m; needsScrollToToday = true; loadHabits(); update(); });
 
@@ -687,8 +705,36 @@ document.getElementById("addHabit").onclick = () => {
 window.addEventListener("resize", debounce(() => { renderGraph(); handleMobileLayout(); }, 100));
 yearInput.addEventListener("input", () => { loadHabits(); update(); });
 
-function update() { renderHeader(); renderHabits(); updateStats(); renderGraph(); handleMobileLayout(); lucide.createIcons(); }
-loadHabits(); update();
-
 const quotes = ["Consistency is key.", "Focus on the process.", "Small wins matter.", "Day one or one day.", "Keep showing up.", "Progress, not perfection.", "Show up daily.", "Little by little."];
 const qEl = document.getElementById("dailyQuote"); if(qEl) qEl.innerText = quotes[Math.floor(Math.random()*quotes.length)];
+
+// Logout Logic
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        signOut(auth).then(() => {
+            console.log("User signed out");
+            window.location.href = "login.html";
+        }).catch((error) => {
+            console.error("Sign out error", error);
+        });
+    });
+}
+
+// AUTH STATE LISTENER (The main entry point)
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    console.log("User connected:", user.email);
+    
+    // REVEAL THE DASHBOARD
+    const appContainer = document.querySelector(".app");
+    if (appContainer) appContainer.style.display = "block";
+
+    loadHabits(); // Load data from cloud
+    update();     // Render UI
+  } else {
+    // If not logged in, force them to login page
+    window.location.href = "login.html";
+  }
+});
