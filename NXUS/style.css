@@ -401,7 +401,8 @@ button#addHabit:hover { transform: translateY(-2px); filter: brightness(1.1); }
 .logout-footer-btn:hover {
     opacity: 1;
     color: #ef4444; /* Turns red only when you intend to click it */
-    transform: rotate(90deg); /* Satisfying little spin animation */
+    transform: translateX(3px);
+    background: transparent; /* Satisfying little spin animation */
 }
 
 .logout-footer-btn i {

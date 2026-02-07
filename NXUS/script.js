@@ -712,12 +712,15 @@ const qEl = document.getElementById("dailyQuote"); if(qEl) qEl.innerText = quote
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-        signOut(auth).then(() => {
-            console.log("User signed out");
-            window.location.href = "login.html";
-        }).catch((error) => {
-            console.error("Sign out error", error);
-        });
+        // ADDED CONFIRMATION CHECK
+        if (confirm("Are you sure you want to sign out?")) {
+            signOut(auth).then(() => {
+                console.log("User signed out");
+                window.location.href = "login.html";
+            }).catch((error) => {
+                console.error("Sign out error", error);
+            });
+        }
     });
 }
 
