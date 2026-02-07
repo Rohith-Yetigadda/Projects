@@ -24,8 +24,8 @@
             padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            /* The signature NXUS spotlight gradient */
-            background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, var(--bg) 80%);
+            /* ATMOSPHERIC BACKGROUND: Subtle green glow at top */
+            background-image: radial-gradient(circle at 50% -20%, rgba(99, 230, 164, 0.15) 0%, #0b0b0b 70%);
             background-repeat: no-repeat;
             background-attachment: fixed;
             height: 100vh;
@@ -39,10 +39,10 @@
         .login-container {
             width: 100%;
             padding: 20px;
-            display: flex;
             justify-content: center;
             animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-            display: none;
+            /* HIDDEN BY DEFAULT (Prevent Flash) */
+            display: none; 
         }
 
         .login-card {
@@ -68,32 +68,46 @@
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
         }
 
-        /* The Glowing Bolt Logo Container */
+        /* 1. THE LOGO: Glowing Orb Effect */
         .logo-wrapper {
-            width: 64px;
-            height: 64px;
-            background: rgba(99, 230, 164, 0.1);
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px auto;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 24px auto;
-            border: 1px solid rgba(99, 230, 164, 0.2);
-            box-shadow: 0 0 30px rgba(99, 230, 164, 0.15);
+
+            /* RADIAL GLOW: Bright center -> Dark edge */
+            background: radial-gradient(circle at center, rgba(99, 230, 164, 0.25) 0%, rgba(99, 230, 164, 0.05) 70%);
+            
+            border: 1px solid rgba(99, 230, 164, 0.3);
+            box-shadow: 0 0 30px rgba(99, 230, 164, 0.15); 
+            
+            /* Breathing Animation */
+            animation: float 6s ease-in-out infinite;
         }
 
         .logo-icon {
-            color: var(--green);
-            width: 32px;
-            height: 32px;
-            filter: drop-shadow(0 0 5px var(--green));
+            color: #63e6a4;
+            width: 40px;
+            height: 40px;
+            /* Neon Glow */
+            filter: drop-shadow(0 0 8px rgba(99, 230, 164, 0.6));
         }
 
+        /* 2. THE TEXT: Signature Gradient */
         h1 {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             margin: 0 0 8px 0;
             letter-spacing: -1px;
+            
+            /* Gradient: White -> Green */
+            background: linear-gradient(135deg, #ffffff 20%, #63e6a4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         p {
@@ -146,12 +160,19 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes float {
+            0% { transform: translateY(0px); box-shadow: 0 0 30px rgba(99, 230, 164, 0.15); }
+            50% { transform: translateY(-6px); box-shadow: 0 0 50px rgba(99, 230, 164, 0.25); }
+            100% { transform: translateY(0px); box-shadow: 0 0 30px rgba(99, 230, 164, 0.15); }
+        }
+
         /* Mobile Adjustments */
         @media (max-width: 480px) {
             .login-card {
                 padding: 40px 24px;
+                max-width: 90%; /* Prevent touching edges */
             }
-            h1 { font-size: 24px; }
+            h1 { font-size: 28px; }
         }
     </style>
 </head>
@@ -181,50 +202,55 @@
     </div>
 
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
-      authDomain: "nxus-tracker.firebaseapp.com",
-      projectId: "nxus-tracker",
-      storageBucket: "nxus-tracker.firebasestorage.app",
-      messagingSenderId: "1093056988911",
-      appId: "1:1093056988911:web:426a5a5b7cd2a0d36ffd1a",
-      measurementId: "G-S758JXL79M"
-    };
+        // Your Config
+        const firebaseConfig = {
+          apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
+          authDomain: "nxus-tracker.firebaseapp.com",
+          projectId: "nxus-tracker",
+          storageBucket: "nxus-tracker.firebasestorage.app",
+          messagingSenderId: "1093056988911",
+          appId: "1:1093056988911:web:426a5a5b7cd2a0d36ffd1a",
+          measurementId: "G-S758JXL79M"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-    lucide.createIcons();
+        // 1. Initialize Icons
+        lucide.createIcons();
 
-    // AUTH CHECKER (The "Bouncer")
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            // 1. Logged In? -> Go to Dashboard immediately.
-            // (The login card stays hidden, so no flash!)
-            console.log("User found, redirecting...");
-            window.location.href = "index.html";
-        } else {
-            // 2. Not Logged In? -> Show the Login Page now.
-            document.querySelector(".login-container").style.display = "flex";
-        }
-    });
-
-    // Login Button Logic
-    document.getElementById("googleLoginBtn").addEventListener("click", () => {
-        signInWithPopup(auth, provider)
-            .then((result) => {
+        // 2. CHECK LOGIN STATE (The "Bouncer")
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // If logged in, redirect silently (don't show UI)
+                console.log("User found, redirecting...");
                 window.location.href = "index.html";
-            })
-            .catch((error) => {
-                console.error("Login failed", error);
-                alert("Login failed: " + error.message);
-            });
-    });
-</script>
+            } else {
+                // If NOT logged in, reveal the login card
+                const container = document.querySelector(".login-container");
+                if (container) {
+                    container.style.display = "flex";
+                }
+            }
+        });
+
+        // 3. Handle Login Click
+        document.getElementById("googleLoginBtn").addEventListener("click", () => {
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    console.log("Logged in:", result.user.email);
+                    window.location.href = "index.html";
+                })
+                .catch((error) => {
+                    console.error("Login failed", error);
+                    alert("Login failed: " + error.message);
+                });
+        });
+    </script>
 
 </body>
 </html>
