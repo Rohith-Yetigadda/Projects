@@ -410,23 +410,38 @@ function updateProgress(tr, h) {
 }
 
 function scrollToToday() {
+    // 1. Check if we need to scroll (only on first load or month change)
     if (!needsScrollToToday) return;
-    const isMobile = window.innerWidth <= 768;
+
     const y = parseInt(yearInput.value) || NOW.getFullYear();
     const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
-    if (isMobile && isThisMonth && !isEditMode) {
+
+    // 2. Only scroll if it's actually the current month and we aren't editing
+    if (isThisMonth && !isEditMode) {
         const today = NOW.getDate();
+        
+        // We only scroll if the day is > 2 (otherwise we are already at the start)
         if (today > 2) {
             const wrapper = document.querySelector(".table-wrapper");
             const todayHeader = document.getElementById(`header-day-${today}`);
-            const firstHeader = document.querySelector("th:first-child");
+            const firstHeader = document.querySelector("th:first-child"); // The sticky "Habit" column
+
             if (wrapper && todayHeader && firstHeader) {
+                // 3. Calculate position:
+                // Column Position - Sticky Column Width - A little padding (100px) for context
                 const stickyWidth = firstHeader.offsetWidth;
-                const targetPos = todayHeader.offsetLeft - stickyWidth;
-                wrapper.scrollTo({ left: targetPos, behavior: "smooth" });
+                const targetPos = todayHeader.offsetLeft - stickyWidth - 50;
+
+                // 4. Scroll smoothly
+                wrapper.scrollTo({
+                    left: targetPos,
+                    behavior: "smooth"
+                });
             }
         }
     }
+
+    // 5. Turn off the flag so it doesn't fight the user if they scroll manually later
     needsScrollToToday = false; 
 }
 
