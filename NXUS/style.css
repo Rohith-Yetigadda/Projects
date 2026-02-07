@@ -60,7 +60,7 @@ body {
   margin: 0 auto;
   padding: 20px;
   
-  /* CRITICAL SECURITY: Hide app until auth confirms */
+  /* CRITICAL: Hide app until auth confirms to prevent flashing */
   display: none;
 }
 
@@ -147,32 +147,6 @@ body {
   background: rgba(255, 255, 255, 0.1) !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
   transform: translateY(-1px);
-}
-
-/* NEW MINIMAL LOGOUT ICON STYLE */
-.logout-icon-btn {
-    color: rgba(255, 255, 255, 0.3); /* Subtle grey default */
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    margin-left: auto; /* Push to right if space available */
-    margin-right: 20px;
-}
-
-.logout-icon-btn:hover {
-    color: #ef4444; /* Red glow on hover */
-    background: rgba(239, 68, 68, 0.1);
-    transform: translateX(2px);
-}
-
-.logout-icon-btn i {
-    width: 18px;
-    height: 18px;
 }
 
 .headline {
@@ -412,6 +386,29 @@ button#addHabit { background: var(--green); color: #000; border: none; padding: 
 button#addHabit:hover { transform: translateY(-2px); filter: brightness(1.1); }
 .counter { font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 #completed { color: var(--green); } #total { color: var(--text); }
+
+/* MINIMAL FOOTER LOGOUT ICON */
+.logout-footer-btn {
+    color: var(--muted); /* Blends in with the text */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5; /* Very subtle by default */
+}
+
+.logout-footer-btn:hover {
+    opacity: 1;
+    color: #ef4444; /* Turns red only when you intend to click it */
+    transform: rotate(90deg); /* Satisfying little spin animation */
+}
+
+.logout-footer-btn i {
+    width: 16px; /* Smaller, cleaner size */
+    height: 16px;
+}
+
 
 /* CHECKBOXES & BUTTONS */
 td input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; position: relative; }

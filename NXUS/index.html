@@ -23,10 +23,6 @@
           <div class="dropdown" id="monthDropdown"></div>
         </div>
 
-        <div id="logoutBtn" class="logout-icon-btn" title="Sign Out">
-            <i data-lucide="log-out"></i>
-        </div>
-
         <div class="headline">
           <div class="headline-label">
               <i data-lucide="trending-up" class="headline-icon"></i>
@@ -130,8 +126,15 @@
 
         <div class="footer">
           <button id="addHabit">Add habit</button>
-          <div class="counter">
-            Today: <span id="completed">0</span>/<span id="total">0</span>
+          
+          <div class="footer-right" style="display: flex; align-items: center; gap: 20px;">
+              <div class="counter">
+                Today: <span id="completed">0</span>/<span id="total">0</span>
+              </div>
+              
+              <div id="logoutBtn" class="logout-footer-btn" title="Sign Out">
+                <i data-lucide="settings-2"></i>
+              </div>
           </div>
         </div>
       </section>
