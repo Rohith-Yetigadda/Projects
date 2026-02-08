@@ -318,9 +318,11 @@ function renderHabits() {
   const today = NOW.getDate();
   const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
 
+  // Close any open dropdowns before re-rendering
   closeAllDropdowns();
 
   habits.forEach((h, i) => {
+    // 1. Ensure days array matches the month length
     if (!h.days || h.days.length !== days) {
       const newDays = Array(days).fill(false);
       if (h.days) h.days.forEach((val, idx) => { if (idx < days) newDays[idx] = val; });
@@ -328,6 +330,8 @@ function renderHabits() {
     }
 
     const tr = document.createElement("tr");
+    
+    // Animation for newly added habits
     if (i === lastAddedHabitIndex) {
         tr.classList.add("row-enter-anim");
         setTimeout(() => { 
@@ -336,14 +340,31 @@ function renderHabits() {
         }, 500);
     }
 
+    // ==========================================
+    // COLUMN 1: HABIT NAME (Editable)
+    // ==========================================
     const nameTd = document.createElement("td");
     nameTd.contentEditable = isEditMode;
     nameTd.textContent = h.name; 
     nameTd.style.cursor = isEditMode ? "text" : "default";
+    
+    // Save on typing
     nameTd.oninput = () => { h.name = nameTd.textContent; debouncedSave(); };
+    
+    // FIX: Pressing Enter stops editing instead of adding a new line
+    nameTd.onkeydown = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            nameTd.blur();
+        }
+    };
     tr.appendChild(nameTd);
 
+    // ==========================================
+    // COLUMNS: SETTINGS (Only in Edit Mode)
+    // ==========================================
     if (isEditMode) {
+      // TYPE (Positive/Negative)
       const typeTd = document.createElement("td");
       const tDD = document.createElement("div"); tDD.className = "dropdown";
       makeDropdown(tDD, 
@@ -353,6 +374,7 @@ function renderHabits() {
       );
       typeTd.appendChild(tDD); tr.appendChild(typeTd);
 
+      // IMPORTANCE (Low/Med/High)
       const impTd = document.createElement("td");
       const iDD = document.createElement("div"); iDD.className = "dropdown";
       makeDropdown(iDD, 
@@ -362,6 +384,7 @@ function renderHabits() {
       );
       impTd.appendChild(iDD); tr.appendChild(impTd);
 
+      // GOAL (Number)
       const goalTd = document.createElement("td");
       const gIn = document.createElement("input");
       gIn.type = "number"; gIn.className = "goal-input"; gIn.value = h.goal || 28;
@@ -369,18 +392,28 @@ function renderHabits() {
       goalTd.appendChild(gIn); tr.appendChild(goalTd);
     }
 
+    // ==========================================
+    // COLUMNS: DAYS (The Grid)
+    // ==========================================
     for (let d = 0; d < days; d++) {
       const td = document.createElement("td");
       const isToday = isThisMonth && d + 1 === today;
       if (isToday) td.classList.add("today-col");
+      
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = h.days[d];
       if (h.type === "negative") cb.classList.add("neg-habit");
       
+      // Disable future days
       const isFuture = y > NOW.getFullYear() || (y === NOW.getFullYear() && currentMonth > NOW.getMonth()) || (isThisMonth && d > NOW.getDate() - 1);
-      if (isFuture) { cb.classList.add("future-day"); cb.disabled = true; }
+      if (isFuture) { 
+          cb.classList.add("future-day"); 
+          cb.disabled = true; 
+          td.classList.add("disabled-cell"); // Visual cue for cell
+      }
 
+      // 1. Logic for the Checkbox itself
       cb.onchange = () => { 
           h.days[d] = cb.checked; 
           save(); 
@@ -388,24 +421,44 @@ function renderHabits() {
           if (!isEditMode) updateProgress(tr, h); 
           renderGraph(false); 
       };
+
+      // 2. Logic for "Fat Finger" Click (Clicking the cell toggles the box)
+      td.style.cursor = isFuture ? "default" : "pointer";
+      td.onclick = (e) => {
+          // Only toggle if we didn't click the checkbox directly (prevents double toggle)
+          // And make sure it's not a future day
+          if (e.target !== cb && !isFuture) {
+              cb.checked = !cb.checked;
+              // Manually trigger the logic since we changed it via JS
+              cb.dispatchEvent(new Event('change'));
+          }
+      };
+
       td.appendChild(cb);
       tr.appendChild(td);
     }
 
+    // ==========================================
+    // COLUMN: ACTIONS / PROGRESS
+    // ==========================================
     const endTd = document.createElement("td");
     if (isEditMode) {
+      // EDIT MODE: Reorder & Delete Buttons
       const actionWrap = document.createElement("div");
       actionWrap.style.display = "flex"; actionWrap.style.gap = "4px"; actionWrap.style.justifyContent = "center";
       
+      // UP Button
       const btnUp = document.createElement("button"); btnUp.className = "toggle-edit-btn"; btnUp.innerHTML = `<i data-lucide="arrow-up" style="width:14px;"></i>`; btnUp.disabled = i === 0;
       btnUp.onclick = (e) => { e.stopPropagation(); [habits[i], habits[i - 1]] = [habits[i - 1], habits[i]]; save(); update(); };
       
+      // DOWN Button
       const btnDown = document.createElement("button"); btnDown.className = "toggle-edit-btn"; btnDown.innerHTML = `<i data-lucide="arrow-down" style="width:14px;"></i>`; btnDown.disabled = i === habits.length - 1;
       btnDown.onclick = (e) => { e.stopPropagation(); [habits[i], habits[i + 1]] = [habits[i + 1], habits[i]]; save(); update(); };
       
+      // DELETE Button
       const btnDel = document.createElement("button"); btnDel.className = "toggle-edit-btn"; btnDel.innerHTML = `<i data-lucide="trash-2" style="width:14px;"></i>`; btnDel.style.color = "#ef4444";
       btnDel.onclick = (e) => { 
-          if (confirm("Delete?")) { 
+          if (confirm("Delete this habit?")) { 
               const row = btnDel.closest("tr");
               row.classList.add("row-exit-anim"); 
               setTimeout(() => {
@@ -419,6 +472,7 @@ function renderHabits() {
       actionWrap.append(btnUp, btnDown, btnDel);
       endTd.appendChild(actionWrap);
     } else {
+      // VIEW MODE: Progress Bar
       endTd.innerHTML = `<div class="progress-bar"><div class="progress-fill"></div></div>`;
       setTimeout(() => updateProgress(tr, h), 0);
     }
@@ -429,7 +483,6 @@ function renderHabits() {
   // TRIGGER SCROLL AT THE END OF RENDER
   scrollToToday();
 }
-
 function updateProgress(tr, h) {
   const done = h.days.filter(Boolean).length;
   let pct = 0;
@@ -794,9 +847,30 @@ makeDropdown(document.getElementById("monthDropdown"), monthNames.map((m, i) => 
 
 document.getElementById("addHabit").onclick = () => {
   lastAddedHabitIndex = habits.length; 
+  // Create the new habit
   habits.push({ name: "New Habit", type: "positive", weight: 2, goal: 28, days: Array(getDays(yearInput.value, currentMonth)).fill(false) });
   save(); 
+  
+  // Turn ON edit mode automatically so they can type immediately
+  isEditMode = true; 
+  
   update();
+
+  // Wait for the row to appear, then focus the text
+  setTimeout(() => {
+      const rows = document.querySelectorAll("#habitBody tr");
+      const lastRow = rows[rows.length - 1];
+      if (lastRow) {
+          const nameCell = lastRow.querySelector("td:first-child");
+          if (nameCell) {
+              nameCell.focus();
+              // Select all text so typing replaces "New Habit" instantly
+              document.execCommand('selectAll', false, null);
+          }
+          // Scroll to the bottom so they see it
+          lastRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+  }, 100);
 };
 
 window.addEventListener("resize", debounce(() => { renderGraph(); handleMobileLayout(); }, 100));
