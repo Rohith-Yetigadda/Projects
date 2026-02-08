@@ -19,6 +19,8 @@ html {
   font-size: 13px; 
   height: 100%; 
   background-color: #0b0b0b; 
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
 }
 
 * {
@@ -50,6 +52,7 @@ body {
   background: radial-gradient(circle at 50% 0%, #1a1a1a 0%, var(--bg) 80%) no-repeat fixed;
   background-color: var(--bg);
   color: var(--text);
+
   min-height: 100vh;
   overflow-x: hidden;
 }
