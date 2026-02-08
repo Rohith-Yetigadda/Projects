@@ -919,7 +919,7 @@ const syncBtn = document.getElementById("syncBtn");
 if (syncBtn) {
     syncBtn.onclick = async () => {
         // 1. Clear Confirmation Message
-        if (!confirm("🔄 Sync habit settings from last month?\n\nThis will update habit names, colors, and goals to match the previous month.\n\n✅ SAFE: Your current checkmarks for this month will NOT be erased.")) {
+        if (!confirm("🔄 Sync habit settings from last month?")) {
             return;
         }
 
