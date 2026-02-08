@@ -910,3 +910,71 @@ onAuthStateChanged(auth, (user) => {
     window.location.href = "login.html";
   }
 });
+
+// ==========================================
+// SYNC BUTTON LOGIC
+// ==========================================
+const syncBtn = document.getElementById("syncBtn");
+
+if (syncBtn) {
+    syncBtn.onclick = async () => {
+        // 1. Safety Check: Don't accidentally wipe data!
+        if (!confirm("⚠️ Overwrite this month?\n\nThis will copy your habits (names, colors, goals) from the PREVIOUS month.\n\n(Your current checkboxes for this month will be reset.)")) {
+            return;
+        }
+
+        // Visual Feedback (Spin the icon)
+        const icon = syncBtn.querySelector("i");
+        if(icon) icon.classList.add("spin");
+        setTimeout(() => icon?.classList.remove("spin"), 1000);
+
+        try {
+            const y = parseInt(yearInput.value) || NOW.getFullYear();
+            
+            // 2. Calculate "Last Month"
+            // If current is Jan (0), prev is Dec (11) of Year-1
+            let prevM = currentMonth - 1;
+            let prevY = y;
+            if (prevM < 0) { 
+                prevM = 11; 
+                prevY = y - 1; 
+            }
+
+            console.log(`Syncing from: ${prevY}-${prevM + 1}`); // Debug log
+
+            // 3. Fetch Previous Month's Data
+            const prevDocId = `${prevY}-${prevM}`;
+            const prevRef = doc(db, "users", currentUser.uid, "monthly_data", prevDocId);
+            const prevSnap = await getDoc(prevRef);
+
+            if (prevSnap.exists()) {
+                const prevData = prevSnap.data();
+                const daysInCurrentMonth = getDays(y, currentMonth);
+
+                // 4. COPY Logic
+                // We map over the OLD habits, but give them NEW empty days
+                habits = prevData.habits.map(h => ({
+                    name: h.name,
+                    type: h.type || "positive",
+                    weight: h.weight || 2,
+                    goal: h.goal || 28,
+                    // RESET PROGRESS: Create a fresh array of "false" for this month
+                    days: Array(daysInCurrentMonth).fill(false) 
+                }));
+
+                // 5. Save & Render
+                await save(); // Save to Firebase
+                update();     // Update UI
+                
+                // Success Message
+                // (Optional: You can use a toast notification if you have one, or just this alert)
+                // alert("Synced successfully!"); 
+            } else {
+                alert(`No data found for the previous month (${prevM+1}/${prevY}).`);
+            }
+        } catch (e) {
+            console.error("Sync failed:", e);
+            alert("Error syncing: " + e.message);
+        }
+    };
+}
