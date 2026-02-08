@@ -1,11 +1,14 @@
 /* =========================================================
    0. FIREBASE IMPORTS & CONFIG
 ========================================================= */
-if (window.location.pathname.endsWith("index.html")) {
-    window.history.replaceState({}, document.title, "/");
-}
-if (window.location.pathname.endsWith("login.html")) {
-    window.history.replaceState({}, document.title, "/");
+const path = window.location.pathname;
+if (path.endsWith(".html")) {
+    let newPath = path.slice(0, -5); // Remove the last 5 chars (".html")
+    
+    // Special case: if it's "/index", make it just "/"
+    if (newPath === "/index") newPath = "/";
+    
+    window.history.replaceState({}, document.title, newPath);
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
