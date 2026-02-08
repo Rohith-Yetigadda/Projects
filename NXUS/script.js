@@ -57,12 +57,14 @@ const loadHabits = async () => {
   if (!currentUser) return;
 
   const y = parseInt(yearInput.value) || NOW.getFullYear();
-  const docId = `${y}-${currentMonth}`;
+  const docId = `${y}-${currentMonth}`; // e.g. "2026-1"
   const docRef = doc(db, "users", currentUser.uid, "monthly_data", docId);
 
   try {
     const docSnap = await getDoc(docRef);
+
     if (docSnap.exists()) {
+      // SCENARIO A: Data exists for this month. Load it.
       const data = docSnap.data();
       habits = data.habits.map((h) => ({
         name: h.name,
@@ -72,9 +74,46 @@ const loadHabits = async () => {
         days: h.days || [] 
       }));
     } else {
+      // SCENARIO B: New Month! Try to copy from previous month.
+      console.log("New month detected. Checking for previous habits...");
+      
+      // Calculate previous month (Handle January -> December rollover)
+      let prevMonth = currentMonth - 1;
+      let prevYear = y;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear = y - 1;
+      }
+
+      const prevDocId = `${prevYear}-${prevMonth}`;
+      const prevDocRef = doc(db, "users", currentUser.uid, "monthly_data", prevDocId);
+      const prevSnap = await getDoc(prevDocRef);
+
+      if (prevSnap.exists()) {
+        const prevData = prevSnap.data();
+        const daysInCurrentMonth = getDays(y, currentMonth);
+
+        // COPY habits, but RESET days to empty (false)
+        habits = prevData.habits.map(h => ({
+           name: h.name,
+           type: h.type || "positive",
+           weight: h.weight || 2,
+           goal: h.goal || 28,
+           days: Array(daysInCurrentMonth).fill(false) // Clear the checkboxes
+        }));
+
+        // Automatically save this new month immediately
+        save();
+        console.log("Copied habits from previous month.");
+      } else {
+        // SCENARIO C: Brand new user (No history). Start empty.
         habits = [];
+      }
     }
-    needsScrollToToday = true;
+
+    // Force scroll to look for today
+    needsScrollToToday = true; 
+    
     update();
   } catch (e) {
     console.error("Error loading document: ", e);
