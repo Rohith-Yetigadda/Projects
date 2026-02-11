@@ -752,33 +752,56 @@ function updateStats() {
     const gradText = document.querySelector(".headline .gradient-text");
     if(gradText) gradText.innerText = Math.round(monthlyProgress) + "%";
 
-    // 4. FIXED STREAK CALCULATION (Live & Persistent)
+    // 4. UPGRADED STREAK CALCULATION (Weighted Net Score)
     let streak = 0;
     
-    // Step A: Calculate streak for YESTERDAY backwards (The "Safe" Streak)
+    // Step A: Calculate streak for YESTERDAY backwards
     for (let d = todayIdx - 1; d >= 0; d--) {
         let dailyScore = 0;
+        let totalPossibleToday = 0;
+
         habits.forEach(h => { 
-            if(h.days[d]) dailyScore += (h.type === "positive" ? 1 : -1); 
+            const w = Number(h.weight) || 2; // Grab importance!
+            
+            if (h.type === "positive") {
+                totalPossibleToday += w; // Tally up what a "perfect" day looks like
+                if(h.days[d]) dailyScore += w; 
+            } else {
+                if(h.days[d]) dailyScore -= w; // Heavy penalty for heavy bad habits
+            }
         });
         
-        if (dailyScore > 0) {
-            streak++; // Kept the streak alive this day
+        // NEW RULE: To keep a streak, your net score must be at least 
+        // 30% of your total possible positive points for the day.
+        // (No more "bare minimum" loophole!)
+        const threshold = totalPossibleToday * 0.3; 
+
+        if (dailyScore >= threshold && dailyScore > 0) {
+            streak++; 
         } else {
-            break; // Streak broke here
+            break; // Streak died
         }
     }
 
-    // Step B: Check TODAY. If good, add +1. If bad, don't kill the streak yet (it's just "in progress")
+    // Step B: Check TODAY
     let todayScore = 0;
+    let totalPossibleToday = 0;
+    
     habits.forEach(h => { 
-        if(h.days[todayIdx]) todayScore += (h.type === "positive" ? 1 : -1); 
+        const w = Number(h.weight) || 2;
+        if (h.type === "positive") {
+            totalPossibleToday += w;
+            if(h.days[todayIdx]) todayScore += w; 
+        } else {
+            if(h.days[todayIdx]) todayScore -= w;
+        }
     });
     
-    if (todayScore > 0) {
-        streak++; // You extended the streak!
+    const todayThreshold = totalPossibleToday * 0.3;
+    
+    if (todayScore >= todayThreshold && todayScore > 0) {
+        streak++; // Extended!
     }
-
     // 5. Update Streak UI
     const streakEl = document.getElementById("streakValue"); 
     if(streakEl) streakEl.innerText = streak;
