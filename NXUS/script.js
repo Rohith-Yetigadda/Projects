@@ -548,7 +548,7 @@ function scrollToToday() {
 }
 
 /* =========================================================
-   6. GRAPH RENDERING
+   6. GRAPH RENDERING (Updated for Dynamic Negative Scaling)
 ========================================================= */
 function renderGraph(isFullRebuild = true) {
   const svg = document.getElementById("activityGraph");
@@ -589,11 +589,20 @@ function renderGraph(isFullRebuild = true) {
   const padding = 15;
   const drawWidth = width - (padding * 2);
   for (let d = 0; d < totalDaysInMonth; d++) { xPositions.push(padding + (d / (totalDaysInMonth - 1)) * drawWidth); }
+  
   const topPad = 30; const bottomPad = 20;
   const graphHeight = height - bottomPad;
-  const maxVal = Math.max(...dataPoints.map(d => d.score), 5);
-  const pxPerUnit = (graphHeight - topPad) / (maxVal || 1);
-  const mapY = (val) => graphHeight - val * pxPerUnit;
+  
+  // --- DYNAMIC SCALING FIX ---
+  const scores = dataPoints.map(d => d.score);
+  const maxVal = Math.max(...scores, 1);
+  const minVal = Math.min(...scores, 0); // Finds the lowest negative dip
+  const range = maxVal - minVal || 1;
+  
+  // Scales the graph relative to your lowest negative score instead of absolute zero
+  const mapY = (val) => graphHeight - ((val - minVal) / range) * (graphHeight - topPad);
+  const zeroY = mapY(0); // Calculates exactly where the "0" line should sit
+  // ---------------------------
 
   const points = dataPoints.map((d, i) => ({ x: xPositions[i], y: mapY(d.score), val: d.score, pos: d.pos, neg: d.neg, day: i + 1, index: i }));
   if (points.length < 2) return;
@@ -620,7 +629,7 @@ function renderGraph(isFullRebuild = true) {
                 <stop offset="100%" stop-color="#63e6a4" stop-opacity="0"/>
             </linearGradient>
         </defs>
-        <line x1="0" y1="${graphHeight}" x2="${width}" y2="${graphHeight}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+        <line x1="0" y1="${zeroY}" x2="${width}" y2="${zeroY}" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4 4" />
         <path class="graph-area" d="${dArea}" pointer-events="none" />
         <path class="graph-path" d="${dPath}" pointer-events="none" />
         <g id="dotsGroup"></g>
@@ -631,6 +640,8 @@ function renderGraph(isFullRebuild = true) {
   } else {
       existingPath.setAttribute('d', dPath);
       svg.querySelector('.graph-area').setAttribute('d', dArea);
+      const zeroLine = svg.querySelector('line');
+      if(zeroLine) { zeroLine.setAttribute('y1', zeroY); zeroLine.setAttribute('y2', zeroY); }
       const overlay = svg.querySelector('.graph-overlay');
       if(overlay) overlay.setAttribute('width', width);
   }
