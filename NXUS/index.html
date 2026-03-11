@@ -17,26 +17,120 @@
   </head>
   <body>
     <div class="app">
+      <div class="menu-overlay" id="menuOverlay"></div>
+      <div class="side-menu" id="sideMenu">
+
+        <div class="menu-header">
+          <div class="menu-profile">
+            <div class="menu-avatar" id="menuAvatar">N</div>
+            <div class="menu-profile-info">
+              <div class="menu-name-row">
+                <span class="menu-display-name" id="menuDisplayName">User</span>
+                <button class="menu-edit-name-btn" id="editNameBtn" title="Edit name">
+                  <i data-lucide="pencil" style="width:13px;height:13px;"></i>
+                </button>
+              </div>
+              <span class="menu-email" id="menuEmail">—</span>
+            </div>
+          </div>
+          <input class="menu-name-input" id="menuNameInput" type="text" placeholder="Your name" style="display:none;" />
+        </div>
+
+        <div class="menu-section">
+          <div class="menu-section-label">Appearance</div>
+
+          <div class="menu-row" id="themeToggleRow">
+            <div class="menu-row-left">
+              <i data-lucide="sun" style="width:15px;height:15px;"></i>
+              <span>Light Mode</span>
+            </div>
+            <div class="menu-toggle" id="themeToggle">
+              <div class="menu-toggle-thumb"></div>
+            </div>
+          </div>
+
+          <div class="menu-row">
+            <div class="menu-row-left">
+              <i data-lucide="layers" style="width:15px;height:15px;"></i>
+              <span>Compact View</span>
+            </div>
+            <div class="menu-toggle" id="densityToggle">
+              <div class="menu-toggle-thumb"></div>
+            </div>
+          </div>
+
+          <div class="menu-row-label">Accent Color</div>
+          <div class="palette-grid" id="paletteGrid">
+            <div class="palette-dot active" data-palette="emerald" style="background:#63e6a4;" title="Emerald"></div>
+            <div class="palette-dot" data-palette="cyan" style="background:#4fd1ff;" title="Ocean"></div>
+            <div class="palette-dot" data-palette="violet" style="background:#a78bfa;" title="Violet"></div>
+            <div class="palette-dot" data-palette="sunset" style="background:#fb923c;" title="Sunset"></div>
+            <div class="palette-dot" data-palette="rose" style="background:#fb7185;" title="Rose"></div>
+          </div>
+        </div>
+
+        <div class="menu-section">
+          <div class="menu-section-label">Data</div>
+          <div class="menu-row" id="exportBtn">
+            <div class="menu-row-left">
+              <i data-lucide="download" style="width:15px;height:15px;"></i>
+              <span>Export Month CSV</span>
+            </div>
+            <i data-lucide="chevron-right" style="width:14px;height:14px;opacity:0.4;"></i>
+          </div>
+
+          <div class="menu-row" id="syncBtn">
+          <div class="menu-row-left">
+            <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span>Sync from Last Month</span>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" style="width:14px;height:14px;opacity:0.4;flex-shrink:0;"></i>
+        </div>
+        </div>
+
+        <div class="menu-footer">
+          <div class="menu-app-info">
+            <div class="menu-app-version">version 1.1</div>
+          </div>
+          <div class="menu-row menu-signout" id="menuSignOut">
+            <div class="menu-row-left">
+              <i data-lucide="log-out" style="width:15px;height:15px;"></i>
+              <span>Sign Out</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <header class="top">
+        <div class="top-left">
+        <button class="hamburger-btn" id="hamburgerBtn">
+          <span></span><span></span><span></span>
+        </button>
         <div class="date-picker">
           <input type="number" id="year" placeholder="YYYY" />
           <div class="dropdown" id="monthDropdown"></div>
         </div>
+      </div>
 
-        <div class="headline">
-          <div class="headline-label">
-            <i data-lucide="trending-up" class="headline-icon"></i>
-            <span>ON TRACK</span>
-          </div>
-          <h1 id="successRate" class="gradient-text">0%</h1>
-          <span class="sub">monthly progress</span>
+      <div class="top-logo">NXUS</div>
+
+      <div class="headline">
+        <div class="headline-label">
+          <i data-lucide="trending-up" class="headline-icon"></i>
+          <span>ON TRACK</span>
+        </div>
+        <h1 id="successRate" class="gradient-text">0%</h1>
+        <span class="sub">monthly progress</span>
         </div>
       </header>
 
       <section class="today-focus">
         <div class="today-header">
           <div class="today-header-title">
-            <i data-lucide="activity" style="color: var(--green)"></i>
+            <i data-lucide="activity" style="color: var(--accent)"></i>
             <h2>Activity Graph</h2>
           </div>
           <div id="todaySummary" class="graph-summary">0 net score</div>
@@ -58,14 +152,14 @@
             <svg viewBox="0 0 80 80">
               <defs>
                 <linearGradient
-                  id="grad-green"
+                  id="grad-teal"
                   x1="0%"
                   y1="0%"
                   x2="100%"
                   y2="0%"
                 >
-                  <stop offset="0%" stop-color="#63e6a4" />
-                  <stop offset="100%" stop-color="#34d399" />
+                  <stop class="accent-stop-1" offset="0%" stop-color="#2dd4bf" />
+                  <stop class="accent-stop-2" offset="100%" stop-color="#0d9488" />
                 </linearGradient>
               </defs>
               <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
@@ -74,7 +168,7 @@
                 cx="40"
                 cy="40"
                 r="34"
-                stroke="url(#grad-green)"
+                stroke="url(#grad-teal)"
                 id="path-efficiency"
               ></circle>
             </svg>
@@ -94,8 +188,8 @@
                   x2="100%"
                   y2="0%"
                 >
-                  <stop offset="0%" stop-color="#4fd1ff" />
-                  <stop offset="100%" stop-color="#0ea5e9" />
+                  <stop offset="0%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#2563eb" />
                 </linearGradient>
               </defs>
               <circle class="ring-bg" cx="40" cy="40" r="34"></circle>
@@ -171,25 +265,12 @@
 
         <div class="footer">
           <button id="addHabit">Add habit</button>
-          <button
-            id="syncBtn"
-            class="secondary-btn"
-            title="Sync settings from previous month (keeps current progress)"
-          >
-            <i data-lucide="refresh-cw"></i>
-          </button>
-
           <div
             class="footer-right"
             style="display: flex; align-items: center; gap: 20px"
           >
-            <div class="counter">
-              Today: <span id="completed">0</span>/<span id="total">0</span>
-            </div>
+            <div class="counter"></div>
 
-            <div id="logoutBtn" class="logout-footer-btn" title="Sign Out">
-              <i data-lucide="log-out"></i>
-            </div>
           </div>
         </div>
       </section>

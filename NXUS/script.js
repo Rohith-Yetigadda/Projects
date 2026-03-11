@@ -3,11 +3,8 @@
 ========================================================= */
 const path = window.location.pathname;
 if (path.endsWith(".html")) {
-    let newPath = path.slice(0, -5); // Remove the last 5 chars (".html")
-    
-    // Special case: if it's "/index", make it just "/"
+    let newPath = path.slice(0, -5);
     if (newPath === "/index") newPath = "/";
-    
     window.history.replaceState({}, document.title, newPath);
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -108,10 +105,8 @@ const loadHabits = async () => {
            type: h.type || "positive",
            weight: h.weight || 2,
            goal: h.goal || 28,
-           days: Array(daysInCurrentMonth).fill(false) // Clear the checkboxes
+           days: Array(daysInCurrentMonth).fill(false)
         }));
-
-        // Automatically save this new month immediately
         save();
         console.log("Copied habits from previous month.");
       } else {
@@ -327,11 +322,10 @@ function renderHabits() {
   const today = NOW.getDate();
   const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
 
-  // Close any open dropdowns before re-rendering
   closeAllDropdowns();
 
   habits.forEach((h, i) => {
-    // 1. Ensure days array matches the month length
+   
     if (!h.days || h.days.length !== days) {
       const newDays = Array(days).fill(false);
       if (h.days) h.days.forEach((val, idx) => { if (idx < days) newDays[idx] = val; });
@@ -340,7 +334,6 @@ function renderHabits() {
 
     const tr = document.createElement("tr");
     
-    // Animation for newly added habits
     if (i === lastAddedHabitIndex) {
         tr.classList.add("row-enter-anim");
         setTimeout(() => { 
@@ -360,7 +353,6 @@ function renderHabits() {
     // Save on typing
     nameTd.oninput = () => { h.name = nameTd.textContent; debouncedSave(); };
     
-    // FIX: Pressing Enter stops editing instead of adding a new line
     nameTd.onkeydown = (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -419,7 +411,7 @@ function renderHabits() {
       if (isFuture) { 
           cb.classList.add("future-day"); 
           cb.disabled = true; 
-          td.classList.add("disabled-cell"); // Visual cue for cell
+          td.classList.add("disabled-cell");
       }
 
       // 1. Logic for the Checkbox itself
@@ -434,11 +426,9 @@ function renderHabits() {
       // 2. Logic for "Fat Finger" Click (Clicking the cell toggles the box)
       td.style.cursor = isFuture ? "default" : "pointer";
       td.onclick = (e) => {
-          // Only toggle if we didn't click the checkbox directly (prevents double toggle)
-          // And make sure it's not a future day
           if (e.target !== cb && !isFuture) {
               cb.checked = !cb.checked;
-              // Manually trigger the logic since we changed it via JS
+
               cb.dispatchEvent(new Event('change'));
           }
       };
@@ -493,25 +483,38 @@ function renderHabits() {
   scrollToToday();
 }
 function updateProgress(tr, h) {
-  const done = h.days.filter(Boolean).length;
-  let pct = 0;
-  if (h.type === "positive") {
-    const target = h.goal || h.days.length;
-    pct = (done / target) * 100;
-  } else {
-    pct = ((h.days.length - done) / h.days.length) * 100;
-  }
-  if (pct > 100) pct = 100;
-  const fill = tr.querySelector(".progress-fill");
-  if (fill) fill.style.width = pct + "%";
+    const totalDays = h.days.length;
+    const goal = h.goal || totalDays;
+    const y = parseInt(yearInput.value) || NOW.getFullYear();
+    const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
+    const daysPassed = isThisMonth ? NOW.getDate() : totalDays;
+    const checks = h.days.slice(0, daysPassed).filter(Boolean).length;
+
+    let pct = 0;
+
+    if (h.type === 'negative') {
+        pct = (checks / goal) * 100;
+        const fill = tr.querySelector(".progress-fill");
+        if (fill) {
+            fill.style.width = Math.min(pct, 100) + "%";
+            fill.style.background = pct >= 100
+                ? "linear-gradient(90deg, rgba(239,68,68,0.9), rgba(185,28,28,0.9))"
+                : "linear-gradient(90deg, rgba(239,68,68,0.7), rgba(239,68,68,0.75))";
+        }        
+    } else {
+        pct = (checks / goal) * 100;
+        if (pct > 100) pct = 100;
+        const fill = tr.querySelector(".progress-fill");
+        if (fill) {
+            fill.style.width = pct + "%";
+            fill.style.background = "linear-gradient(90deg, color-mix(in srgb, var(--accent) 60%, #ffffff), var(--accent))";
+        }
+    }
 }
 
 // ============== THE FIXED SCROLL FUNCTION ==============
 function scrollToToday() {
-    // Only scroll if the flag is true
     if (!needsScrollToToday) return;
-
-    // Use a timeout to ensure the table is fully drawn
     setTimeout(() => {
         const y = parseInt(yearInput.value) || NOW.getFullYear();
         const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
@@ -519,19 +522,14 @@ function scrollToToday() {
         if (isThisMonth && !isEditMode) {
             const today = NOW.getDate();
             const wrapper = document.querySelector(".table-wrapper");
-            
-            // Find the header for today (e.g., "header-day-7")
             const todayHeader = document.getElementById(`header-day-${today}`);
-            // Find the sticky column (Habit Names)
             const stickyCol = document.querySelector("th:first-child"); 
 
             if (wrapper && todayHeader && stickyCol) {
-                // 1. Get the sticky column width (e.g., 180px)
+                // 1. Get the sticky column width
                 const stickyWidth = stickyCol.offsetWidth;
                 
                 // 2. Calculate where "Today" is
-                // We subtract the stickyWidth so "Today" slides out from behind it.
-                // We subtract an extra 50px so there is a little breathing room.
                 const scrollPos = todayHeader.offsetLeft - stickyWidth - 50;
 
                 // 3. Scroll there smoothly
@@ -539,17 +537,20 @@ function scrollToToday() {
                     left: Math.max(0, scrollPos),
                     behavior: "smooth"
                 });
-                
-                // 4. NOW we can turn the flag off
                 needsScrollToToday = false; 
             }
         }
-    }, 200); // 200ms delay to be safe
+    }, 200);
 }
 
 /* =========================================================
    6. GRAPH RENDERING (Updated for Dynamic Negative Scaling)
 ========================================================= */
+function updateAccentColors() {
+    // Force graph rebuild with new color
+    renderGraph(true);
+}
+
 function renderGraph(isFullRebuild = true) {
   const svg = document.getElementById("activityGraph");
   if (!svg) return;
@@ -566,10 +567,10 @@ function renderGraph(isFullRebuild = true) {
   for (let d = 0; d < totalDaysInMonth; d++) {
     let dailyScore = 0; let posCount = 0; let negCount = 0;
     habits.forEach((h) => {
-      if (h.days[d]) {
-        if (h.type === "positive") { dailyScore += 1; posCount++; }
-        else { dailyScore -= 1; negCount++; }
-      }
+        if (h.days[d]) {
+            if (h.type === "positive") { dailyScore += 1; posCount++; }
+            else { dailyScore -= 1; negCount++; }
+        }
     });
     dataPoints.push({ score: dailyScore, pos: posCount, neg: negCount });
   }
@@ -596,40 +597,40 @@ function renderGraph(isFullRebuild = true) {
   // --- DYNAMIC SCALING FIX ---
   const scores = dataPoints.map(d => d.score);
   const maxVal = Math.max(...scores, 1);
-  const minVal = Math.min(...scores, 0); // Finds the lowest negative dip
+  const minVal = Math.min(...scores, 0);
   const range = maxVal - minVal || 1;
   
   // Scales the graph relative to your lowest negative score instead of absolute zero
   const mapY = (val) => graphHeight - ((val - minVal) / range) * (graphHeight - topPad);
-  const zeroY = mapY(0); // Calculates exactly where the "0" line should sit
-  // ---------------------------
+  const zeroY = mapY(0); 
 
   const points = dataPoints.map((d, i) => ({ x: xPositions[i], y: mapY(d.score), val: d.score, pos: d.pos, neg: d.neg, day: i + 1, index: i }));
   if (points.length < 2) return;
 
   let dPath = `M ${points[0].x} ${points[0].y}`;
   for (let i = 0; i < points.length; i++) {
-    if (i < points.length - 1) {
-        const p0 = points[Math.max(i - 1, 0)]; const p1 = points[i]; const p2 = points[i + 1]; const p3 = points[Math.min(i + 2, points.length - 1)];
-        const cp1x = p1.x + (p2.x - p0.x) * 0.15; const cp1y = p1.y + (p2.y - p0.y) * 0.15;
-        const cp2x = p2.x - (p3.x - p1.x) * 0.15; const cp2y = p2.y - (p3.y - p1.y) * 0.15;
-        dPath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
-    }
+      if (i < points.length - 1) {
+          const p0 = points[Math.max(i - 1, 0)]; const p1 = points[i]; const p2 = points[i + 1]; const p3 = points[Math.min(i + 2, points.length - 1)];
+          const cp1x = p1.x + (p2.x - p0.x) * 0.15; const cp1y = p1.y + (p2.y - p0.y) * 0.15;
+          const cp2x = p2.x - (p3.x - p1.x) * 0.15; const cp2y = p2.y - (p3.y - p1.y) * 0.15;
+          dPath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+      }
   }
   const dArea = `${dPath} L ${points[points.length - 1].x} ${graphHeight} L ${points[0].x} ${graphHeight} Z`;
-
+  
   const existingPath = svg.querySelector('.graph-path');
   if (!existingPath || isFullRebuild) {
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       svg.style.width = "100%";
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#63e6a4';
       svg.innerHTML = `
         <defs>
             <linearGradient id="gradient-area" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#63e6a4" stop-opacity="0.3"/>
-                <stop offset="100%" stop-color="#63e6a4" stop-opacity="0"/>
+                <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="${accentColor}" stop-opacity="0"/>
             </linearGradient>
         </defs>
-        <line x1="0" y1="${zeroY}" x2="${width}" y2="${zeroY}" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4 4" />
+        <line x1="0" y1="${zeroY}" x2="${width}" y2="${zeroY}" stroke="rgba(128,128,128,0.2)" stroke-width="1" stroke-dasharray="4 4" />
         <path class="graph-area" d="${dArea}" pointer-events="none" />
         <path class="graph-path" d="${dPath}" pointer-events="none" />
         <g id="dotsGroup"></g>
@@ -647,6 +648,7 @@ function renderGraph(isFullRebuild = true) {
   }
 
   const dotsGroup = svg.getElementById('dotsGroup');
+
   const existingDots = dotsGroup.querySelectorAll('.graph-dot');
   if (existingDots.length !== totalDaysInMonth) {
       dotsGroup.innerHTML = ''; 
@@ -689,7 +691,7 @@ function initGraphEvents(svg, tooltip) {
             const monthName = monthNames[currentMonth].substring(0, 3);
             dateEl.textContent = `${monthName} ${closest.day}`;
             let html = ``;
-            if (closest.pos > 0 || closest.neg === 0) html += `<span class="stat-item" style="color:var(--green)">${closest.pos} done</span>`;
+            if (closest.pos > 0 || closest.neg === 0) html += `<span class="stat-item" style="color:var(--accent)">${closest.pos} done</span>`;
             if (closest.neg > 0) html += `<span class="stat-item" style="color:#ef4444">${closest.neg} slip</span>`;
             if (closest.pos === 0 && closest.neg === 0) html = `<span class="stat-item" style="color:var(--muted)">No activity</span>`;
             statsEl.innerHTML = html;
@@ -713,135 +715,251 @@ function initGraphEvents(svg, tooltip) {
 
     overlay.addEventListener("mousemove", handleMove); overlay.addEventListener("touchmove", handleMove, { passive: false });
     overlay.addEventListener("click", handleClick); overlay.addEventListener("mouseleave", handleLeave);
+    
+    document.addEventListener("click", (e) => {
+    if (isPinned && !svg.contains(e.target)) {
+        isPinned = false;
+        tooltip.style.opacity = "0";
+        activeDot.classList.remove("is-active");
+    }
+  });
 }
 
 /* =========================================================
    7. UPDATES & INIT
 ========================================================= */
+
+//  SCORING ENGINE — helpers used by stats, streak, and graph
+  const classifyHabit = (h) => {
+      const ratio = (h.goal || h.days.length) / h.days.length;
+      if (ratio >= 0.65) return 'daily';    // goal ~20+/month
+      if (ratio >= 0.25) return 'regular';  // goal ~8-19/month
+      return 'periodic';                    // goal <8/month
+  };
+
+  // Returns 0–1 efficiency score for a habit up to daysPassed
+  const getHabitEfficiency = (h, daysPassed) => {
+      const totalDays = h.days.length;
+      const goal = h.goal || totalDays;
+      const checks = h.days.slice(0, daysPassed).filter(Boolean).length;
+
+      if (h.type === 'negative') {
+          // Strict: every slip directly reduces score
+        if (daysPassed === 0) return 1.0;
+        return (daysPassed - checks) / daysPassed;
+      }
+
+      const tier = classifyHabit(h);
+      const expectedNow = (goal / totalDays) * daysPassed;
+
+      if (tier === 'daily') {
+          // Harshest — every missed day lowers score
+          return checks / daysPassed;
+      }
+
+      if (tier === 'regular') {
+          // Moderate — must hit 75% of expected pace
+          if (expectedNow < 0.5) return 1.0;
+          return Math.min(checks / (expectedNow * 0.75), 1.0);
+      }
+
+      // Periodic — only penalize if more than 1 full occurrence behind
+      if (expectedNow < 0.8) return 1.0; 
+      return Math.min(checks / (expectedNow * 0.6), 1.0);
+  };
+
+  // Returns a weighted score contribution for a single day (used in streak)
+
 function updateStats() {
     const y = parseInt(yearInput.value) || NOW.getFullYear();
     const isThisMonth = currentMonth === NOW.getMonth() && y === NOW.getFullYear();
     const todayIdx = isThisMonth ? NOW.getDate() - 1 : (habits[0]?.days.length - 1 || 0);
-    
-    let earnedSoFar = 0, totalPossibleSoFar = 0, todayDone = 0, todayTotal = 0, todaySlips = 0, negTotal = 0, momentumSum = 0;
-    let totalHabitsDone = 0; 
-    
-    // 1. Calculate General Stats
-    habits.forEach((h) => {
+    const daysPassed = todayIdx + 1;
+
+    // ── 1. EFFICIENCY RING ──────────────────────────────────
+    let totalEfficiency = 0;
+    let totalWeight = 0;
+
+    habits.forEach(h => {
         const w = Number(h.weight) || 2;
-        const daysPassed = todayIdx + 1;
-        const checks = h.days.slice(0, daysPassed).filter(Boolean).length;
-        if (h.type === "positive") { earnedSoFar += (checks/daysPassed)*w; totalHabitsDone += checks; } 
-        else { const slips = h.days.slice(0, daysPassed).filter(Boolean).length; earnedSoFar += ((daysPassed-slips)/daysPassed)*w; }
-        totalPossibleSoFar += w;
-        if (h.type === "positive") { todayTotal++; if(h.days[todayIdx]) todayDone++; } else { negTotal++; if(h.days[todayIdx]) todaySlips++; }
-        let recentScore = 0;
-        for(let i=0; i<3; i++) { const idx = todayIdx - i; if(idx >= 0) { const success = h.type==="positive" ? h.days[idx] : !h.days[idx]; if(success) recentScore++; } }
-        momentumSum += (recentScore/3);
+        totalEfficiency += getHabitEfficiency(h, daysPassed) * w;
+        totalWeight += w;
     });
-    
-    // 2. Update Rings
-    const efficiencyPct = totalPossibleSoFar ? (earnedSoFar/totalPossibleSoFar)*100 : 0;
-    const todayPerf = ((todayDone + (negTotal - todaySlips)) / (todayTotal + negTotal || 1)) * 100;
-    const momPct = habits.length ? (momentumSum / habits.length) * 100 : 0;
-    setRing("ring-efficiency", efficiencyPct); setRing("ring-normalized", todayPerf); setRing("ring-momentum", momPct);
-    
-    // 3. Update Headline %
-    const totalPotentialChecks = (todayIdx + 1) * habits.length;
-    const monthlyProgress = totalPotentialChecks > 0 ? (totalHabitsDone / totalPotentialChecks) * 100 : 0;
-    const gradText = document.querySelector(".headline .gradient-text");
-    if(gradText) gradText.innerText = Math.round(monthlyProgress) + "%";
 
-    // 4. UPGRADED STREAK CALCULATION (Weighted Net Score)
-    let streak = 0;
-    
-    // Step A: Calculate streak for YESTERDAY backwards
-    for (let d = todayIdx - 1; d >= 0; d--) {
-        let dailyScore = 0;
-        let totalPossibleToday = 0;
+    const efficiencyPct = totalWeight ? (totalEfficiency / totalWeight) * 100 : 0;
 
-        habits.forEach(h => { 
-            const w = Number(h.weight) || 2; // Grab importance!
-            
-            if (h.type === "positive") {
-                totalPossibleToday += w; // Tally up what a "perfect" day looks like
-                if(h.days[d]) dailyScore += w; 
+    // ── 2. TODAY RING ───────────────────────────────────────
+    let todayScore = 0, todayMax = 0;
+    let todayDone = 0, todayTotal = 0;
+    let todaySlips = 0, negTotal = 0;
+
+    habits.forEach(h => {
+        const w = Number(h.weight) || 2;
+        if (h.type === 'negative') {
+            negTotal++;
+            if (h.days[todayIdx]) todaySlips++;
+            todayScore += h.days[todayIdx] ? 0 : w;
+            todayMax += w;
+        } else {
+            todayTotal++;
+            if (h.days[todayIdx]) {
+                todayDone++;
+                todayScore += w;
+            }
+            todayMax += w;
+        }
+    });
+
+    const todayPct = todayMax ? (todayScore / todayMax) * 100 : 0;
+
+    // ── 3. MOMENTUM RING (5-day rolling) ───────────────────
+    let momentumSum = 0;
+    let momentumMax = 0;
+    const lookback = Math.min(5, daysPassed);
+
+    for (let i = 0; i < lookback; i++) {
+        const d = todayIdx - i;
+        if (d < 0) break;
+        habits.forEach(h => {
+            const w = Number(h.weight) || 2;
+            momentumMax += w;
+            if (h.type === 'negative') {
+                if (!h.days[d]) momentumSum += w;
             } else {
-                if(h.days[d]) dailyScore -= w; // Heavy penalty for heavy bad habits
+                if (h.days[d]) momentumSum += w;
             }
         });
-        
-        // NEW RULE: To keep a streak, your net score must be at least 
-        // 30% of your total possible positive points for the day.
-        // (No more "bare minimum" loophole!)
-        const threshold = totalPossibleToday * 0.3; 
-
-        if (dailyScore >= threshold && dailyScore > 0) {
-            streak++; 
-        } else {
-            break; // Streak died
-        }
     }
 
-    // Step B: Check TODAY
-    let todayScore = 0;
-    let totalPossibleToday = 0;
-    
-    habits.forEach(h => { 
-        const w = Number(h.weight) || 2;
-        if (h.type === "positive") {
-            totalPossibleToday += w;
-            if(h.days[todayIdx]) todayScore += w; 
-        } else {
-            if(h.days[todayIdx]) todayScore -= w;
+    const momPct = momentumMax ? (momentumSum / momentumMax) * 100 : 0;
+
+    setRing("ring-efficiency", efficiencyPct);
+    setRing("ring-normalized", todayPct);
+    setRing("ring-momentum", momPct);
+
+    // ── 4. HEADLINE % (raw completion, honest number) ──────
+    let totalChecks = 0, totalPossible = 0;
+    habits.forEach(h => {
+        if (h.type === 'positive') {
+            totalChecks += h.days.slice(0, daysPassed).filter(Boolean).length;
+            totalPossible += daysPassed;
         }
     });
-    
-    const todayThreshold = totalPossibleToday * 0.3;
-    
-    if (todayScore >= todayThreshold && todayScore > 0) {
-        streak++; // Extended!
-    }
-    // 5. Update Streak UI
-    const streakEl = document.getElementById("streakValue"); 
-    if(streakEl) streakEl.innerText = streak;
-    
-    const headerStreak = document.querySelector(".streak-info.mobile-view .streak-count");
-    if(headerStreak && window.lucide) { 
-        headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`; 
-        lucide.createIcons(); 
-    }
+    const monthlyProgress = totalPossible ? (totalChecks / totalPossible) * 100 : 0;
+    const gradText = document.querySelector(".headline .gradient-text");
+    if (gradText) gradText.innerText = Math.round(monthlyProgress) + "%";
 
-    // 6. Net Score Text
+// ── 5. STREAK ──────────────────────────────────────────
+  const checkStreakDay = (dayIdx) => {
+      // CONDITION 1: Positive daily habits ≥ 50% of their max weight
+      let posScore = 0, posMax = 0;
+      habits.forEach(h => {
+          if (h.type !== 'positive') return;
+          const w = Number(h.weight) || 2;
+          const tier = classifyHabit(h);
+          if (tier === 'daily' || tier === 'regular') {
+              posMax += w;
+              if (h.days[dayIdx]) posScore += w;
+          }
+      });
+      const posPass = posMax === 0 || (posScore / posMax) >= 0.50;
+
+      // CONDITION 2: Negative slips didn't exceed 50% of total negative weight
+      let negSlipWeight = 0, negTotalWeight = 0;
+      habits.forEach(h => {
+          if (h.type !== 'negative') return;
+          const w = Number(h.weight) || 2;
+          negTotalWeight += w;
+          if (h.days[dayIdx]) negSlipWeight += w;
+      });
+      const negPass = negTotalWeight === 0 || (negSlipWeight / negTotalWeight) <= 0.50;
+
+      return posPass && negPass;
+  };
+
+  let streak = 0;
+  for (let d = todayIdx - 1; d >= 0; d--) {
+      if (checkStreakDay(d)) streak++;
+      else break;
+  }
+  if (checkStreakDay(todayIdx)) streak++;
+
+  const streakEl = document.getElementById("streakValue");
+  if (streakEl) streakEl.innerText = streak;
+
+  const headerStreak = document.querySelector(".streak-info.mobile-view .streak-count");
+  if (headerStreak && window.lucide) {
+      headerStreak.innerHTML = `<i data-lucide="flame" class="streak-icon"></i> ${streak}`;
+      lucide.createIcons();
+  }
+
+    // ── 6. NET SCORE BADGE ─────────────────────────────────
     const scoreEl = document.getElementById("todaySummary");
-    let todayNet = 0; habits.forEach(h => { if(h.days[todayIdx]) todayNet += h.type==="positive"?1:-1; });
-    if(scoreEl) scoreEl.innerText = `${todayNet>0?"+":""}${todayNet} Net Score`;
-    
-    // 7. Heatmap
+    let todayNet = 0;
+    habits.forEach(h => {
+        if (h.days[todayIdx]) todayNet += h.type === 'positive' ? 1 : -1;
+    });
+    if (scoreEl) scoreEl.innerText = `${todayNet > 0 ? "+" : ""}${todayNet} Net Score`;
+
+    // ── 7. HEATMAP ─────────────────────────────────────────
     const heatGrid = document.getElementById("streakHeatmap");
-    if(heatGrid) {
+    if (heatGrid) {
         heatGrid.innerHTML = "";
-        for(let i=0; i<14; i++) {
-            const dIdx = todayIdx - 13 + i; const div = document.createElement("div"); div.className="heat-box";
-            if(dIdx >= 0) {
-                let s=0; habits.forEach(h => { if(h.days[dIdx]) s+= h.type==="positive"?1:-1; });
-                if(s>0) { const inten = s/habits.length; if(inten<0.4) div.classList.add("active-low"); else if(inten<0.8) div.classList.add("active-med"); else div.classList.add("active-high"); }
+        for (let i = 0; i < 14; i++) {
+            const dIdx = todayIdx - 13 + i;
+            const div = document.createElement("div");
+            div.className = "heat-box";
+            if (dIdx >= 0) {
+                let s = 0;
+                const posCount = habits.filter(h => h.type === 'positive').length;
+                habits.forEach(h => {
+                    if (h.days[dIdx]) s += h.type === 'positive' ? 1 : -1;
+                });
+                if (s < 0) {
+                    div.classList.add("active-neg");
+                } else if (s > 0) {
+                    const inten = s / (posCount || 1);
+                    if (inten < 0.4) div.classList.add("active-low");
+                    else if (inten < 0.7) div.classList.add("active-med");
+                    else div.classList.add("active-high");
+                }
             }
             heatGrid.appendChild(div);
         }
     }
-    
-    // 8. Footer Logic
+
+    // ── 8. FOOTER — split by habit tier ───────────────────
+    let dailyDone = 0, dailyTotal = 0;
+    let periodicOnPace = 0, periodicTotal = 0;
+
+    habits.forEach(h => {
+        if (h.type !== 'positive') return;
+        const tier = classifyHabit(h);
+        if (tier === 'daily' || tier === 'regular') {
+            dailyTotal++;
+            if (h.days[todayIdx]) dailyDone++;
+        } else {
+            periodicTotal++;
+
+            const goal = h.goal || h.days.length;
+            const expected = (goal / h.days.length) * daysPassed;
+            const checks = h.days.slice(0, daysPassed).filter(Boolean).length;
+            if (checks >= expected - 1) periodicOnPace++;
+        }
+    });
+
     const footerC = document.querySelector(".counter");
-    if(footerC) {
-        const prefix = `<span class="hide-mobile">Today: </span>`;
-        const suffix = `<span class="hide-mobile"> done</span>`;
-        const slipText = negTotal > 0 
-            ? `<span style="opacity:0.3; margin:0 6px">|</span> <span style="color:#ef4444">${todaySlips}/${negTotal}</span><span class="hide-mobile"> slips</span>` 
+    if (footerC) {
+        const slipText = negTotal > 0
+            ? `<span style="opacity:0.3;margin:0 6px">|</span><span style="color:#ef4444">${todaySlips}/${negTotal}</span><span class="hide-mobile"> slips</span>`
             : ``;
-        footerC.innerHTML = `${prefix}<span style="color:var(--green)">${todayDone}/${todayTotal}</span>${suffix} ${slipText}`;
+        const paceText = periodicTotal > 0
+            ? `<span style="opacity:0.3;margin:0 6px">|</span><span style="color:var(--cyan)">${periodicOnPace}/${periodicTotal}</span><span class="hide-mobile"> on pace</span>`
+            : ``;
+        footerC.innerHTML = `<span>Today: </span><span style="color: #63e6a4">${dailyDone}/${dailyTotal}</span><span class="hide-mobile"> done</span>${paceText}${slipText}`;
     }
 }
+
 
 function setRing(id, pct) {
   const path = document.getElementById(id.replace("ring-", "path-"));
@@ -886,15 +1004,13 @@ function handleMobileLayout() {
 function update() { renderHeader(); renderHabits(); updateStats(); renderGraph(); handleMobileLayout(); if(window.lucide) lucide.createIcons(); }
 
 // INIT
-makeDropdown(document.getElementById("monthDropdown"), monthNames.map((m, i) => ({ label: m, value: i })), currentMonth, (m) => { currentMonth = m; needsScrollToToday = true; loadHabits(); update(); });
-
+makeDropdown(document.getElementById("monthDropdown"), monthNames.map((m, i) => ({ label: m, value: i })), currentMonth, (m) => { currentMonth = m; isEditMode = false; needsScrollToToday = true; loadHabits(); update(); });
 document.getElementById("addHabit").onclick = () => {
   lastAddedHabitIndex = habits.length; 
-  // Create the new habit
-  habits.push({ name: "New Habit", type: "positive", weight: 2, goal: 28, days: Array(getDays(yearInput.value, currentMonth)).fill(false) });
+ 
+  habits.push({ name: "New Habit", type: "positive", weight: 2, goal: 28, days: Array(getDays(parseInt(yearInput.value), currentMonth)).fill(false) });
   save(); 
   
-  // Turn ON edit mode automatically so they can type immediately
   isEditMode = true; 
   
   update();
@@ -917,25 +1033,195 @@ document.getElementById("addHabit").onclick = () => {
 };
 
 window.addEventListener("resize", debounce(() => { renderGraph(); handleMobileLayout(); }, 100));
-yearInput.addEventListener("input", () => { loadHabits(); update(); });
+yearInput.addEventListener("input", debounce(() => { loadHabits(); update(); }, 600));
 
 const quotes = ["Consistency is key.", "Focus on the process.", "Small wins matter.", "Day one or one day.", "Keep showing up.", "Progress, not perfection.", "Show up daily.", "Little by little."];
 const qEl = document.getElementById("dailyQuote"); if(qEl) qEl.innerText = quotes[Math.floor(Math.random()*quotes.length)];
 
-// LOGOUT LOGIC (With Confirmation)
-const logoutBtn = document.getElementById("logoutBtn");
-if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
+/* =========================================================
+   HAMBURGER MENU
+========================================================= */
+const hamburgerBtn = document.getElementById("hamburgerBtn");
+const sideMenu = document.getElementById("sideMenu");
+const menuOverlay = document.getElementById("menuOverlay");
+
+function openMenu() {
+    sideMenu.classList.add("open");
+    menuOverlay.classList.add("open");
+    hamburgerBtn.classList.add("open");
+    if (window.lucide) lucide.createIcons();
+}
+function closeMenu() {
+    sideMenu.classList.remove("open");
+    menuOverlay.classList.remove("open");
+    hamburgerBtn.classList.remove("open");
+}
+
+hamburgerBtn.addEventListener("click", () => {
+    sideMenu.classList.contains("open") ? closeMenu() : openMenu();
+});
+menuOverlay.addEventListener("click", closeMenu);
+
+// Close on Escape key
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+
+/* =========================================================
+   USER PROFILE (Name stored in Firestore)
+========================================================= */
+const loadUserProfile = async () => {
+    if (!currentUser) return;
+    const profileRef = doc(db, "users", currentUser.uid, "profile", "info");
+    try {
+        const snap = await getDoc(profileRef);
+        const name = snap.exists() ? (snap.data().displayName || "User") : "User";
+        setProfileUI(name, currentUser.email);
+    } catch (e) {
+        setProfileUI("User", currentUser.email);
+    }
+};
+
+const saveUserProfile = async (name) => {
+    if (!currentUser) return;
+    const profileRef = doc(db, "users", currentUser.uid, "profile", "info");
+    await setDoc(profileRef, { displayName: name }, { merge: true });
+};
+
+function setProfileUI(name, email) {
+    const nameEl = document.getElementById("menuDisplayName");
+    const emailEl = document.getElementById("menuEmail");
+    const avatarEl = document.getElementById("menuAvatar");
+    if (nameEl) nameEl.textContent = name;
+    if (emailEl) emailEl.textContent = email || "—";
+    if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+}
+
+// Edit name flow
+const editNameBtn = document.getElementById("editNameBtn");
+const menuNameInput = document.getElementById("menuNameInput");
+const menuDisplayName = document.getElementById("menuDisplayName");
+
+editNameBtn?.addEventListener("click", () => {
+    menuNameInput.value = menuDisplayName.textContent;
+    menuNameInput.style.display = "block";
+    menuNameInput.focus();
+    menuNameInput.select();
+});
+
+menuNameInput?.addEventListener("keydown", async (e) => {
+    if (e.key === "Enter") {
+        const newName = menuNameInput.value.trim() || "User";
+        menuNameInput.style.display = "none";
+        setProfileUI(newName, currentUser?.email);
+        await saveUserProfile(newName);
+    }
+    if (e.key === "Escape") {
+        menuNameInput.style.display = "none";
+    }
+});
+
+menuNameInput?.addEventListener("blur", async () => {
+    if (menuNameInput.style.display === "none") return;
+    const newName = menuNameInput.value.trim() || "User";
+    menuNameInput.style.display = "none";
+    setProfileUI(newName, currentUser?.email);
+    await saveUserProfile(newName);
+});
+
+/* =========================================================
+   THEME (Light/Dark)
+========================================================= */
+const themeToggle = document.getElementById("themeToggle");
+const savedTheme = localStorage.getItem("nxus-theme") || "dark";
+document.documentElement.setAttribute("data-theme", savedTheme);
+if (savedTheme === "light") themeToggle?.classList.add("on");
+
+document.getElementById("themeToggleRow")?.addEventListener("click", () => {
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    const newTheme = isLight ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("nxus-theme", newTheme);
+    themeToggle.classList.toggle("on", newTheme === "light");
+});
+
+/* =========================================================
+   COLOR PALETTE
+========================================================= */
+const savedPalette = localStorage.getItem("nxus-palette") || "emerald";
+document.documentElement.setAttribute("data-palette", savedPalette);
+document.querySelectorAll(".palette-dot").forEach(dot => {
+    dot.classList.toggle("active", dot.dataset.palette === savedPalette);
+});
+updateAccentColors();
+
+document.getElementById("paletteGrid")?.addEventListener("click", (e) => {
+    const dot = e.target.closest(".palette-dot");
+    if (!dot) return;
+    const palette = dot.dataset.palette;
+    document.documentElement.setAttribute("data-palette", palette);
+    localStorage.setItem("nxus-palette", palette);
+    document.querySelectorAll(".palette-dot").forEach(d => {
+        d.classList.toggle("active", d.dataset.palette === palette);
+    });
+    updateAccentColors();
+});
+
+/* =========================================================
+   COMPACT DENSITY
+========================================================= */
+const densityToggle = document.getElementById("densityToggle");
+const savedDensity = localStorage.getItem("nxus-density") || "comfortable";
+document.documentElement.setAttribute("data-density", savedDensity);
+if (savedDensity === "compact") densityToggle?.classList.add("on");
+
+document.querySelector(".menu-row:has(#densityToggle)")?.addEventListener("click", () => {
+    const isCompact = document.documentElement.getAttribute("data-density") === "compact";
+    const newDensity = isCompact ? "comfortable" : "compact";
+    document.documentElement.setAttribute("data-density", newDensity);
+    localStorage.setItem("nxus-density", newDensity);
+    densityToggle.classList.toggle("on", newDensity === "compact");
+});
+
+/* =========================================================
+   EXPORT CSV
+========================================================= */
+document.getElementById("exportBtn")?.addEventListener("click", () => {
+    const y = parseInt(yearInput.value) || NOW.getFullYear();
+    const days = getDays(y, currentMonth);
+    const monthName = monthNames[currentMonth];
+
+    let csv = `Habit,Type,Importance,Goal,${Array.from({length: days}, (_, i) => i + 1).join(",")}\n`;
+    habits.forEach(h => {
+        const imp = h.weight === 1 ? "Low" : h.weight === 3 ? "High" : "Medium";
+        const row = [
+            `"${h.name}"`, h.type, imp, h.goal || days,
+            ...h.days.map(d => d ? "1" : "0")
+        ];
+        csv += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `NXUS_${monthName}_${y}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    closeMenu();
+});
+
+/* =========================================================
+   SIGN OUT (moved inside menu)
+========================================================= */
+document.getElementById("menuSignOut")?.addEventListener("click", () => {
+    closeMenu();
+    setTimeout(() => {
         if (confirm("Are you sure you want to sign out?")) {
             signOut(auth).then(() => {
-                console.log("User signed out");
                 window.location.href = "login.html";
-            }).catch((error) => {
-                console.error("Sign out error", error);
             });
         }
-    });
-}
+    }, 300);
+});
 
 // AUTH STATE LISTENER (The main entry point)
 onAuthStateChanged(auth, (user) => {
@@ -948,7 +1234,7 @@ onAuthStateChanged(auth, (user) => {
     if (appContainer) appContainer.style.display = "block";
 
     loadHabits(); // Load data from cloud
-    update();     // Render UI
+    loadUserProfile();
   } else {
     window.location.href = "login.html";
   }
@@ -967,7 +1253,7 @@ if (syncBtn) {
         }
 
         // Visual Feedback: Start spinning the icon
-        const icon = syncBtn.querySelector("i");
+        const icon = syncBtn.querySelector("[data-lucide='refresh-cw']");
         if(icon) icon.classList.add("spin");
 
         try {
@@ -990,34 +1276,32 @@ if (syncBtn) {
                 // 4. SMART MERGE:
                 // Use OLD settings + CURRENT progress
                 habits = prevData.habits.map((prevHabit, index) => {
-                    const currentHabit = habits[index];
-                    
-                    // If current progress exists, keep it. Otherwise make empty days.
-                    let daysToKeep = (currentHabit && currentHabit.days && currentHabit.days.length > 0) 
-                        ? currentHabit.days 
-                        : Array(daysInCurrentMonth).fill(false);
+                  const currentHabit = habits.find(h => h.name === prevHabit.name);                    
+                  // If current progress exists, keep it. Otherwise make empty days.
+                  let daysToKeep = (currentHabit && currentHabit.days && currentHabit.days.length > 0) 
+                      ? currentHabit.days 
+                      : Array(daysInCurrentMonth).fill(false);
 
-                    // Handle edge case where month lengths differ drastically
-                    if(daysToKeep.length !== daysInCurrentMonth) {
-                         const adjustedDays = Array(daysInCurrentMonth).fill(false);
-                         daysToKeep.forEach((val, i) => { if(i < daysInCurrentMonth) adjustedDays[i] = val; });
-                         daysToKeep = adjustedDays;
-                    }
+                  // Handle edge case where month lengths differ drastically
+                  if(daysToKeep.length !== daysInCurrentMonth) {
+                        const adjustedDays = Array(daysInCurrentMonth).fill(false);
+                        daysToKeep.forEach((val, i) => { if(i < daysInCurrentMonth) adjustedDays[i] = val; });
+                        daysToKeep = adjustedDays;
+                  }
 
-                    return {
-                        name: prevHabit.name,           // FROM LAST MONTH
-                        type: prevHabit.type || "positive", // FROM LAST MONTH
-                        weight: prevHabit.weight || 2,  // FROM LAST MONTH
-                        goal: prevHabit.goal || 28,     // FROM LAST MONTH
-                        days: daysToKeep                // ✅ FROM CURRENT MONTH
-                    };
+                  return {
+                    name: prevHabit.name,
+                    type: prevHabit.type || "positive",
+                    weight: prevHabit.weight || 2,
+                    goal: prevHabit.goal || 28, 
+                    days: daysToKeep
+                  };
                 });
 
-                // 5. Save & Update UI
+                
                 await save();
                 update();
                 
-                // Stop spinning after 1 second so they see it happened
                 setTimeout(() => icon?.classList.remove("spin"), 1000);
                 
             } else {

@@ -24,7 +24,7 @@
             padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            /* ATMOSPHERIC BACKGROUND: Subtle green glow at top */
+
             background-image: radial-gradient(circle at 50% -20%, rgba(99, 230, 164, 0.15) 0%, #0b0b0b 70%);
             background-repeat: no-repeat;
             background-attachment: fixed;
@@ -41,9 +41,9 @@
             padding: 20px;
             justify-content: center;
             animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-            /* HIDDEN BY DEFAULT (Prevent Flash) */
             display: none; 
         }
+        
 
         .login-card {
             background: var(--surface);
@@ -78,7 +78,7 @@
             align-items: center;
             justify-content: center;
 
-            /* RADIAL GLOW: Bright center -> Dark edge */
+            /* RADIAL GLOW: Bright center */
             background: radial-gradient(circle at center, rgba(99, 230, 164, 0.25) 0%, rgba(99, 230, 164, 0.05) 70%);
             
             border: 1px solid rgba(99, 230, 164, 0.3);
@@ -92,7 +92,6 @@
             color: #63e6a4;
             width: 40px;
             height: 40px;
-            /* Neon Glow */
             filter: drop-shadow(0 0 8px rgba(99, 230, 164, 0.6));
         }
 
@@ -170,7 +169,7 @@
         @media (max-width: 480px) {
             .login-card {
                 padding: 40px 24px;
-                max-width: 90%; /* Prevent touching edges */
+                max-width: 90%;
             }
             h1 { font-size: 28px; }
         }
@@ -197,15 +196,14 @@
                 Continue with Google
             </button>
             
-            <div class="footer-text">v1.0 • Secure Login</div>
+            <div class="footer-text">v1.1 • Secure Login</div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // Your Config
         const firebaseConfig = {
           apiKey: "AIzaSyDYX7PzWDY20xtgUHi9alqI7WcxzvFE6Ao",
           authDomain: "nxus-tracker.firebaseapp.com",
@@ -220,17 +218,16 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // 1. Initialize Icons
         lucide.createIcons();
 
         // 2. CHECK LOGIN STATE (The "Bouncer")
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // If logged in, redirect silently (don't show UI)
+                
                 console.log("User found, redirecting...");
-                window.location.href = "index.html";
+                window.location.href = "/login";
             } else {
-                // If NOT logged in, reveal the login card
+                
                 const container = document.querySelector(".login-container");
                 if (container) {
                     container.style.display = "flex";
@@ -240,15 +237,24 @@
 
         // 3. Handle Login Click
         document.getElementById("googleLoginBtn").addEventListener("click", () => {
+            const btn = document.getElementById("googleLoginBtn");
+            btn.disabled = true;
+            btn.style.opacity = "0.6";
+            btn.textContent = "Signing in...";
             signInWithPopup(auth, provider)
-                .then((result) => {
-                    console.log("Logged in:", result.user.email);
-                    window.location.href = "index.html";
-                })
-                .catch((error) => {
+            .then((result) => {
+            })
+            .catch((error) => {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.innerHTML = `<svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
+                if (error.code === 'auth/popup-blocked') {
+                    signInWithRedirect(auth, provider);
+                } else {
                     console.error("Login failed", error);
                     alert("Login failed: " + error.message);
-                });
+                }
+            });
         });
     </script>
 
