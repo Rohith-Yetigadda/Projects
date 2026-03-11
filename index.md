@@ -10,3 +10,4 @@ Here are some of the projects I made while learning programming:
 - [Sound Board](./SoundBoard/)
 - [Movie Seat Booking](./Movie%20Seat%20Booking/)
 - [Weather App](./Weather%20App/)
+- [NXUS Habit Tracker](./NXUS/)
