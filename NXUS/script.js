@@ -1052,7 +1052,7 @@ function updateStats() {
     if (pbEl) pbEl.textContent = bestDay;
     if (pbFillEl) pbFillEl.style.width = Math.max(0, pbPct) + "%";
     if (pbTodayEl) pbTodayEl.textContent = `Today: ${todayNet2 > 0 ? "+" : ""}${todayNet2}`;
-    
+
     // ── 8. FOOTER — split by habit tier ───────────────────
     let dailyDone = 0, dailyTotal = 0;
     let periodicOnPace = 0, periodicTotal = 0;
@@ -1343,7 +1343,7 @@ document.getElementById("menuSignOut")?.addEventListener("click", () => {
         title: "Sign Out",
         message: "Are you sure you want to sign out of NXUS?",
         confirmText: "Sign Out", confirmColor: "#ef4444",
-        onConfirm: () => { signOut(auth).then(() => { window.location.href = "/login"; }); }
+        onConfirm: () => { signOut(auth).then(() => { window.location.href = "/login.html"; }); }
     });
 });
 
@@ -1360,7 +1360,7 @@ onAuthStateChanged(auth, (user) => {
     loadHabits(); // Load data from cloud
     loadUserProfile();
   } else {
-    window.location.href = "/login";
+    window.location.href = "/login.html";
   }
 });
 
