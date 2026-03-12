@@ -50,6 +50,33 @@ const debounce = (func, wait) => {
 
 const getDays = (y, m) => new Date(y, m + 1, 0).getDate();
 
+function showModal({ icon, iconColor, iconBg, title, message, confirmText, confirmColor, onConfirm }) {
+    const modal = document.getElementById("customModal");
+    const iconEl = document.getElementById("customModalIcon");
+    const titleEl = document.getElementById("customModalTitle");
+    const msgEl = document.getElementById("customModalMsg");
+    const confirmBtn = document.getElementById("customModalConfirm");
+    const cancelBtn = document.getElementById("customModalCancel");
+    const overlay = document.getElementById("customModalOverlay");
+
+    iconEl.style.background = iconBg;
+    iconEl.innerHTML = `<i data-lucide="${icon}" style="width:22px;height:22px;color:${iconColor};"></i>`;
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    confirmBtn.textContent = confirmText;
+    confirmBtn.style.background = confirmColor;
+    confirmBtn.style.color = "#fff";
+
+    modal.style.display = "flex";
+    if (window.lucide) lucide.createIcons();
+
+    const close = () => { modal.style.display = "none"; };
+
+    confirmBtn.onclick = () => { close(); onConfirm(); };
+    cancelBtn.onclick = close;
+    overlay.onclick = close;
+}
+
 // Variables
 let habits = [];
 let isEditMode = false;
@@ -346,7 +373,7 @@ function renderHabits() {
     // COLUMN 1: HABIT NAME (Editable)
     // ==========================================
     const nameTd = document.createElement("td");
-    nameTd.contentEditable = isEditMode;
+    nameTd.contentEditable = isEditMode ? "true": "false";
     nameTd.textContent = h.name; 
     nameTd.style.cursor = isEditMode ? "text" : "default";
     
@@ -456,17 +483,19 @@ function renderHabits() {
       
       // DELETE Button
       const btnDel = document.createElement("button"); btnDel.className = "toggle-edit-btn"; btnDel.innerHTML = `<i data-lucide="trash-2" style="width:14px;"></i>`; btnDel.style.color = "#ef4444";
-      btnDel.onclick = (e) => { 
-          if (confirm("Delete this habit?")) { 
-              const row = btnDel.closest("tr");
-              row.classList.add("row-exit-anim"); 
-              setTimeout(() => {
-                  habits.splice(i, 1); 
-                  save(); 
-                  update(); 
-              }, 400); 
-          } 
-      };
+      btnDel.onclick = (e) => {
+        showModal({
+            icon: "trash-2", iconColor: "#ef4444", iconBg: "rgba(239,68,68,0.15)",
+            title: "Delete Habit",
+            message: `"${habits[i].name}" will be permanently deleted.`,
+            confirmText: "Delete", confirmColor: "#ef4444",
+            onConfirm: () => {
+                const row = btnDel.closest("tr");
+                row.classList.add("row-exit-anim");
+                setTimeout(() => { habits.splice(i, 1); save(); update(); }, 400);
+            }
+        });
+    };
 
       actionWrap.append(btnUp, btnDown, btnDel);
       endTd.appendChild(actionWrap);
@@ -849,6 +878,65 @@ function updateStats() {
     const gradText = document.querySelector(".headline .gradient-text");
     if (gradText) gradText.innerText = Math.round(monthlyProgress) + "%";
 
+    // Trend vs previous 7 days
+    let recentScore = 0, recentMax = 0, prevScore = 0, prevMax = 0;
+    habits.forEach(h => {
+        if (h.type !== 'positive') return;
+        for (let i = 0; i < 7; i++) {
+            const d = todayIdx - i;
+            if (d >= 0) { recentMax++; if (h.days[d]) recentScore++; }
+        }
+        for (let i = 7; i < 14; i++) {
+            const d = todayIdx - i;
+            if (d >= 0) { prevMax++; if (h.days[d]) prevScore++; }
+        }
+    });
+    const recentPct = recentMax ? (recentScore / recentMax) * 100 : 0;
+    const prevPct = prevMax ? (prevScore / prevMax) * 100 : 0;
+    const trendDiff = Math.round(recentPct - prevPct);
+    const trendEl = document.querySelector(".trend-arrow");
+    if (trendEl) {
+        if (prevMax === 0) {
+            trendEl.style.opacity = "0";
+        } else {
+            trendEl.style.opacity = "1";
+            trendEl.textContent = trendDiff > 0 ? `↑ +${trendDiff}% vs last week`
+                                : trendDiff < 0 ? `↓ ${trendDiff}% vs last week`
+                                : `→ same as last week`;
+            trendEl.style.color = trendDiff > 0 ? "var(--accent)"
+                                : trendDiff < 0 ? "#ef4444"
+                                : "var(--muted)";
+        }
+    }
+    const statusLabel = document.getElementById("statusLabel");
+    const statusText = document.getElementById("statusText");
+    const statusIcon = document.getElementById("statusIcon");
+
+    if (statusLabel && statusText && statusIcon) {
+        let label, icon, color;
+        if (monthlyProgress >= 70) {
+            label = "CRUSHING IT"; icon = "zap"; color = "var(--accent)";
+        } else if (monthlyProgress >= 50) {
+            label = "ON TRACK"; icon = "trending-up"; color = "var(--accent)";
+        } else if (monthlyProgress >= 30) {
+            label = "KEEP PUSHING"; icon = "target"; color = "var(--accent)";
+        } else if (monthlyProgress >= 20) {
+            label = "NEEDS WORK"; icon = "alert-triangle"; color = "var(--accent)";
+        } else {
+            label = "JUST STARTING"; icon = "sunrise"; color = "var(--accent)";
+        }
+        statusText.textContent = label;
+        statusLabel.style.color = color;
+
+        // Force icon re-render by replacing the element
+        const newIcon = document.createElement("i");
+        newIcon.setAttribute("data-lucide", icon);
+        newIcon.id = "statusIcon";
+        newIcon.className = "headline-icon";
+        statusIcon.replaceWith(newIcon);
+        if (window.lucide) lucide.createIcons();
+    }
+
 // ── 5. STREAK ──────────────────────────────────────────
   const checkStreakDay = (dayIdx) => {
       // CONDITION 1: Positive daily habits ≥ 50% of their max weight
@@ -899,14 +987,35 @@ function updateStats() {
     habits.forEach(h => {
         if (h.days[todayIdx]) todayNet += h.type === 'positive' ? 1 : -1;
     });
-    if (scoreEl) scoreEl.innerText = `${todayNet > 0 ? "+" : ""}${todayNet} Net Score`;
+    if (scoreEl) {
+        scoreEl.innerText = `${todayNet > 0 ? "+" : ""}${todayNet} Net Score`;
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        
+        if (todayNet > 0) {
+            scoreEl.style.background = "rgba(99,230,164,0.15)";
+            scoreEl.style.borderColor = "rgba(99,230,164,0.3)";
+            scoreEl.style.color = isLight ? "#065f46" : "#63e6a4";
+            scoreEl.style.boxShadow = "0 0 12px rgba(99,230,164,0.15)";
+        } else if (todayNet < 0) {
+            scoreEl.style.background = "rgba(239,68,68,0.15)";
+            scoreEl.style.borderColor = "rgba(239,68,68,0.3)";
+            scoreEl.style.color = "#ef4444";
+            scoreEl.style.boxShadow = "0 0 12px rgba(239,68,68,0.15)";
+        } else {
+            scoreEl.style.background = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
+            scoreEl.style.borderColor = isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)";
+            scoreEl.style.color = isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)";
+            scoreEl.style.boxShadow = "none";
+        }
+    }
 
     // ── 7. HEATMAP ─────────────────────────────────────────
     const heatGrid = document.getElementById("streakHeatmap");
     if (heatGrid) {
         heatGrid.innerHTML = "";
-        for (let i = 0; i < 14; i++) {
-            const dIdx = todayIdx - 13 + i;
+        const totalDaysInMonth = getDays(parseInt(yearInput.value) || NOW.getFullYear(), currentMonth);
+        for (let i = 0; i < totalDaysInMonth; i++) {
+            const dIdx = i;
             const div = document.createElement("div");
             div.className = "heat-box";
             if (dIdx >= 0) {
@@ -928,6 +1037,22 @@ function updateStats() {
         }
     }
 
+    // ── PERSONAL BEST ──────────────────────────────────
+    let bestDay = 0;
+    for (let d = 0; d < getDays(y, currentMonth); d++) {
+        let dayScore = 0;
+        habits.forEach(h => { if (h.days[d]) dayScore += h.type === 'positive' ? 1 : -1; });
+        if (dayScore > bestDay) bestDay = dayScore;
+    }
+    const todayNet2 = habits.reduce((sum, h) => sum + (h.days[todayIdx] ? (h.type === 'positive' ? 1 : -1) : 0), 0);
+    const pbPct = bestDay > 0 ? Math.min((todayNet2 / bestDay) * 100, 100) : 0;
+    const pbEl = document.getElementById("pbValue");
+    const pbFillEl = document.getElementById("pbFill");
+    const pbTodayEl = document.getElementById("pbToday");
+    if (pbEl) pbEl.textContent = bestDay;
+    if (pbFillEl) pbFillEl.style.width = Math.max(0, pbPct) + "%";
+    if (pbTodayEl) pbTodayEl.textContent = `Today: ${todayNet2 > 0 ? "+" : ""}${todayNet2}`;
+    
     // ── 8. FOOTER — split by habit tier ───────────────────
     let dailyDone = 0, dailyTotal = 0;
     let periodicOnPace = 0, periodicTotal = 0;
@@ -974,7 +1099,6 @@ function handleMobileLayout() {
   const isMobile = window.innerWidth <= 768;
   const streakInfo = document.querySelector(".streak-info");
   const quote = document.getElementById("dailyQuote");
-  const heatmap = document.getElementById("streakHeatmap");
   const header = document.querySelector(".top");
   const graphSection = document.querySelector(".today-focus");
   const analyticsSection = document.querySelector(".analytics");
@@ -988,12 +1112,10 @@ function handleMobileLayout() {
     const rings = document.querySelectorAll(".ring-block");
     rings.forEach(ring => { if(ring.parentElement !== ringsWrapper) ringsWrapper.appendChild(ring); });
     if (ringsWrapper.parentElement !== analyticsSection) { if(analyticsSection) analyticsSection.insertBefore(ringsWrapper, analyticsSection.firstChild); }
-    if (heatmap && heatmap.parentElement !== analyticsSection) { if(analyticsSection) analyticsSection.appendChild(heatmap); heatmap.classList.add("mobile-view"); }
   } else {
     if (streakWidget) {
       if (streakInfo && streakInfo.parentElement !== streakWidget) { streakInfo.classList.remove("mobile-view"); streakWidget.insertBefore(streakInfo, streakWidget.firstChild); }
       if (quote && quote.parentElement !== streakWidget) { quote.classList.remove("mobile-view"); streakWidget.insertBefore(quote, streakWidget.children[1]); }
-      if (heatmap && heatmap.parentElement !== streakWidget) { heatmap.classList.remove("mobile-view"); streakWidget.appendChild(heatmap); }
       const rings = document.querySelectorAll(".ring-block");
       rings.forEach(ring => { if(ring.parentElement !== analyticsSection) analyticsSection.insertBefore(ring, streakWidget); });
       if (ringsWrapper.parentElement) ringsWrapper.remove();
@@ -1141,6 +1263,8 @@ document.getElementById("themeToggleRow")?.addEventListener("click", () => {
     document.documentElement.setAttribute("data-theme", newTheme);
     localStorage.setItem("nxus-theme", newTheme);
     themeToggle.classList.toggle("on", newTheme === "light");
+    updateAccentColors();
+    updateStats();
 });
 
 /* =========================================================
@@ -1214,13 +1338,13 @@ document.getElementById("exportBtn")?.addEventListener("click", () => {
 ========================================================= */
 document.getElementById("menuSignOut")?.addEventListener("click", () => {
     closeMenu();
-    setTimeout(() => {
-        if (confirm("Are you sure you want to sign out?")) {
-            signOut(auth).then(() => {
-                window.location.href = "login.html";
-            });
-        }
-    }, 300);
+    showModal({
+        icon: "log-out", iconColor: "#ef4444", iconBg: "rgba(239,68,68,0.15)",
+        title: "Sign Out",
+        message: "Are you sure you want to sign out of NXUS?",
+        confirmText: "Sign Out", confirmColor: "#ef4444",
+        onConfirm: () => { signOut(auth).then(() => { window.location.href = "/login"; }); }
+    });
 });
 
 // AUTH STATE LISTENER (The main entry point)
@@ -1236,7 +1360,7 @@ onAuthStateChanged(auth, (user) => {
     loadHabits(); // Load data from cloud
     loadUserProfile();
   } else {
-    window.location.href = "login.html";
+    window.location.href = "/login";
   }
 });
 
@@ -1246,72 +1370,81 @@ onAuthStateChanged(auth, (user) => {
 const syncBtn = document.getElementById("syncBtn");
 
 if (syncBtn) {
-    syncBtn.onclick = async () => {
-        // 1. Clear Confirmation Message
-        if (!confirm("🔄 Sync habit settings from last month?")) {
-            return;
-        }
-
-        // Visual Feedback: Start spinning the icon
+    syncBtn.onclick = () => {
         const icon = syncBtn.querySelector("[data-lucide='refresh-cw']");
-        if(icon) icon.classList.add("spin");
+        showModal({
+            icon: "refresh-cw", iconColor: "#60a5fa", iconBg: "rgba(96,165,250,0.15)",
+            title: "Sync from Last Month",
+            message: "This will copy habit settings from last month while keeping your current progress.",
+            confirmText: "Sync", confirmColor: "#60a5fa",
+            onConfirm: async () => {
+                if (icon) icon.classList.add("spin");
 
-        try {
-            const y = parseInt(yearInput.value) || NOW.getFullYear();
-            
-            // 2. Calculate previous month ID
-            let prevM = currentMonth - 1;
-            let prevY = y;
-            if (prevM < 0) { prevM = 11; prevY = y - 1; }
+                try {
+                    const y = parseInt(yearInput.value) || NOW.getFullYear();
+                    
+                    let prevM = currentMonth - 1;
+                    let prevY = y;
+                    if (prevM < 0) { prevM = 11; prevY = y - 1; }
 
-            // 3. Fetch previous month data
-            const prevDocId = `${prevY}-${prevM}`;
-            const prevRef = doc(db, "users", currentUser.uid, "monthly_data", prevDocId);
-            const prevSnap = await getDoc(prevRef);
+                    const prevDocId = `${prevY}-${prevM}`;
+                    const prevRef = doc(db, "users", currentUser.uid, "monthly_data", prevDocId);
+                    const prevSnap = await getDoc(prevRef);
 
-            if (prevSnap.exists()) {
-                const prevData = prevSnap.data();
-                const daysInCurrentMonth = getDays(y, currentMonth);
+                    if (prevSnap.exists()) {
+                        const prevData = prevSnap.data();
+                        const daysInCurrentMonth = getDays(y, currentMonth);
 
-                // 4. SMART MERGE:
-                // Use OLD settings + CURRENT progress
-                habits = prevData.habits.map((prevHabit, index) => {
-                  const currentHabit = habits.find(h => h.name === prevHabit.name);                    
-                  // If current progress exists, keep it. Otherwise make empty days.
-                  let daysToKeep = (currentHabit && currentHabit.days && currentHabit.days.length > 0) 
-                      ? currentHabit.days 
-                      : Array(daysInCurrentMonth).fill(false);
+                        habits = prevData.habits.map((prevHabit) => {
+                            const currentHabit = habits.find(h => h.name === prevHabit.name);
+                            let daysToKeep = (currentHabit && currentHabit.days && currentHabit.days.length > 0)
+                                ? currentHabit.days
+                                : Array(daysInCurrentMonth).fill(false);
 
-                  // Handle edge case where month lengths differ drastically
-                  if(daysToKeep.length !== daysInCurrentMonth) {
-                        const adjustedDays = Array(daysInCurrentMonth).fill(false);
-                        daysToKeep.forEach((val, i) => { if(i < daysInCurrentMonth) adjustedDays[i] = val; });
-                        daysToKeep = adjustedDays;
-                  }
+                            if (daysToKeep.length !== daysInCurrentMonth) {
+                                const adjustedDays = Array(daysInCurrentMonth).fill(false);
+                                daysToKeep.forEach((val, i) => { if (i < daysInCurrentMonth) adjustedDays[i] = val; });
+                                daysToKeep = adjustedDays;
+                            }
 
-                  return {
-                    name: prevHabit.name,
-                    type: prevHabit.type || "positive",
-                    weight: prevHabit.weight || 2,
-                    goal: prevHabit.goal || 28, 
-                    days: daysToKeep
-                  };
-                });
+                            return {
+                                name: prevHabit.name,
+                                type: prevHabit.type || "positive",
+                                weight: prevHabit.weight || 2,
+                                goal: prevHabit.goal || 28,
+                                days: daysToKeep
+                            };
+                        });
 
-                
-                await save();
-                update();
-                
-                setTimeout(() => icon?.classList.remove("spin"), 1000);
-                
-            } else {
-                alert("No previous month data found to sync from.");
-                icon?.classList.remove("spin");
+                        await save();
+                        update();
+                        setTimeout(() => icon?.classList.remove("spin"), 1000);
+
+                    } else {
+                        alert("No previous month data found to sync from.");
+                        icon?.classList.remove("spin");
+                    }
+                } catch (e) {
+                    console.error("Sync failed:", e);
+                    alert("Error: " + e.message);
+                    icon?.classList.remove("spin");
+                }
             }
-        } catch (e) {
-            console.error("Sync failed:", e);
-            alert("Error: " + e.message);
-            icon?.classList.remove("spin");
-        }
+        });
     };
 }
+
+// ==========================================
+// RESET BUTTON LOGIC
+// ==========================================
+
+document.getElementById("resetBtn")?.addEventListener("click", () => {
+    closeMenu();
+    showModal({
+        icon: "rotate-ccw", iconColor: "#fb923c", iconBg: "rgba(251,146,60,0.15)",
+        title: "Reset All Data",
+        message: "This will permanently delete all habits and data. This cannot be undone.",
+        confirmText: "Reset", confirmColor: "#fb923c",
+        onConfirm: () => { habits = []; save(); update(); }
+    });
+});
