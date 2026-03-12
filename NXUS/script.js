@@ -1353,14 +1353,17 @@ onAuthStateChanged(auth, (user) => {
     currentUser = user;
     console.log("User connected:", user.email);
     
-    // REVEAL THE DASHBOARD
     const appContainer = document.querySelector(".app");
     if (appContainer) appContainer.style.display = "block";
 
-    loadHabits(); // Load data from cloud
+    loadHabits();
     loadUserProfile();
   } else {
-    window.location.href = "/login.html";
+    setTimeout(() => {
+      if (!currentUser) {
+        window.location.href = "/login.html";
+      }
+    }, 2000);
   }
 });
 
