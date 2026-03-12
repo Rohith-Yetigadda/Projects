@@ -1351,19 +1351,12 @@ document.getElementById("menuSignOut")?.addEventListener("click", () => {
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
-    console.log("User connected:", user.email);
-    
     const appContainer = document.querySelector(".app");
     if (appContainer) appContainer.style.display = "block";
-
     loadHabits();
     loadUserProfile();
   } else {
-    setTimeout(() => {
-      if (!currentUser) {
-        window.location.href = "/login.html";
-      }
-    }, 2000);
+    window.location.href = "/login.html";
   }
 });
 
