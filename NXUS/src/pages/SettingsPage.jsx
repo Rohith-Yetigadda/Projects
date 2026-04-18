@@ -34,18 +34,31 @@ function SettingsPage() {
         let totalSlips = 0
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-        // Scan last 12 months
+        // Scan last 12 months in parallel
+        const queries = []
         for (let offset = 0; offset < 12; offset++) {
           let m = currentMonth - offset
           let y = currentYear
           if (m < 0) { m += 12; y -= 1 }
+          queries.push(
+            getDoc(doc(db, 'users', user.uid, 'monthly_data', `${y}-${m}`))
+              .then(snap => ({ snap, m, y }))
+          )
+        }
 
-          const snap = await getDoc(doc(db, 'users', user.uid, 'monthly_data', `${y}-${m}`))
-          if (!snap.exists()) continue
+        const snapshots = await Promise.all(queries)
+        let currentSnap = null
+
+        snapshots.forEach(({ snap, m, y }) => {
+          if (m === currentMonth && y === currentYear) {
+            currentSnap = snap
+          }
+
+          if (!snap.exists()) return
 
           const data = snap.data()
           const habits = Array.isArray(data?.habits) ? data.habits : []
-          if (habits.length === 0) continue
+          if (habits.length === 0) return
 
           totalMonths++
           totalHabits += habits.length
@@ -68,11 +81,10 @@ function SettingsPage() {
           if (monthChecks > bestMonth.score) {
             bestMonth = { name: `${monthNames[m]} ${y}`, score: monthChecks }
           }
-        }
+        })
 
         // Calculate streak using same weighted algorithm as dashboard (checkStreakDay)
-        const currentSnap = await getDoc(doc(db, 'users', user.uid, 'monthly_data', `${currentYear}-${currentMonth}`))
-        if (currentSnap.exists()) {
+        if (currentSnap && currentSnap.exists()) {
           const habits = currentSnap.data()?.habits || []
           const today = now.getDate()
           const todayIdx = today - 1
