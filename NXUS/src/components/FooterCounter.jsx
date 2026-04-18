@@ -43,20 +43,20 @@ function FooterCounter({ habits, year, monthIndex }) {
   const { dailyDone, dailyTotal, periodicOnPace, periodicTotal, todaySlips, negTotal } = stats
 
   return (
-    <div className="counter">
+    <div className="counter" style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', gap: '8px', overflowX: 'auto' }}>
       <span>Today: </span>
       <span style={{ color: '#63e6a4' }}>{dailyDone}/{dailyTotal}</span>
       <span> done</span>
       {periodicTotal > 0 && (
         <>
-          <span style={{ opacity: 0.3, margin: '0 6px' }}>|</span>
+          <span style={{ opacity: 0.3, margin: '0 2px' }}>|</span>
           <span style={{ color: 'var(--cyan)' }}>{periodicOnPace}/{periodicTotal}</span>
           <span> on pace</span>
         </>
       )}
       {negTotal > 0 && (
         <>
-          <span style={{ opacity: 0.3, margin: '0 6px' }}>|</span>
+          <span style={{ opacity: 0.3, margin: '0 2px' }}>|</span>
           <span style={{ color: '#ef4444' }}>{todaySlips}/{negTotal}</span>
           <span> slips</span>
         </>
