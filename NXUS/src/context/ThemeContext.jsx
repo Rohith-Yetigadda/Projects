@@ -41,16 +41,20 @@ export function ThemeProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
+  const prevPrefs = useRef({ theme, palette, density })
+
   // Save preferences when they change
   useEffect(() => {
-    // Skip saving on the very first mount cycle
-    if (isInitialLoadRef.current) {
-      isInitialLoadRef.current = false
-      return
-    }
+    const prefsChanged = (
+      prevPrefs.current.theme !== theme ||
+      prevPrefs.current.palette !== palette ||
+      prevPrefs.current.density !== density
+    )
     
-    // Skip if the change was triggered by loading DB settings
-    if (!user || settingFromDbRef.current) return
+    prevPrefs.current = { theme, palette, density }
+
+    // Skip if the change was triggered by loading DB settings or if nothing actually changed
+    if (!user || settingFromDbRef.current || !prefsChanged) return
     
     const savePrefs = async () => {
       try {
@@ -64,7 +68,6 @@ export function ThemeProvider({ children }) {
       }
     }
     
-    // Debounce or save directly since these don't update multiple times rapidly
     savePrefs()
   }, [theme, palette, density, user])
 
