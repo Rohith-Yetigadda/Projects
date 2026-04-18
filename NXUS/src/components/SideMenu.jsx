@@ -218,7 +218,7 @@ function SideMenu({
         {/* ── FOOTER ───────────────────────────────── */}
         <div className="menu-footer">
           <div className="menu-app-info">
-            <div className="menu-app-version">version 1.1.2</div>
+            <div className="menu-app-version">version 1.2.1</div>
           </div>
           <div
             className="menu-row menu-signout"

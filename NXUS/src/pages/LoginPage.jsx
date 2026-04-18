@@ -61,7 +61,7 @@ function LoginPage() {
             )}
           </button>
 
-          <div className="footer-text">v1.1.2 • Secure Login</div>
+          <div className="footer-text">v1.2.1 • Secure Login</div>
         </div>
       </div>
     </div>

@@ -254,7 +254,7 @@ function SettingsPage() {
             </div>
             <div className="settings-row">
               <span className="settings-label">Version</span>
-              <span className="settings-value">1.1.2</span>
+              <span className="settings-value">1.2.1</span>
             </div>
             <div className="settings-row">
               <span className="settings-label">Stack</span>
