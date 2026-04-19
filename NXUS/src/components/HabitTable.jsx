@@ -107,9 +107,19 @@ function HabitTable({
                   <td
                     contentEditable={isEditMode}
                     suppressContentEditableWarning
-                    style={{ cursor: isEditMode ? 'text' : 'default' }}
+                    style={{ 
+                      cursor: isEditMode ? 'text' : 'default',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
                     onInput={e => onUpdateHabitField(habitIndex, 'name', e.currentTarget.textContent)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
+                    onPaste={e => {
+                      e.preventDefault()
+                      const text = e.clipboardData.getData('text/plain').replace(/\n/g, ' ')
+                      document.execCommand('insertText', false, text.substring(0, 50))
+                    }}
                   >
                     {habit.name}
                   </td>

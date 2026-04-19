@@ -23,6 +23,8 @@ function MonthDropdown({ currentMonth, onMonthChange }) {
         type="button"
         className={`dropdown-button ${isOpen ? 'active-dropdown-btn' : ''}`}
         onClick={() => setIsOpen(p => !p)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
       >
         <span>{monthNames[currentMonth]}</span>
       </button>

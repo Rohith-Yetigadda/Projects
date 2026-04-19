@@ -1,25 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Zap } from 'lucide-react'
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { getRedirectResult, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '../services/firebase'
 
 function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const provider = new GoogleAuthProvider()
 
-  const handleGoogleSignIn = async () => {
-    if (isLoading) return
-    setIsLoading(true)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) navigate('/', { replace: true })
+      })
+      .catch((error) => {
+        window.alert(`Login failed: ${error.message}`)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [navigate])
 
-    try {
-      await signInWithPopup(auth, provider)
-      navigate('/', { replace: true })
-    } catch (error) {
+  const handleGoogleSignIn = () => {
+    setIsLoading(true)
+    signInWithRedirect(auth, provider).catch(error => {
       setIsLoading(false)
-      window.alert(`Login failed: ${error.message}`)
-    }
+      window.alert(`Redirect failed: ${error.message}`)
+    })
   }
 
   return (

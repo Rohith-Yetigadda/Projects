@@ -45,10 +45,22 @@ function AppLayout() {
   // Global confirm modal state
   const [modal, setModal] = useState(null)
 
-  const { habits, setHabits, addHabit, toggleHabitDay, updateHabitField, deleteHabit, moveHabit } =
+  const { habits, setHabits, addHabit, toggleHabitDay, updateHabitField, deleteHabit, moveHabit, habitsError } =
     useMonthlyHabits(user?.uid, year, monthIndex)
 
   const stats = useHabitStats(habits, year, monthIndex)
+
+  useEffect(() => {
+    if (habitsError) {
+      setModal({
+        icon: AlertTriangle, iconColor: '#ef4444', iconBg: 'rgba(239,68,68,0.15)',
+        title: 'Sync Error',
+        message: 'Could not sync habits with the server. Please check your connection.',
+        confirmText: 'Dismiss', confirmColor: '#ef4444',
+        onConfirm: () => setModal(null),
+      })
+    }
+  }, [habitsError])
 
 
   // Show app container once auth is confirmed
