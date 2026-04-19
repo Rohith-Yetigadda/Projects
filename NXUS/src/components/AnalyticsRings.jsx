@@ -132,7 +132,7 @@ function AnalyticsRings({ stats }) {
           <div className="pb-score">
             <span id="pbValue">{bestDay}</span>
             <span className="pb-unit">pts</span>
-            {bestDayCount > 0 && <span className="pb-count" style={{ fontSize: '13px', marginLeft: '6px', color: 'var(--muted)', fontWeight: 'normal' }}>({bestDayCount}x)</span>}
+            {bestDayCount > 0 && <span className="pb-count" style={{ fontSize: '12px', marginLeft: '4px', color: 'var(--muted)', fontWeight: '600' }}>({bestDayCount}x)</span>}
           </div>
           <div className="pb-bar-wrap">
             <div className="pb-bar">
