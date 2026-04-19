@@ -103,25 +103,22 @@ function HabitTable({
 
               return (
                 <tr key={habit.id || habitIndex} className={rowClass}>
-                  {/* NAME CELL — contentEditable in edit mode */}
-                  <td
-                    contentEditable={isEditMode}
-                    suppressContentEditableWarning
-                    style={{ 
-                      cursor: isEditMode ? 'text' : 'default',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                    onInput={e => onUpdateHabitField(habitIndex, 'name', e.currentTarget.textContent)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
-                    onPaste={e => {
-                      e.preventDefault()
-                      const text = e.clipboardData.getData('text/plain').replace(/\n/g, ' ')
-                      document.execCommand('insertText', false, text.substring(0, 50))
-                    }}
-                  >
-                    {habit.name}
+                  {/* NAME CELL */}
+                  <td style={{ 
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {isEditMode ? (
+                      <input
+                        type="text"
+                        className="habit-name-input"
+                        value={habit.name}
+                        maxLength={50}
+                        onChange={e => onUpdateHabitField(habitIndex, 'name', e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
+                      />
+                    ) : habit.name}
                   </td>
 
                   {isEditMode && (
