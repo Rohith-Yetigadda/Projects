@@ -96,11 +96,19 @@ function HabitTable({
           <tbody id="habitBody">
             {habits.length === 0 ? (
               <tr>
-                <td 
-                  colSpan={2 + totalDays + 3} 
-                  style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)', fontStyle: 'italic' }}
-                >
-                  No habits found. Click "Add Habit" below to start.
+                <td colSpan={2 + totalDays + 3} style={{ padding: 0, height: '120px', borderBottom: 'none' }}>
+                  <div style={{
+                    position: 'sticky',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'inline-block',
+                    color: 'var(--muted)',
+                    fontStyle: 'italic',
+                    padding: '40px 20px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    No habits found. Click "Add Habit" below to start.
+                  </div>
                 </td>
               </tr>
             ) : (

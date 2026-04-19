@@ -6,7 +6,7 @@ import { useAuthContext } from '../context/AuthContext'
 import { useThemeContext } from '../context/ThemeContext'
 import {
   ArrowLeft, User, Shield, BarChart3,
-  Calendar, TrendingUp, Award, Flame, Target
+  Calendar, TrendingUp, Award, Flame, Target, Edit2
 } from 'lucide-react'
 
 function SettingsPage() {
@@ -170,13 +170,17 @@ function SettingsPage() {
                 {(displayName || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="profile-hero-info">
-                <input
-                  className="profile-name-input"
-                  type="text"
-                  value={displayName}
-                  onChange={e => handleSaveName(e.target.value)}
-                  placeholder="Your name"
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                  <input
+                    className="profile-name-input"
+                    type="text"
+                    value={displayName}
+                    onChange={e => handleSaveName(e.target.value)}
+                    placeholder="Your name"
+                    style={{ paddingRight: '24px' }}
+                  />
+                  <Edit2 size={13} style={{ color: 'var(--muted)', position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.7 }} />
+                </div>
                 <span className="profile-email">{user?.email || '—'}</span>
               </div>
             </div>
