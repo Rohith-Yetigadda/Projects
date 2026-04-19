@@ -216,7 +216,7 @@
   .top-logo { display: none; }
   .hamburger-btn { margin-right: 0; }
   .date-picker { gap: 8px; flex-shrink: 0; justify-content: flex-end; }
-  .date-picker input[type="number"], .dropdown-button { min-width: auto; padding: 0 10px; font-size: 12px; height: 36px; }
+  .date-picker input[type="number"], .date-picker .dropdown-button { min-width: auto; padding: 0 10px; font-size: 12px; height: 36px; }
   .gradient-text { font-size: 32px; }
   .headline-label { font-size: 10px; }
   .trend-arrow { margin-bottom: 20px; }

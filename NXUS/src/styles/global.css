@@ -685,7 +685,7 @@ td .dropdown-button:hover { background: rgba(255, 255, 255, 0.05); transform: tr
     padding-top: 0 !important;
   }
 
-  .date-picker input[type="number"], .dropdown-button {
+  .date-picker input[type="number"], .date-picker .dropdown-button {
     appearance: none;
     -webkit-appearance: none;
     box-sizing: border-box !important;
