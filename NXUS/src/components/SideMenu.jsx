@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   Sun, Layers, Download, RefreshCw, Trash2,
-  LogOut, Pencil, ChevronRight, Settings
+  LogOut, Pencil, ChevronRight, Settings, Palette
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import HeatmapGrid from './HeatmapGrid'
@@ -164,23 +164,28 @@ function SideMenu({
           </div>
 
           {/* Accent colour */}
-          <div className="menu-row-label">Accent Color</div>
-          <div className="palette-grid" id="paletteGrid">
-            {PALETTES.map(p => (
-              <div
-                key={p.name}
-                className={`palette-dot ${palette === p.name ? 'active' : ''}`}
-                data-palette={p.name}
-                style={{ background: p.color }}
-                title={p.title}
-                onClick={() => onChangePalette?.(p.name)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && onChangePalette?.(p.name)}
-                aria-label={`${p.title} accent`}
-                aria-pressed={palette === p.name}
-              />
-            ))}
+          <div className="menu-row" style={{ paddingRight: 8, cursor: 'default' }}>
+            <div className="menu-row-left">
+              <Palette style={{ width: 15, height: 15 }} />
+              <span>Accent Color</span>
+            </div>
+            <div className="palette-grid" id="paletteGrid" style={{ padding: 0, gap: '10px' }}>
+              {PALETTES.map(p => (
+                <div
+                  key={p.name}
+                  className={`palette-dot ${palette === p.name ? 'active' : ''}`}
+                  data-palette={p.name}
+                  style={{ background: p.color, width: 22, height: 22 }}
+                  title={p.title}
+                  onClick={() => onChangePalette?.(p.name)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && onChangePalette?.(p.name)}
+                  aria-label={`${p.title} accent`}
+                  aria-pressed={palette === p.name}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
