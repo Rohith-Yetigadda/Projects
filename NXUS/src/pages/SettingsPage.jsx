@@ -6,7 +6,7 @@ import { useAuthContext } from '../context/AuthContext'
 import { useThemeContext } from '../context/ThemeContext'
 import {
   ArrowLeft, User, Shield, BarChart3,
-  Calendar, TrendingUp, Award, Flame, Target, Edit2
+  Calendar, TrendingUp, Award, Flame, Target, Edit2, Check
 } from 'lucide-react'
 
 function SettingsPage() {
