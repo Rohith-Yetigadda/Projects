@@ -17,6 +17,19 @@ function SettingsPage() {
   const [allTimeStats, setAllTimeStats] = useState(null)
   const [isLoadingStats, setIsLoadingStats] = useState(true)
 
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [tempName, setTempName] = useState(displayName)
+
+  const handleNameSubmit = () => {
+    const trimmed = tempName.trim()
+    if (trimmed && trimmed !== displayName) {
+      handleSaveName(trimmed)
+    } else {
+      setTempName(displayName)
+    }
+    setIsEditingName(false)
+  }
+
   // Load all-time stats from Firestore across all months
   useEffect(() => {
     if (!user) return
@@ -170,17 +183,74 @@ function SettingsPage() {
                 {(displayName || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="profile-hero-info">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-                  <input
-                    className="profile-name-input"
-                    type="text"
-                    value={displayName}
-                    onChange={e => handleSaveName(e.target.value)}
-                    placeholder="Your name"
-                    style={{ paddingRight: '24px' }}
-                  />
-                  <Edit2 size={13} style={{ color: 'var(--muted)', position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: 0.7 }} />
-                </div>
+                {isEditingName ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      className="profile-name-input"
+                      type="text"
+                      value={tempName}
+                      onChange={e => setTempName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleNameSubmit() }}
+                      onBlur={handleNameSubmit}
+                      autoFocus
+                      placeholder="Your name"
+                      style={{ 
+                        background: 'rgba(255, 255, 255, 0.05)', 
+                        padding: '4px 8px', 
+                        borderRadius: '6px', 
+                        border: '1px solid rgba(255, 255, 255, 0.2)' 
+                      }}
+                    />
+                    <button 
+                      type="button" 
+                      onMouseDown={e => { e.preventDefault(); handleNameSubmit(); }}
+                      style={{
+                        background: 'var(--accent)',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '6px',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Check size={16} strokeWidth={3} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span 
+                      style={{ 
+                        fontSize: '17px', 
+                        fontWeight: '700', 
+                        color: 'var(--text)',
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                    >
+                      {displayName}
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => { setTempName(displayName); setIsEditingName(true) }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        padding: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      aria-label="Edit name"
+                    >
+                      <Edit2 size={14} style={{ opacity: 0.8 }} />
+                    </button>
+                  </div>
+                )}
                 <span className="profile-email">{user?.email || '—'}</span>
               </div>
             </div>
