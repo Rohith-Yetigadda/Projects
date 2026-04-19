@@ -49,28 +49,35 @@ function ProgressRing({ id, gradId, color1, color2, percent, label, valueId, inf
           bottom: '100%',
           left: '50%',
           transform: 'translate(-50%, -10px)',
-          backgroundColor: '#1e293b',
-          color: '#f8fafc',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          fontSize: '0.75rem',
+          background: 'rgba(10, 10, 10, 0.95)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          color: 'rgba(255, 255, 255, 0.85)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          padding: '10px 14px',
+          borderRadius: '10px',
+          fontSize: '11px',
+          fontWeight: '500',
           width: 'max-content',
           maxWidth: '200px',
           textAlign: 'center',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.9)',
           zIndex: 50,
           pointerEvents: 'none',
-          lineHeight: '1.4'
+          lineHeight: '1.4',
+          letterSpacing: '0.2px'
         }}>
           {info}
           <div style={{
             position: 'absolute',
-            bottom: '-4px',
+            bottom: '-5px',
             left: '50%',
             transform: 'translateX(-50%) rotate(45deg)',
             width: '8px',
             height: '8px',
-            backgroundColor: '#1e293b'
+            background: 'rgba(10, 10, 10, 0.95)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.12)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           }} />
         </div>
       )}
@@ -132,15 +139,19 @@ function AnalyticsRings({ stats }) {
           <div className="pb-score">
             <span id="pbValue">{bestDay}</span>
             <span className="pb-unit">pts</span>
-            {bestDayCount > 0 && <span className="pb-count" style={{ fontSize: '12px', marginLeft: '4px', color: 'var(--muted)', fontWeight: '600' }}>({bestDayCount}x)</span>}
           </div>
           <div className="pb-bar-wrap">
             <div className="pb-bar">
               <div className="pb-fill" id="pbFill" style={{ width: pbPct + '%' }} />
             </div>
-            {pbTodayLabel && (
-              <span className="pb-today" id="pbToday">{pbTodayLabel}{todayNet > 0 ? '+' : ''}{todayNet}</span>
-            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {pbTodayLabel && (
+                <span className="pb-today" id="pbToday">{pbTodayLabel}{todayNet > 0 ? '+' : ''}{todayNet}</span>
+              )}
+              {bestDayCount > 1 && (
+                <span style={{ fontSize: '10px', color: 'var(--muted)', fontWeight: '600' }}>Hit {bestDayCount}x this month</span>
+              )}
+            </div>
           </div>
         </div>
       </section>
