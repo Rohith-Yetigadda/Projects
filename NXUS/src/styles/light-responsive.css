@@ -94,8 +94,6 @@
 [data-theme="light"] .goal-input { color: #09090b !important; border-color: rgba(0, 0, 0, 0.15); background: rgba(0, 0, 0, 0.04); }
 [data-theme="light"] .goal-input:hover,
 [data-theme="light"] .goal-input:focus { color: #09090b !important; border-color: rgba(0, 0, 0, 0.25); background: rgba(0, 0, 0, 0.05); }
-[data-theme="light"] .habit-name-input { color: #09090b; border-color: rgba(0, 0, 0, 0.15); background: rgba(0, 0, 0, 0.04); }
-[data-theme="light"] .habit-name-input:focus { color: #09090b; border-color: var(--accent); background: rgba(0, 0, 0, 0.03); }
 
 [data-theme="light"] .future-day { opacity: 1; pointer-events: none; }
 [data-theme="light"] td input[type="checkbox"].neg-habit:checked { background-color: #ef4444; border-color: #ef4444; }

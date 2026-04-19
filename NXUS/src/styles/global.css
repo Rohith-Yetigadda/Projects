@@ -625,8 +625,6 @@ td .dropdown-button:hover { background: rgba(255, 255, 255, 0.05); transform: tr
 
 .goal-input { height: 28px; width: 60px; font-size: 12px; font-weight: 600; padding: 0; margin: 0; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--muted) !important; text-align: center; transition: all 0.2s ease; -moz-appearance: textfield; appearance: textfield; }
 .goal-input:hover, .goal-input:focus { color: #fff !important; border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1); }
-.habit-name-input { width: 100%; height: 28px; font-size: 13px; font-weight: 600; padding: 0 8px; margin: 0; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: #fff; font-family: "Inter", sans-serif; transition: all 0.2s ease; outline: none; box-sizing: border-box; }
-.habit-name-input:focus { border-color: var(--accent); background: rgba(255, 255, 255, 0.06); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent); }
 
 /* =========================================================
    CONFIRM MODAL

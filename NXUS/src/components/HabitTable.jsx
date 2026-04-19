@@ -112,11 +112,20 @@ function HabitTable({
                     {isEditMode ? (
                       <input
                         type="text"
-                        className="habit-name-input"
                         value={habit.name}
                         maxLength={50}
                         onChange={e => onUpdateHabitField(habitIndex, 'name', e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
+                        style={{
+                          width: '100%',
+                          background: 'none',
+                          border: 'none',
+                          outline: 'none',
+                          color: 'inherit',
+                          font: 'inherit',
+                          padding: 0,
+                          margin: 0,
+                        }}
                       />
                     ) : habit.name}
                   </td>
