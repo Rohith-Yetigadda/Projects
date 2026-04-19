@@ -754,9 +754,6 @@ td .dropdown-button:hover { background: rgba(255, 255, 255, 0.05); transform: tr
   .hide-mobile { display: none !important; }
   .counter { font-size: 13px; color: var(--muted);}
   th:first-child, td:first-child { min-width: 140px; max-width: 140px; border-right: 1px solid var(--border); }
-  th:nth-child(2), td:nth-child(2),
-  th:nth-child(3), td:nth-child(3),
-  th:nth-child(4), td:nth-child(4) { display: none; }
 
   .habits { padding: 20px 14px; }
 }
