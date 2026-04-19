@@ -94,26 +94,8 @@ function HabitTable({
           </thead>
 
           <tbody id="habitBody">
-            {habits.length === 0 ? (
-              <tr>
-                <td colSpan={2 + totalDays + 3} style={{ padding: 0, height: '120px', borderBottom: 'none' }}>
-                  <div style={{
-                    position: 'sticky',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'inline-block',
-                    color: 'var(--muted)',
-                    fontStyle: 'italic',
-                    padding: '40px 20px',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    No habits found. Click "Add Habit" below to start.
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              habits.map((habit, habitIndex) => {
-                const { pct, isNeg } = getProgress(habit)
+            {habits.map((habit, habitIndex) => {
+              const { pct, isNeg } = getProgress(habit)
                 const rowClass = [
                   habitIndex === lastAddedHabitIndex ? 'row-enter-anim' : '',
                   habitIndex === deletingRowIndex    ? 'row-exit-anim'  : '',
@@ -251,11 +233,22 @@ function HabitTable({
                   </td>
                 </tr>
               )
-            })
-            )}
+            })}
           </tbody>
         </table>
       </div>
+
+      {habits.length === 0 && (
+        <div style={{
+          padding: '40px 20px',
+          textAlign: 'center',
+          color: 'var(--muted)',
+          fontStyle: 'italic',
+          width: '100%',
+        }}>
+          No habits found. Click "Add Habit" below to start.
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={deleteTargetIndex != null}
