@@ -102,7 +102,7 @@ function HabitTable({
                 ].filter(Boolean).join(' ')
 
               return (
-                <tr key={`${habit.name}-${habitIndex}`} className={rowClass}>
+                <tr key={habit.id || habitIndex} className={rowClass}>
                   {/* NAME CELL — contentEditable in edit mode */}
                   <td
                     contentEditable={isEditMode}

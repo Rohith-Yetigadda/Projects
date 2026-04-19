@@ -116,14 +116,20 @@ export default function useHabitStats(habits, year, monthIndex) {
     if (checkStreakDay(habits, todayIdx)) streak++
 
     let bestDay = 0
+    let bestDayCount = 0
     for (let d = 0; d < totalDays; d++) {
       let dayScore = 0
       habits.forEach(h => { if (h.days?.[d]) dayScore += h.type === 'positive' ? 1 : -1 })
-      if (dayScore > bestDay) bestDay = dayScore
+      if (dayScore > bestDay) {
+        bestDay = dayScore
+        bestDayCount = 1
+      } else if (dayScore === bestDay && bestDay > 0) {
+        bestDayCount++
+      }
     }
 
     const todayNet = habits.reduce((s, h) => s + (h.days?.[todayIdx] ? (h.type === 'positive' ? 1 : -1) : 0), 0)
 
-    return { effPct, todayPct, momPct, streak, bestDay, todayNet, daysPassed, todayIdx, isCurrentMonth, isPastMonth, isFutureMonth }
+    return { effPct, todayPct, momPct, streak, bestDay, bestDayCount, todayNet, daysPassed, todayIdx, isCurrentMonth, isPastMonth, isFutureMonth }
   }, [habits, year, monthIndex, totalDays, todayIdx, daysPassed, isCurrentMonth, isPastMonth, isFutureMonth])
 }
