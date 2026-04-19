@@ -52,13 +52,27 @@ const checkStreakDay = (habits, dayIdx) => {
 export default function useHabitStats(habits, year, monthIndex) {
   const now = new Date()
   const isCurrentMonth = now.getFullYear() === year && now.getMonth() === monthIndex
+  const isPastMonth = year < now.getFullYear() || (year === now.getFullYear() && monthIndex < now.getMonth())
+  const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && monthIndex > now.getMonth())
   const totalDays = new Date(year, monthIndex + 1, 0).getDate()
-  const todayIdx = isCurrentMonth ? now.getDate() - 1 : totalDays - 1
-  const daysPassed = Math.max(1, todayIdx + 1)
+  
+  let todayIdx = -1
+  let daysPassed = 0
+  
+  if (isCurrentMonth) {
+    todayIdx = now.getDate() - 1
+    daysPassed = todayIdx + 1
+  } else if (isPastMonth) {
+    todayIdx = totalDays - 1
+    daysPassed = totalDays
+  } else if (isFutureMonth) {
+    todayIdx = 0
+    daysPassed = 0
+  }
 
   return useMemo(() => {
     if (!habits || habits.length === 0) {
-      return { effPct: 0, todayPct: 0, momPct: 0, streak: 0, bestDay: 0, todayNet: 0, daysPassed, todayIdx }
+      return { effPct: 0, todayPct: 0, momPct: 0, streak: 0, bestDay: 0, todayNet: 0, daysPassed, todayIdx, isCurrentMonth, isPastMonth, isFutureMonth }
     }
 
     let totalEfficiency = 0, totalWeight = 0
@@ -110,6 +124,6 @@ export default function useHabitStats(habits, year, monthIndex) {
 
     const todayNet = habits.reduce((s, h) => s + (h.days?.[todayIdx] ? (h.type === 'positive' ? 1 : -1) : 0), 0)
 
-    return { effPct, todayPct, momPct, streak, bestDay, todayNet, daysPassed, todayIdx }
-  }, [habits, year, monthIndex, totalDays, todayIdx, daysPassed])
+    return { effPct, todayPct, momPct, streak, bestDay, todayNet, daysPassed, todayIdx, isCurrentMonth, isPastMonth, isFutureMonth }
+  }, [habits, year, monthIndex, totalDays, todayIdx, daysPassed, isCurrentMonth, isPastMonth, isFutureMonth])
 }

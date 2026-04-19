@@ -42,10 +42,13 @@ function ProgressRing({ id, gradId, color1, color2, percent, label, valueId }) {
 
 function AnalyticsRings({ stats }) {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const { effPct, todayPct, momPct, streak, bestDay, todayNet } = stats || { 
-    effPct:0, todayPct:0, momPct:0, streak:0, bestDay:0, todayNet:0 
+  const { effPct, todayPct, momPct, streak, bestDay, todayNet, isCurrentMonth, isPastMonth } = stats || { 
+    effPct:0, todayPct:0, momPct:0, streak:0, bestDay:0, todayNet:0, isCurrentMonth: true, isPastMonth: false 
   }
   const pbPct = bestDay > 0 ? Math.max(0, Math.min((todayNet / bestDay) * 100, 100)) : 0
+
+  const todayLabel = isCurrentMonth ? "Today" : isPastMonth ? "Month End" : "Day 1"
+  const pbTodayLabel = isCurrentMonth ? "Today: " : isPastMonth ? "Month End: " : ""
 
   return (
     <section className="analytics">
@@ -56,7 +59,7 @@ function AnalyticsRings({ stats }) {
           color1="#2dd4bf" color2="#0d9488" percent={effPct} valueId="efficiencyPct"
         />
         <ProgressRing
-          id="ring-today" gradId="grad-cyan" label="Today"
+          id="ring-today" gradId="grad-cyan" label={todayLabel}
           color1="#3b82f6" color2="#2563eb" percent={todayPct} valueId="todayPct"
         />
         <ProgressRing
@@ -93,7 +96,9 @@ function AnalyticsRings({ stats }) {
           <div className="pb-bar">
             <div className="pb-fill" id="pbFill" style={{ width: pbPct + '%' }} />
           </div>
-          <span className="pb-today" id="pbToday">Today: {todayNet > 0 ? '+' : ''}{todayNet}</span>
+          {pbTodayLabel && (
+            <span className="pb-today" id="pbToday">{pbTodayLabel}{todayNet > 0 ? '+' : ''}{todayNet}</span>
+          )}
         </div>
       </div>
     </section>

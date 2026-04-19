@@ -17,7 +17,9 @@ function ActivityGraph({ habits, year, monthIndex }) {
   const now = new Date()
   const totalDays = new Date(year, monthIndex + 1, 0).getDate()
   const isCurrentMonth = now.getFullYear() === year && now.getMonth() === monthIndex
-  const maxDotIndex = isCurrentMonth ? now.getDate() - 1 : totalDays - 1
+  const isPastMonth = year < now.getFullYear() || (year === now.getFullYear() && monthIndex < now.getMonth())
+  const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && monthIndex > now.getMonth())
+  const maxDotIndex = isCurrentMonth ? now.getDate() - 1 : isPastMonth ? totalDays - 1 : 0
 
   useEffect(() => {
     const el = containerRef.current
@@ -77,9 +79,10 @@ function ActivityGraph({ habits, year, monthIndex }) {
 
   const todayNet = useMemo(() => {
     if (!points.length) return 0
+    if (isFutureMonth) return 0
     const idx = isCurrentMonth ? now.getDate() - 1 : totalDays - 1
     return habits.reduce((s, h) => s + (h.days?.[idx] ? (h.type === 'positive' ? 1 : -1) : 0), 0)
-  }, [habits, isCurrentMonth, totalDays])
+  }, [habits, isCurrentMonth, isFutureMonth, totalDays, points.length])
 
   const findClosest = useCallback((relX) => {
     let closest = points[0], minDiff = Infinity
@@ -143,7 +146,7 @@ function ActivityGraph({ habits, year, monthIndex }) {
           className="graph-summary"
           style={{ background: scoreEl.bg, borderColor: scoreEl.border, color: scoreEl.color, boxShadow: scoreEl.shadow }}
         >
-          {todayNet > 0 ? '+' : ''}{todayNet} Net Score
+          {isPastMonth ? 'Month End ' : isFutureMonth ? '' : 'Today '}{todayNet > 0 ? '+' : ''}{todayNet}
         </div>
       </div>
 
@@ -151,7 +154,12 @@ function ActivityGraph({ habits, year, monthIndex }) {
         {hovered && hovered.index <= maxDotIndex && (
           <div
             className="graph-tooltip"
-            style={{ opacity: 1, left: Math.max(10, Math.min(hovered.x / width * 100, 80)) + '%', top: (hovered.y / HEIGHT * 100) - 30 + '%' }}
+            style={{ 
+              opacity: 1, 
+              left: (hovered.x / width * 100) + '%', 
+              top: (hovered.y / HEIGHT * 100) - 30 + '%',
+              transform: hovered.x > width - 100 ? 'translateX(-100%)' : hovered.x < 100 ? 'translateX(0)' : 'translateX(-50%)'
+            }}
           >
             <span className="tooltip-date">{monthNames[monthIndex]} {hovered.day}</span>
             <div className="tooltip-stats">
