@@ -1,193 +1,130 @@
 <div align="center">
 
-# ⬡ NXUS
+# N X U S
 
-### *A Premium Habit Tracking Experience*
+**A habit tracker built for precision, not productivity theater.**
 
-[![Live Site](https://img.shields.io/badge/▶_Live_App-nxus--tracker.vercel.app-000?style=for-the-badge&logo=vercel&logoColor=white)](https://nxus-tracker.vercel.app/)
-[![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=000)](https://react.dev)
-[![Firebase](https://img.shields.io/badge/Firebase-DD2C00?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
-[![Vite](https://img.shields.io/badge/Vite_8-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
-
----
-
-A fully private, cloud-synced habit tracker built from scratch with **React 19** and **Firebase**.  
-No templates. No component libraries. Every pixel hand-crafted with vanilla CSS.
+React 19 · Firebase · Vanilla CSS · Vite 8
 
 <br>
 
-[**🔗 Launch NXUS →**](https://nxus-tracker.vercel.app/)
+[Live App](https://nxus-tracker.vercel.app/) · [Demo Video](https://drive.google.com/file/d/187KQXgh1QzTIJmIh596r6i13kxQXzInw/view?usp=sharing)
 
 </div>
 
----
-
-## 🎬 Demo
-
-<div align="center">
-
-[![NXUS Demo Video](https://img.shields.io/badge/▶_Watch_Demo_Video-FF0000?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/187KQXgh1QzTIJmIh596r6i13kxQXzInw/view?usp=sharing)
-
-</div>
+<br>
 
 ---
 
-## ✨ Features
+<br>
 
-<table>
-<tr>
-<td width="50%">
+## Overview
 
-### 📊 Dashboard & Analytics
-- **Activity Graph** — Smooth Catmull-Rom spline chart tracking daily net scores with interactive tooltips
-- **Analytics Rings** — SVG donut rings for Efficiency, Momentum & Completion metrics
-- **Streak Counter** — Real-time streak tracking with month-end carryover
-- **Personal Best** — All-time high score tracking with animated progress bar
+NXUS is a fully private, cloud-synced habit tracker designed and built from scratch. No component libraries. No template kits. Every surface — from the spline-based activity graph to the animated analytics rings — is hand-built with vanilla CSS and raw SVG.
 
-</td>
-<td width="50%">
+The interface ships in dark and light themes with five accent palettes, compact density toggles, and full responsive coverage from ultrawide to mobile. Data lives in Firestore with Google OAuth gating access.
 
-### 🎨 Customization Engine
-- **Dark / Light Mode** — Full theme system with smooth transitions
-- **5 Accent Palettes** — Mint, Ocean, Violet, Coral & Sunset color schemes
-- **Compact View** — Toggle between comfortable and dense table layouts
-- **Responsive Design** — Optimized for desktop, tablet & mobile
+<br>
 
-</td>
-</tr>
-<tr>
-<td width="50%">
+## Core Systems
 
-### 📅 Habit Management
-- **Positive & Negative Habits** — Track both goals and habits to break
-- **Importance Levels** — Low, Medium, High priority badges
-- **Monthly Goals** — Set per-habit targets and track progress
-- **Inline Editing** — Rename habits, change types & reorder on the fly
+**Dashboard** — The main view renders an interactive activity graph (Catmull-Rom spline interpolation with hover/touch tooltips), SVG donut rings for Efficiency, Momentum, and Completion, a live streak counter with month-boundary carryover, and a personal best tracker with animated progress.
 
-</td>
-<td width="50%">
+**Habit Engine** — Supports positive and negative habit types, three importance tiers (Low / Medium / High), per-habit monthly goals with progress bars, and inline renaming. The checkbox matrix handles past/present/future day states with visual distinction.
 
-### ☁️ Cloud & Data
-- **Firebase Auth** — Secure Google sign-in with persistent sessions
-- **Firestore Sync** — Real-time cloud persistence across all devices
-- **CSV Export** — One-click monthly data export
-- **Sync from Last Month** — Carry forward habit configs seamlessly
-- **Full Data Reset** — Complete account data wipe when needed
+**Theming** — A full CSS custom property system drives dark/light modes and five color palettes (Mint, Ocean, Violet, Coral, Sunset). Theme preferences sync to Firestore so they follow the user across devices.
 
-</td>
-</tr>
-</table>
+**Data Layer** — Firebase Authentication handles sign-in. Firestore persists all habit data, preferences, and display names in real-time. One-click CSV export, sync-from-previous-month, and full account data wipe are built in.
 
----
+<br>
 
-## 🛠 Tech Stack
+## Stack
 
-| Layer | Technology |
-|---|---|
-| **Framework** | React 19 + React Router 7 |
-| **Build Tool** | Vite 8 |
-| **Styling** | 100% Vanilla CSS — no Tailwind, no UI libraries |
-| **Icons** | Lucide React |
-| **Auth** | Firebase Authentication (Google OAuth) |
-| **Database** | Cloud Firestore |
-| **Hosting** | Vercel (Edge Network) |
+| | |
+|:--|:--|
+| Framework | React 19, React Router 7 |
+| Build | Vite 8 |
+| Styling | Vanilla CSS — zero external UI dependencies |
+| Icons | Lucide React |
+| Auth | Firebase Authentication (Google OAuth) |
+| Database | Cloud Firestore |
+| Hosting | Vercel |
 
----
+<br>
 
-## 🏗 Architecture
+## Project Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-│   ├── ActivityGraph    # SVG spline chart with hover/touch interaction
-│   ├── AnalyticsRings   # Donut ring progress indicators
-│   ├── AppLayout        # Main layout orchestrator + state manager
-│   ├── HabitTable       # Core habit grid with checkbox matrix
-│   ├── Header           # Top bar with date picker & score display
-│   ├── HeatmapGrid     # Monthly activity heatmap (sidebar)
-│   ├── SideMenu         # Slide-out navigation & settings panel
-│   ├── FooterCounter    # Bottom stats bar with add-habit action
-│   └── ...              # ConfirmModal, Dropdown, ProtectedRoute
+├── components/
+│   ├── ActivityGraph        Spline chart with interactive tooltips
+│   ├── AnalyticsRings       SVG donut progress indicators
+│   ├── AppLayout            Root layout + state orchestrator
+│   ├── HabitTable           Checkbox matrix with day-state logic
+│   ├── Header               Date picker, score display, streak
+│   ├── HeatmapGrid          Monthly heatmap in sidebar
+│   ├── SideMenu             Navigation, theme controls, user profile
+│   ├── FooterCounter        Stats bar + add-habit action
+│   ├── ConfirmModal         Reusable confirmation dialog
+│   ├── Dropdown             Custom select component
+│   └── ProtectedRoute       Auth gate wrapper
 │
 ├── pages/
-│   ├── DashboardPage    # Main app view
-│   ├── LoginPage        # Auth gate with Google sign-in
-│   └── SettingsPage     # Profile, insights & data management
+│   ├── DashboardPage        Main app view
+│   ├── LoginPage            Auth screen with Google sign-in
+│   └── SettingsPage         Profile, all-time insights, data ops
 │
-├── context/             # React Context providers (Auth, etc.)
-├── hooks/               # Custom hooks (useAppConfig, etc.)
-├── services/            # Firebase configuration & API layer
-├── styles/              # Global CSS + light mode + responsive breakpoints
-└── utils/               # Helper functions & utilities
+├── context/                 Auth context provider
+├── hooks/                   useAppConfig and custom hooks
+├── services/                Firebase init and API surface
+├── styles/                  Global CSS, light mode, breakpoints
+└── utils/                   Helpers and utility functions
 ```
 
----
+<br>
 
-## 🚀 Quickstart
+## Setup
 
-### Prerequisites
-- Node.js **18+**
-- A Firebase project with **Authentication** and **Firestore** enabled
-
-### Setup
+Requires Node 18+ and a Firebase project with Authentication and Firestore enabled.
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Rohith-Yetigadda/Projects.git
 cd Projects/NXUS
-
-# 2. Install dependencies
 npm install
+```
 
-# 3. Configure environment variables
-cp .env.example .env
-# Fill in your Firebase credentials (see below)
+Create `.env` from the example template:
 
-# 4. Start development server
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+```
+
+```bash
 npm run dev
 ```
 
-### Environment Variables
+<br>
 
-Create a `.env` file in the project root with your Firebase config:
-
-```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-```
-
----
-
-## 📦 Deployment
+## Deployment
 
 ```bash
 npm run build
 ```
 
-Deploy the generated `/dist` directory to any static host. For **Vercel**:
+The `/dist` output deploys to any static host. On Vercel: set the root directory to `NXUS`, add the environment variables, and deploy.
 
-1. Connect your GitHub repository
-2. Set the **Root Directory** to `NXUS`
-3. Add all environment variables in the Vercel dashboard
-4. Deploy — Vercel handles the rest automatically
-
----
-
-## 📄 License
-
-This project is private and intended for personal use.
+<br>
 
 ---
 
 <div align="center">
 
-**Built by [Rohith Yetigadda](https://github.com/Rohith-Yetigadda)**
-
-*v1.2.1*
+Built by [Rohith Yetigadda](https://github.com/Rohith-Yetigadda) · v1.2.1
 
 </div>
