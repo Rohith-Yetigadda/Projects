@@ -50,8 +50,8 @@ function AppLayout() {
     useMonthlyHabits(user?.uid, year, monthIndex)
 
   const syncStats = useHabitStats(habits, year, monthIndex)
-  const globalStreak = useGlobalStreak(user?.uid, habits, year, monthIndex)
-  const stats = { ...syncStats, streak: globalStreak }
+  const { globalStreak, globalMomPct } = useGlobalStreak(user?.uid, habits, year, monthIndex)
+  const stats = { ...syncStats, streak: globalStreak, momPct: globalMomPct }
 
   useEffect(() => {
     if (habitsError) {

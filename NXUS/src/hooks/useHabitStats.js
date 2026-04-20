@@ -49,6 +49,17 @@ export const checkStreakDay = (habits, dayIdx) => {
   return posPass && negPass
 }
 
+export const getMomentumDay = (habits, dayIdx) => {
+  let mSum = 0, mMax = 0
+  habits.forEach(h => {
+    const w = Number(h.weight) || 2
+    mMax += w
+    if (h.type === 'negative') { if (!h.days?.[dayIdx]) mSum += w }
+    else { if (h.days?.[dayIdx]) mSum += w }
+  })
+  return { mSum, mMax }
+}
+
 export default function useHabitStats(habits, year, monthIndex) {
   const now = new Date()
   const isCurrentMonth = now.getFullYear() === year && now.getMonth() === monthIndex

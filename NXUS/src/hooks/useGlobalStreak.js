@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../services/firebase'
-import { checkStreakDay } from './useHabitStats'
+import { checkStreakDay, getMomentumDay } from './useHabitStats'
 
 function getDaysInMonth(y, m) {
   return new Date(y, m + 1, 0).getDate()
 }
 
 export default function useGlobalStreak(userUid, currentHabits, initialYear, initialMonthIndex) {
-  const [globalStreak, setGlobalStreak] = useState(0)
+  const [globalStats, setGlobalStats] = useState({ globalStreak: 0, globalMomPct: 0 })
 
   useEffect(() => {
     if (!userUid || !currentHabits || currentHabits.length === 0) {
-      setGlobalStreak(0)
+      setGlobalStats({ globalStreak: 0, globalMomPct: 0 })
       return
     }
 
@@ -23,7 +23,7 @@ export default function useGlobalStreak(userUid, currentHabits, initialYear, ini
       const isFutureMonth = initialYear > now.getFullYear() || (initialYear === now.getFullYear() && initialMonthIndex > now.getMonth())
       
       if (isFutureMonth) {
-        if (isSubscribed) setGlobalStreak(0)
+        if (isSubscribed) setGlobalStats({ globalStreak: 0, globalMomPct: 0 })
         return
       }
 
@@ -35,27 +35,39 @@ export default function useGlobalStreak(userUid, currentHabits, initialYear, ini
       let totalStreak = 0
       let broken = false
 
-      // 1. Check current month
-      // The current day is evaluated separately to allow trailing streaks if today is incomplete
+      let mSum = 0
+      let mMax = 0
+      let daysChecked = 0 // Needs exactly 5 for rolling momentum
+
+      // 1. Check current month today
       if (checkStreakDay(currentHabits, checkIdx)) {
         totalStreak++
       }
+      const momToday = getMomentumDay(currentHabits, checkIdx)
+      mSum += momToday.mSum
+      mMax += momToday.mMax
+      daysChecked++
 
-      // Check remaining trailing days in the current month
+      // Check remaining trailing days in current month
       for (let d = checkIdx - 1; d >= 0; d--) {
-        if (checkStreakDay(currentHabits, d)) {
-          totalStreak++
-        } else {
-          broken = true
-          break
+        if (!broken) {
+          if (checkStreakDay(currentHabits, d)) totalStreak++
+          else broken = true
         }
+        if (daysChecked < 5) {
+          const mom = getMomentumDay(currentHabits, d)
+          mSum += mom.mSum
+          mMax += mom.mMax
+          daysChecked++
+        }
+        if (broken && daysChecked >= 5) break
       }
 
-      // 2. Traverse previous months iteratively if the streak hasn't broken
+      // 2. Traverse previous months iteratively if the streak hasn't broken OR we haven't grabbed 5 days
       let fetchY = y
       let fetchM = m
       
-      while (!broken && isSubscribed) {
+      while ((!broken || daysChecked < 5) && isSubscribed) {
         fetchM--
         if (fetchM < 0) {
           fetchM = 11
@@ -75,21 +87,27 @@ export default function useGlobalStreak(userUid, currentHabits, initialYear, ini
 
           const daysInPastMonth = getDaysInMonth(fetchY, fetchM)
           for (let d = daysInPastMonth - 1; d >= 0; d--) {
-            if (checkStreakDay(pastHabits, d)) {
-              totalStreak++
-            } else {
-              broken = true
-              break
+            if (!broken) {
+              if (checkStreakDay(pastHabits, d)) totalStreak++
+              else broken = true
             }
+            if (daysChecked < 5) {
+              const mom = getMomentumDay(pastHabits, d)
+              mSum += mom.mSum
+              mMax += mom.mMax
+              daysChecked++
+            }
+            if (broken && daysChecked >= 5) break
           }
         } catch (e) {
-          console.error("Failed to fetch historical streak", e)
-          break // Stop on error securely
+          console.error("Failed to fetch historical stats", e)
+          break 
         }
       }
 
       if (isSubscribed) {
-        setGlobalStreak(totalStreak)
+        const globalMomPct = mMax ? (mSum / mMax) * 100 : 0
+        setGlobalStats({ globalStreak: totalStreak, globalMomPct })
       }
     }
 
@@ -98,5 +116,5 @@ export default function useGlobalStreak(userUid, currentHabits, initialYear, ini
     return () => { isSubscribed = false }
   }, [userUid, currentHabits, initialYear, initialMonthIndex])
 
-  return globalStreak
+  return globalStats
 }
