@@ -68,6 +68,7 @@
 [data-theme="light"] .quote-text { color: rgba(0, 0, 0, 0.45); font-weight: 725; }
 
 [data-theme="light"] .heat-box { background: rgba(0, 0, 0, 0.04); border-radius: 4px; }
+[data-theme="light"] .heat-box.active-neg { background: rgba(220, 38, 38, 0.55); box-shadow: 0 0 6px rgba(220, 38, 38, 0.2); }
 [data-theme="light"] .heat-box.active-low { background: color-mix(in srgb, var(--accent) 40%, transparent); }
 [data-theme="light"] .heat-box.active-med { background: color-mix(in srgb, var(--accent) 70%, transparent); box-shadow: none; }
 [data-theme="light"] .heat-box.active-high { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
