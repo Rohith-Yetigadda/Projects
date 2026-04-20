@@ -59,6 +59,9 @@
 [data-theme="light"] .ring-label { color: #09090b; }
 [data-theme="light"] .ring span { color: #09090b; }
 
+[data-theme="light"] .ring-tooltip { background: rgba(255, 255, 255, 0.95); color: rgba(0, 0, 0, 0.85); border-color: rgba(0, 0, 0, 0.1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); }
+[data-theme="light"] .ring-tooltip-arrow { background: rgba(255, 255, 255, 0.95); border-right-color: rgba(0, 0, 0, 0.1); border-bottom-color: rgba(0, 0, 0, 0.1); }
+
 [data-theme="light"] .streak-widget { border-left-color: rgba(0, 0, 0, 0.08); }
 [data-theme="light"] .streak-count { color: var(--orange); }
 [data-theme="light"] .streak-label { color: rgba(0, 0, 0, 0.45); font-weight: 725; }
@@ -142,6 +145,7 @@
 [data-theme="light"] .pb-score #pbValue { color: #eab301; }
 [data-theme="light"] .pb-icon { color: #eab301; }
 [data-theme="light"] .pb-fill { background: #eab301; box-shadow: none; }
+[data-theme="light"] .pb-hit-count { background: rgba(0, 0, 0, 0.05); }
 
 [data-theme="light"] td input[type="checkbox"]:not(:checked) {
   background: rgba(0, 0, 0, 0.1);
