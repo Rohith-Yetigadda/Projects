@@ -2,7 +2,7 @@
 
 # N X U S
 
-**A habit tracker built for precision, not productivity theater.**
+**A habit tracker built for precision.**
 
 React 19 · Firebase · Vanilla CSS · Vite 8
 
