@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-const classifyHabit = (h) => {
+export const classifyHabit = (h) => {
   const ratio = (h.goal || h.days.length) / h.days.length
   if (ratio >= 0.65) return 'daily'
   if (ratio >= 0.25) return 'regular'
@@ -25,7 +25,7 @@ const getHabitEfficiency = (h, daysPassed) => {
   return Math.min(checks / (expectedNow * 0.6), 1.0)
 }
 
-const checkStreakDay = (habits, dayIdx) => {
+export const checkStreakDay = (habits, dayIdx) => {
   let posScore = 0, posMax = 0
   habits.forEach(h => {
     if (h.type !== 'positive') return

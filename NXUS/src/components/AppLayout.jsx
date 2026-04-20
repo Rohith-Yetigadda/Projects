@@ -16,6 +16,7 @@ import useExportCSV from '../hooks/useExportCSV'
 import useMediaQuery from '../hooks/useMediaQuery'
 import { LogOut, RefreshCw, Trash2 } from 'lucide-react'
 import useHabitStats from '../hooks/useHabitStats'
+import useGlobalStreak from '../hooks/useGlobalStreak'
 
 const monthNames = [
   'January','February','March','April','May','June',
@@ -48,7 +49,9 @@ function AppLayout() {
   const { habits, setHabits, addHabit, toggleHabitDay, updateHabitField, deleteHabit, moveHabit, habitsError } =
     useMonthlyHabits(user?.uid, year, monthIndex)
 
-  const stats = useHabitStats(habits, year, monthIndex)
+  const syncStats = useHabitStats(habits, year, monthIndex)
+  const globalStreak = useGlobalStreak(user?.uid, habits, year, monthIndex)
+  const stats = { ...syncStats, streak: globalStreak }
 
   useEffect(() => {
     if (habitsError) {

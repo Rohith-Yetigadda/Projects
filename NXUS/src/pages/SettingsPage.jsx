@@ -135,11 +135,38 @@ function SettingsPage() {
           }
 
           let streak = 0
-          for (let d = todayIdx - 1; d >= 0; d--) {
-            if (checkStreakDay(habits, d)) streak++
-            else break
+          let broken = false
+
+          for (let offset = 0; offset < snapshots.length; offset++) {
+            const { snap: s, m: fetchM, y: fetchY } = snapshots[offset]
+            if (!s.exists()) break
+            
+            const monthHabits = s.data()?.habits || []
+            if (monthHabits.length === 0) break
+
+            const daysInMonth = new Date(fetchY, fetchM + 1, 0).getDate()
+            let startIdx = daysInMonth - 1
+
+            // If it's the very first month we're checking (offset 0), we start from todayIdx
+            if (offset === 0) {
+              if (checkStreakDay(monthHabits, todayIdx)) {
+                streak++
+              }
+              startIdx = todayIdx - 1
+            }
+
+            for (let d = startIdx; d >= 0; d--) {
+              if (checkStreakDay(monthHabits, d)) {
+                streak++
+              } else {
+                broken = true
+                break
+              }
+            }
+
+            if (broken) break
           }
-          if (checkStreakDay(habits, todayIdx)) streak++
+
           longestStreak = streak
         }
 
