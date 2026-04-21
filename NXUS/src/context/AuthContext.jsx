@@ -24,6 +24,12 @@ export function AuthProvider({ children }) {
     if (!user) return
     const loadProfile = async () => {
       try {
+        // Write email/info to the root document so Admin can see it in Firebase Console
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email || 'No email provided',
+          lastActive: new Date().toISOString()
+        }, { merge: true })
+
         const snap = await getDoc(doc(db, 'users', user.uid, 'profile', 'info'))
         if (snap.exists()) setDisplayName(snap.data().displayName || 'User')
       } catch { /* silently fail */ }
