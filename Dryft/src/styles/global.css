@@ -1,0 +1,165 @@
+@import "open-props/normalize";
+
+:root {
+  /* ── Typography System ── */
+  /* Using Outfit (loaded in index.html) to guarantee consistent 
+     premium geometry across Windows and Mac. System-UI on Windows falls back to Segoe UI which looks clunky. */
+  --font-sans: 'Outfit', sans-serif;
+  
+  /* ── Spacing Scale ── */
+  --space-4:  4px;
+  --space-8:  8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-96: 96px;
+  --space-128: 128px;
+
+  /* ── Brand Colors ── */
+  --clr-bg:         #000000; 
+  --clr-surface:    #111111; 
+  --clr-border:     rgba(255, 255, 255, 0.1);
+  --clr-border-hover: rgba(255, 255, 255, 0.2);
+  
+  --clr-accent:     #ffffff; 
+  --clr-accent-text: #000000;
+  
+  --clr-text:       #f5f5f7; 
+  --clr-text-muted: #86868b; 
+
+  /* ── Radii ── */
+  --radius-sm:  4px;
+  --radius-md:  6px; /* True Minimal SaaS */
+  --radius-lg:  12px;
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base: 300ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--clr-bg);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: transparent;
+  color: var(--clr-text);
+  line-height: 1.5;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   CUSTOM PREMIUM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--clr-bg); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15); 
+  border-radius: 999px;
+  border: 2px solid var(--clr-bg); 
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ============================================================
+   TYPOGRAPHY 
+   Outfit at 400 weight is exceptionally clean and geometric.
+   ============================================================ */
+h1, h2, h3, h4 {
+  font-family: var(--font-sans);
+  font-weight: 400; 
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--clr-text);
+}
+
+p {
+  color: var(--clr-text-muted);
+  line-height: 1.6;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   BUTTON SYSTEM 
+   True Minimal: 6px radius, 14px font size, crisp padding.
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px; 
+  border-radius: var(--radius-md); 
+  font-family: var(--font-sans);
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500; 
+  line-height: 1; 
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  letter-spacing: 0em;
+}
+
+.btn-primary {
+  background: var(--clr-accent);
+  color: var(--clr-accent-text);
+}
+
+.btn-primary:hover {
+  background: #e0e0e0; 
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--clr-text);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--clr-text-muted);
+  padding: 10px 16px;
+  font-weight: 400;
+  border: none;
+}
+
+.btn-ghost:hover {
+  color: var(--clr-text);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-24);
+}

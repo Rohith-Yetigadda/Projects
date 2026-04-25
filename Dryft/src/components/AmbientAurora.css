@@ -1,0 +1,57 @@
+.aurora-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none; 
+  background: #000000;
+  overflow: hidden;
+}
+
+.aurora-orb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform;
+  mix-blend-mode: screen;
+}
+
+/* 
+  Opacities increased slightly per user request to ensure
+  the colors are visible, acting as deep, premium cinematic lighting.
+*/
+.orb-1 {
+  background: #2563eb; 
+  opacity: 0.10; /* Increased from 0.05 */
+  width: 40vw;
+  height: 40vw;
+  margin-top: -20vw;
+  margin-left: -20vw;
+  filter: blur(100px);
+}
+
+.orb-2 {
+  background: #14b8a6; 
+  opacity: 0.08; /* Increased from 0.03 */
+  width: 30vw;
+  height: 30vw;
+  margin-top: -15vw;
+  margin-left: -15vw;
+  filter: blur(80px);
+}
+
+.orb-3 {
+  background: #7c3aed; 
+  opacity: 0.12; /* Increased from 0.04 */
+  width: 50vw;
+  height: 50vw;
+  margin-top: -25vw;
+  margin-left: -25vw;
+  filter: blur(120px);
+}
+
+@media (max-width: 768px) {
+  .aurora-orb {
+    filter: blur(60px);
+  }
+}

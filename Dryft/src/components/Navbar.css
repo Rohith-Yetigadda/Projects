@@ -1,0 +1,77 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 72px; /* Slightly taller for premium breathing room */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.navbar.scrolled {
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Ultra minimal border */
+}
+
+.navbar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.navbar__brand {
+  font-family: var(--font-sans);
+  font-weight: 600; /* Apple bold */
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: var(--clr-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  text-decoration: none;
+}
+
+.navbar__brand-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--clr-text);
+  display: inline-block;
+}
+
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-32);
+}
+
+.navbar__link {
+  font-size: 0.9rem;
+  font-weight: 500; /* Increased legibility */
+  color: #a1a1a6; /* Classic Apple light gray */
+  transition: color var(--transition-fast);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.navbar__link:hover {
+  color: var(--clr-text); /* Pure white on hover */
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .navbar__links {
+    display: none;
+  }
+}
