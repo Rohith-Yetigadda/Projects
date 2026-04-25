@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import FeatureCards from '../components/FeatureCards';
 import './LandingPage.css';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const containerRef = useRef(null);
   const heroRef = useRef(null);
   
@@ -72,7 +74,7 @@ export default function LandingPage() {
             </p>
 
             <div className="landing__actions" ref={actionsRef}>
-              <button className="btn btn-primary">
+              <button className="btn btn-primary" onClick={() => navigate('/signup')}>
                 Start Planning
               </button>
               <button className="btn btn-secondary">

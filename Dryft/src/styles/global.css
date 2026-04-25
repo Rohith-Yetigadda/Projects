@@ -2,9 +2,8 @@
 
 :root {
   /* ── Typography System ── */
-  /* Using Outfit (loaded in index.html) to guarantee consistent 
-     premium geometry across Windows and Mac. System-UI on Windows falls back to Segoe UI which looks clunky. */
-  --font-sans: 'Outfit', sans-serif;
+  /* Inter is the absolute gold standard for premium, minimal SaaS (Linear, Vercel, Apple-like) */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   
   /* ── Spacing Scale ── */
   --space-4:  4px;
@@ -20,9 +19,9 @@
 
   /* ── Brand Colors ── */
   --clr-bg:         #000000; 
-  --clr-surface:    #111111; 
-  --clr-border:     rgba(255, 255, 255, 0.1);
-  --clr-border-hover: rgba(255, 255, 255, 0.2);
+  --clr-surface:    #000000; 
+  --clr-border:     rgba(255, 255, 255, 0.08);
+  --clr-border-hover: rgba(255, 255, 255, 0.15);
   
   --clr-accent:     #ffffff; 
   --clr-accent-text: #000000;
@@ -32,12 +31,12 @@
 
   /* ── Radii ── */
   --radius-sm:  4px;
-  --radius-md:  6px; /* True Minimal SaaS */
+  --radius-md:  6px; 
   --radius-lg:  12px;
 
   /* ── Transitions ── */
-  --transition-fast: 150ms cubic-bezier(0.2, 0, 0, 1);
-  --transition-base: 300ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-fast: 150ms ease;
+  --transition-base: 300ms ease;
 }
 
 *, *::before, *::after {
@@ -82,11 +81,11 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ============================================================
    TYPOGRAPHY 
-   Outfit at 400 weight is exceptionally clean and geometric.
+   Inter requires tight tracking to look premium.
    ============================================================ */
 h1, h2, h3, h4 {
   font-family: var(--font-sans);
-  font-weight: 400; 
+  font-weight: 500; 
   line-height: 1.05;
   letter-spacing: -0.04em;
   color: var(--clr-text);
@@ -95,13 +94,12 @@ h1, h2, h3, h4 {
 p {
   color: var(--clr-text-muted);
   line-height: 1.6;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
 /* ============================================================
    BUTTON SYSTEM 
-   True Minimal: 6px radius, 14px font size, crisp padding.
    ============================================================ */
 .btn {
   display: inline-flex;
@@ -110,14 +108,14 @@ p {
   padding: 10px 18px; 
   border-radius: var(--radius-md); 
   font-family: var(--font-sans);
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.875rem; 
   font-weight: 500; 
   line-height: 1; 
   cursor: pointer;
   border: 1px solid transparent;
   transition: all var(--transition-fast);
   text-decoration: none;
-  letter-spacing: 0em;
+  letter-spacing: -0.01em;
 }
 
 .btn-primary {
@@ -130,16 +128,14 @@ p {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
   color: var(--clr-text);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--clr-border);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--clr-border-hover);
 }
 
 .btn-ghost {
