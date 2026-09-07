@@ -25,13 +25,13 @@ export default async function handler(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Fast and cheap for typical actions
-
     let prompt = "";
+    let contents: any[] = [];
     
     // Construct prompt based on action
     switch(action) {
       case "chat":
+        const chatModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         prompt = `
           You are Compass, an AI nutrition assistant for students.
           User Context: ${JSON.stringify(userContext)}
@@ -42,14 +42,45 @@ export default async function handler(req: Request) {
           - text: the text response
           - suggestedActions: an array of strings representing buttons for the user to click (optional)
         `;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
+        
       case "extract_menu":
+        const extractModel = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
         prompt = `
-          Extract the menu from the provided text.
-          User provided: ${payload.text}
-          Return a JSON array of days containing breakfast, lunch, and dinner.
+          Extract the FULL WEEKLY MESS MENU from the provided image(s).
+          
+          RULES:
+          1. Detect all 7 days (Monday through Sunday).
+          2. Detect Breakfast, Lunch, and Dinner for each day.
+          3. Extract every listed food item and preserve the relationship Day -> Meal -> Foods.
+          4. Include additional items like milk, tea, coffee, fruit, desserts, etc.
+          5. Ignore irrelevant text (like headers/footers) unless useful.
+          
+          OUTPUT STRICTLY AS JSON:
+          {
+            "menu": [
+              {
+                "day": "Monday",
+                "breakfast": ["Idli", "Sambar", "Milk"],
+                "lunch": ["Rice", "Dal", "Chicken Curry"],
+                "dinner": ["Chapati", "Mixed Veg"]
+              },
+              ...
+            ]
+          }
         `;
+        
+        const imageParts = (payload.images || []).map((imgBase64: string) => ({
+          inlineData: {
+            data: imgBase64.split(',')[1] || imgBase64,
+            mimeType: imgBase64.split(';')[0].split(':')[1] || "image/jpeg"
+          }
+        }));
+
+        contents = [{ role: "user", parts: [{ text: prompt }, ...imageParts] }];
         break;
+        
       default:
         return new Response(
           JSON.stringify({ error: "Unknown action" }), 
@@ -57,7 +88,11 @@ export default async function handler(req: Request) {
         );
     }
 
-    const result = await model.generateContent(prompt);
+    const modelInstance = action === "extract_menu" 
+      ? genAI.getGenerativeModel({ model: "gemini-3.8-flash" }) 
+      : genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const result = await modelInstance.generateContent({ contents });
     let responseText = result.response.text();
     
     // Clean markdown code blocks from JSON response if present
