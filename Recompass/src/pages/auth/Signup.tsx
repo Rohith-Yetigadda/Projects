@@ -6,7 +6,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -16,24 +23,21 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Initialize basic user profile
       await setDoc(doc(db, "users", userCredential.user.uid, "profile", "main"), {
         name,
         email,
+        onboardingComplete: false,
         createdAt: new Date().toISOString(),
       });
-      
       navigate("/onboarding");
-    } catch (err: any) {
-      setError(err.message || "Failed to create an account.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create an account.");
     } finally {
       setLoading(false);
     }
@@ -44,18 +48,16 @@ export default function Signup() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
-          <CardDescription>
-            Enter your details below to get started with Recompass.
-          </CardDescription>
+          <CardDescription>Enter your details below to get started with Recompass.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
             {error && <div className="text-sm font-medium text-destructive">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                placeholder="John Doe" 
+              <Input
+                id="name"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -63,10 +65,10 @@ export default function Signup() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="student@college.edu" 
+              <Input
+                id="email"
+                type="email"
+                placeholder="student@college.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -74,9 +76,9 @@ export default function Signup() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
+              <Input
+                id="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

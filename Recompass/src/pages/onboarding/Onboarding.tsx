@@ -1,13 +1,26 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, db } from "@/lib/firebase/config";
+import { useNavigate, Navigate } from "react-router-dom";
+import { db } from "@/lib/firebase/config";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Onboarding() {
   const { currentUser, userProfile } = useAuth();
@@ -23,16 +36,15 @@ export default function Onboarding() {
     bodyFat: "",
     diet: "",
     cookingSkill: "",
-    equipment: "",
     budget: "",
   });
 
   const updateData = (key: string, value: string) => {
-    setData(prev => ({ ...prev, [key]: value }));
+    setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const nextStep = () => setStep(s => Math.min(s + 1, 4));
-  const prevStep = () => setStep(s => Math.max(s - 1, 1));
+  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
+  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const completeOnboarding = async () => {
     if (!currentUser) return;
@@ -42,75 +54,111 @@ export default function Onboarding() {
         ...data,
         onboardingComplete: true,
       });
-      // Force reload to get latest profile context
-      window.location.href = "/app";
+      navigate("/app");
     } catch (e) {
       console.error(e);
+    } finally {
       setLoading(false);
     }
   };
 
   if (!currentUser) {
-    return <div>Please login first.</div>;
+    return <Navigate to="/login" replace />;
+  }
+
+  // Already done onboarding
+  if (userProfile?.onboardingComplete) {
+    return <Navigate to="/app" replace />;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>Welcome to Recompass, {userProfile?.name?.split(' ')[0] || 'User'}</CardTitle>
-          <CardDescription>Step {step} of 4</CardDescription>
+          <CardTitle>
+            Welcome to Recompass, {userProfile?.name?.split(" ")[0] ?? "User"}!
+          </CardTitle>
+          <CardDescription>
+            Let's personalize your experience — Step {step} of 4
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
           {step === 1 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4">
               <h3 className="text-lg font-medium">What is your primary goal?</h3>
-              <div className="space-y-2">
-                <Select value={data.goal} onValueChange={(v) => updateData('goal', v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a goal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fat_loss">Lose fat</SelectItem>
-                    <SelectItem value="muscle_gain">Build muscle</SelectItem>
-                    <SelectItem value="recomp">Body recomposition</SelectItem>
-                    <SelectItem value="maintain">Maintain weight</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={data.goal} onValueChange={(v: string) => updateData("goal", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fat_loss">Lose fat</SelectItem>
+                  <SelectItem value="muscle_gain">Build muscle</SelectItem>
+                  <SelectItem value="recomp">Body recomposition</SelectItem>
+                  <SelectItem value="maintain">Maintain weight</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-4">
               <h3 className="text-lg font-medium">Your body data</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Age</Label>
-                  <Input type="number" value={data.age} onChange={(e) => updateData('age', e.target.value)} placeholder="18" />
+                  <Input
+                    type="number"
+                    value={data.age}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateData("age", e.target.value)
+                    }
+                    placeholder="18"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Weight (kg)</Label>
-                  <Input type="number" value={data.weight} onChange={(e) => updateData('weight', e.target.value)} placeholder="76" />
+                  <Input
+                    type="number"
+                    value={data.weight}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateData("weight", e.target.value)
+                    }
+                    placeholder="76"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Height (cm)</Label>
-                  <Input type="number" value={data.height} onChange={(e) => updateData('height', e.target.value)} placeholder="175" />
+                  <Input
+                    type="number"
+                    value={data.height}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateData("height", e.target.value)
+                    }
+                    placeholder="175"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Est. Body Fat %</Label>
-                  <Input type="number" value={data.bodyFat} onChange={(e) => updateData('bodyFat', e.target.value)} placeholder="20" />
+                  <Input
+                    type="number"
+                    value={data.bodyFat}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateData("bodyFat", e.target.value)
+                    }
+                    placeholder="20"
+                  />
                 </div>
               </div>
             </div>
           )}
 
           {step === 3 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h3 className="text-lg font-medium">Food & Diet</h3>
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Food &amp; Diet</h3>
               <div className="space-y-2">
                 <Label>Diet Type</Label>
-                <Select value={data.diet} onValueChange={(v) => updateData('diet', v)}>
+                <Select value={data.diet} onValueChange={(v: string) => updateData("diet", v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select diet" />
                   </SelectTrigger>
@@ -122,9 +170,12 @@ export default function Onboarding() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2 mt-4">
+              <div className="space-y-2">
                 <Label>Cooking Skill</Label>
-                <Select value={data.cookingSkill} onValueChange={(v) => updateData('cookingSkill', v)}>
+                <Select
+                  value={data.cookingSkill}
+                  onValueChange={(v: string) => updateData("cookingSkill", v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select skill" />
                   </SelectTrigger>
@@ -140,27 +191,27 @@ export default function Onboarding() {
           )}
 
           {step === 4 && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h3 className="text-lg font-medium">Budget</h3>
-              <div className="space-y-2">
-                <Label>Weekly Grocery Budget (₹)</Label>
-                <Select value={data.budget} onValueChange={(v) => updateData('budget', v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select weekly budget" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="500">₹500 / week</SelectItem>
-                    <SelectItem value="750">₹750 / week</SelectItem>
-                    <SelectItem value="1000">₹1,000 / week</SelectItem>
-                    <SelectItem value="1500">₹1,500 / week</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Weekly Grocery Budget</h3>
+              <Select value={data.budget} onValueChange={(v: string) => updateData("budget", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select weekly budget" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="500">₹500 / week</SelectItem>
+                  <SelectItem value="750">₹750 / week</SelectItem>
+                  <SelectItem value="1000">₹1,000 / week</SelectItem>
+                  <SelectItem value="1500">₹1,500 / week</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
         </CardContent>
+
         <CardFooter className="flex justify-between border-t p-4">
-          <Button variant="outline" onClick={prevStep} disabled={step === 1}>Back</Button>
+          <Button variant="outline" onClick={prevStep} disabled={step === 1}>
+            Back
+          </Button>
           {step < 4 ? (
             <Button onClick={nextStep}>Next</Button>
           ) : (

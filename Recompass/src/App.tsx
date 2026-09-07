@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { type ReactElement } from "react"
 import Login from "./pages/auth/Login"
 import Signup from "./pages/auth/Signup"
 import Onboarding from "./pages/onboarding/Onboarding"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 
 // Protected Route wrapper
-function ProtectedRoute({ children }: { children: JSX.Element }) {
+function ProtectedRoute({ children }: { children: ReactElement }) {
   const { currentUser, loading } = useAuth();
   
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
