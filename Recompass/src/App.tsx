@@ -3,15 +3,20 @@ import { type ReactElement } from "react"
 import Login from "./pages/auth/Login"
 import Signup from "./pages/auth/Signup"
 import Onboarding from "./pages/onboarding/Onboarding"
+import Home from "./pages/dashboard/Home"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
+import { Sparkles, ArrowRight } from "lucide-react"
 
 // ─── Protected Route ─────────────────────────────────────────────
 function ProtectedRoute({ children }: { children: ReactElement }) {
   const { currentUser, loading } = useAuth();
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-      Loading...
+    <div className="min-h-screen flex items-center justify-center text-muted-foreground bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+        <p className="text-sm font-medium tracking-widest uppercase">Loading</p>
+      </div>
     </div>
   );
   if (!currentUser) return <Navigate to="/login" replace />;
@@ -22,8 +27,11 @@ function ProtectedRoute({ children }: { children: ReactElement }) {
 function AppRoute({ children }: { children: ReactElement }) {
   const { currentUser, userProfile, loading } = useAuth();
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-      Loading...
+    <div className="min-h-screen flex items-center justify-center text-muted-foreground bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+        <p className="text-sm font-medium tracking-widest uppercase">Loading</p>
+      </div>
     </div>
   );
   if (!currentUser) return <Navigate to="/login" replace />;
@@ -34,26 +42,38 @@ function AppRoute({ children }: { children: ReactElement }) {
 // ─── Landing Page ────────────────────────────────────────────────
 function Landing() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 text-center">
-      <div className="mb-3 text-xs font-semibold tracking-widest uppercase text-primary/70">
-        AI Nutrition Operating System
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 text-center relative overflow-hidden">
+      
+      {/* Background glowing orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-white/5 rounded-full blur-[150px] pointer-events-none"></div>
+
+      <div className="glass-card px-4 py-2 rounded-full mb-8 inline-flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <Sparkles className="w-4 h-4 text-white" />
+        <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
+          AI Nutrition Operating System
+        </span>
       </div>
-      <h1 className="text-6xl font-extrabold mb-4 tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
-        RECOMPASS
-      </h1>
-      <p className="text-xl text-muted-foreground mb-10 max-w-sm">
+      
+      <h1 className="text-6xl md:text-8xl font-extrabold mb-6 tracking-tighter text-gradient leading-tight max-w-4xl animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-150">
         Your mess. Your macros. Your plan.
+      </h1>
+      
+      <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl font-medium animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+        Recompass takes the guesswork out of nutrition. Built for students who don't control their food environment, but want to control their results.
       </p>
-      <div className="flex gap-3">
+      
+      <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500">
         <a
           href="/signup"
-          className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition shadow-lg shadow-primary/25"
+          className="group px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-white/90 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)] flex items-center justify-center gap-2"
         >
           Get Started
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </a>
         <a
           href="/login"
-          className="px-6 py-3 bg-secondary text-secondary-foreground rounded-xl font-semibold hover:bg-secondary/70 transition"
+          className="px-8 py-4 glass text-white rounded-full font-bold hover:bg-white/10 transition-all duration-300 flex items-center justify-center"
         >
           Sign In
         </a>
@@ -80,31 +100,31 @@ function App() {
 
           {/* App (protected + AppShell) */}
           <Route path="/app" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Home Dashboard</h2><p className="text-muted-foreground">Coming soon — Phase 5</p></div></AppRoute>
+            <AppRoute><Home /></AppRoute>
           } />
           <Route path="/app/week" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">This Week</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">This Week</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/log" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Daily Log</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Daily Log</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/compass" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Compass AI</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Compass AI</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/groceries" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Groceries</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Groceries</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/cook" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Recipes</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Recipes</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/pantry" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Pantry</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Pantry</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/progress" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Progress</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Progress</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/profile" element={
-            <AppRoute><div className="space-y-2"><h2 className="text-2xl font-bold">Profile</h2><p className="text-muted-foreground">Coming soon</p></div></AppRoute>
+            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Profile</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
 
           {/* Fallback */}
