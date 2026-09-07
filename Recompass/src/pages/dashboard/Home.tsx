@@ -15,7 +15,7 @@ export default function Home() {
   };
 
   const caloriePercent = (macros.calories.current / macros.calories.target) * 100;
-  const radius = 45;
+  const radius = 65;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (caloriePercent / 100) * circumference;
 
@@ -25,7 +25,7 @@ export default function Home() {
       {/* ─── Header ─── */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-1">
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
             Good afternoon, {firstName}.
           </h1>
           <p className="text-muted-foreground font-medium flex items-center gap-2">
@@ -52,14 +52,14 @@ export default function Home() {
           </div>
           
           <div className="flex-1 text-center md:text-left relative z-10">
-            <h2 className="text-sm font-bold tracking-widest text-white/50 uppercase mb-2">Compass Suggestion • 1:15 PM</h2>
+            <h2 className="text-sm font-semibold tracking-widest text-white/50 uppercase mb-2">Compass Suggestion • 1:15 PM</h2>
             <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">
-              Mess lunch is open. Based on your macros, grab the <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded-md">Dal</span> and <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded-md">Chicken</span>, but skip the rice today.
+              Mess lunch is open. Based on your macros, grab the <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded-md">Dal</span> and <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded-md">Chicken</span>, but skip the rice today.
             </p>
           </div>
 
           <div className="relative z-10 shrink-0 w-full md:w-auto">
-            <Button className="w-full md:w-auto h-12 px-6 rounded-xl bg-white text-black font-bold hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+            <Button className="w-full md:w-auto h-12 px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">
               Log this meal
             </Button>
           </div>
@@ -70,7 +70,7 @@ export default function Home() {
         
         {/* ─── Macro Ring (Main Stat) ─── */}
         <section className="glass-card rounded-3xl p-6 md:col-span-1 flex flex-col items-center justify-center relative border-white/5">
-          <h3 className="absolute top-6 left-6 text-sm font-bold tracking-wider text-muted-foreground uppercase">Calories</h3>
+          <h3 className="absolute top-6 left-6 text-sm font-semibold tracking-wider text-muted-foreground uppercase">Calories</h3>
           
           <div className="relative flex items-center justify-center mt-8 mb-4">
             {/* Background Track */}
@@ -93,10 +93,10 @@ export default function Home() {
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-4xl font-extrabold text-white tracking-tighter">
+              <span className="text-4xl font-bold text-white tracking-tighter">
                 {macros.calories.current}
               </span>
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">
                 / {macros.calories.target} kcal
               </span>
             </div>

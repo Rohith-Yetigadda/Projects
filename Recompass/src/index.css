@@ -1,14 +1,14 @@
 @import "tailwindcss";
-@import "@fontsource/geist-sans/400.css";
-@import "@fontsource/geist-sans/500.css";
-@import "@fontsource/geist-sans/600.css";
-@import "@fontsource/geist-sans/700.css";
-@import "@fontsource/geist-sans/800.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
 @import "@fontsource/geist-mono/400.css";
 
 /* ─── Premium Design Tokens (Tailwind v4) ─── */
 @theme {
-  --font-sans: "Geist Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "Geist Mono", monospace;
 
   /* Deep, sophisticated dark palette */
