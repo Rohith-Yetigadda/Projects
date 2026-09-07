@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import Login from "./pages/auth/Login"
 import Signup from "./pages/auth/Signup"
+import Onboarding from "./pages/onboarding/Onboarding"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 
 // Protected Route wrapper
@@ -29,6 +30,12 @@ function Landing() {
 
 function Dashboard() {
   const { userProfile } = useAuth();
+  
+  // If user hasn't completed onboarding, redirect them
+  if (userProfile && !userProfile.onboardingComplete) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return <div className="p-4">Welcome back, {userProfile?.name || 'User'}! Home Dashboard (Under construction)</div>
 }
 
@@ -43,6 +50,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           
           {/* App Routes */}
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/app/week" element={<ProtectedRoute><div className="p-4">This Week</div></ProtectedRoute>} />
           <Route path="/app/log" element={<ProtectedRoute><div className="p-4">Daily Log</div></ProtectedRoute>} />
