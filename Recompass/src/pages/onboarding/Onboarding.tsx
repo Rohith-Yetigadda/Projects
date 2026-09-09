@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 
 export default function Onboarding() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -54,6 +54,7 @@ export default function Onboarding() {
         ...data,
         onboardingComplete: true,
       });
+      await refreshProfile();
       navigate("/app");
     } catch (e) {
       console.error(e);

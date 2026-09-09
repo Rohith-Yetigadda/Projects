@@ -22,12 +22,14 @@ interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   userProfile: null,
   loading: true,
+  refreshProfile: async () => {},
 });
 
 export function useAuth() {
@@ -39,17 +41,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async (user: User) => {
+    const docRef = doc(db, "users", user.uid, "profile", "main");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      setUserProfile(docSnap.data() as UserProfile);
+    } else {
+      setUserProfile(null);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (currentUser) await fetchProfile(currentUser);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const docRef = doc(db, "users", user.uid, "profile", "main");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
+        await fetchProfile(user);
       } else {
         setUserProfile(null);
       }
@@ -60,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ currentUser, userProfile, loading }}>
+    <AuthContext.Provider value={{ currentUser, userProfile, loading, refreshProfile }}>
       {!loading && children}
     </AuthContext.Provider>
   );

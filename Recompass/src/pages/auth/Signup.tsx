@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { useState } from "react";
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { setDoc, doc, getDoc } from "firebase/firestore";
 import { useNavigate, Navigate, Link } from "react-router-dom";
@@ -21,40 +21,12 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const provider = new GoogleAuthProvider();
 
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result) {
-          // Check if profile exists
-          const docRef = doc(db, "users", result.user.uid, "profile", "main");
-          const docSnap = await getDoc(docRef);
-          if (!docSnap.exists()) {
-            await setDoc(docRef, {
-              name: result.user.displayName || "User",
-              email: result.user.email,
-              onboardingComplete: false,
-              createdAt: new Date().toISOString(),
-            });
-          }
-          navigate("/onboarding", { replace: true });
-        }
-      })
-      .catch((error) => {
-        setError(`Google signup failed: ${error.message}`);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
-
-  if (currentUser && !loading) {
-    return <Navigate to="/app" replace />;
-  }
+  if (currentUser) return <Navigate to="/app" replace />;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,23 +42,41 @@ export default function Signup() {
       });
       navigate("/onboarding");
     } catch (err: any) {
-      setError("Failed to create an account.");
+      setError("Failed to create an account. " + (err.message || ""));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    signInWithRedirect(auth, provider).catch(err => {
+  const handleGoogleSignIn = async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const result = await signInWithPopup(auth, provider);
+      const docRef = doc(db, "users", result.user.uid, "profile", "main");
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          name: result.user.displayName || "User",
+          email: result.user.email,
+          onboardingComplete: false,
+          createdAt: new Date().toISOString(),
+        });
+        navigate("/onboarding");
+      } else {
+        navigate("/app");
+      }
+    } catch (err: any) {
+      if (err.code !== "auth/popup-closed-by-user") {
+        setError(`Google sign-up failed: ${err.message}`);
+      }
+    } finally {
       setLoading(false);
-      setError(`Redirect failed: ${err.message}`);
-    });
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
-      {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
 
@@ -103,10 +93,9 @@ export default function Signup() {
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-5">
             {error && <div className="text-sm font-semibold text-destructive bg-destructive/10 p-3 rounded-lg">{error}</div>}
-            
-            <Button 
-              type="button" 
-              onClick={handleGoogleSignIn} 
+            <Button
+              type="button"
+              onClick={handleGoogleSignIn}
               disabled={loading}
               className="w-full h-12 rounded-xl bg-white/10 text-white font-bold text-base hover:bg-white/20 transition-all duration-300 border border-white/10 flex items-center justify-center gap-3"
             >
@@ -118,50 +107,23 @@ export default function Signup() {
               </svg>
               Continue with Google
             </Button>
-
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/10" />
-              </div>
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-[#0a0a0a] px-2 text-white/50 font-semibold tracking-wider">Or continue with</span>
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="name" className="text-white/70 font-semibold">Full Name</Label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all"
-              />
+              <Input id="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white/70 font-semibold">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all"
-              />
+              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-white/70 font-semibold">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all"
-              />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all" />
             </div>
             <Button type="submit" className="w-full h-12 rounded-xl bg-white text-black font-bold text-base hover:bg-white/90 hover:scale-[1.02] transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] mt-4" disabled={loading}>
               {loading ? "Creating account..." : "Sign up with Email"}
@@ -171,9 +133,7 @@ export default function Signup() {
         <CardFooter className="flex justify-center border-t border-white/10 p-6 mt-4">
           <div className="text-sm font-medium text-white/50">
             Already have an account?{" "}
-            <Link to="/login" className="text-white hover:text-white hover:underline transition-colors">
-              Sign in
-            </Link>
+            <Link to="/login" className="text-white hover:text-white hover:underline transition-colors">Sign in</Link>
           </div>
         </CardFooter>
       </Card>

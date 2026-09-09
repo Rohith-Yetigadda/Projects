@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Home,
   CalendarDays,
@@ -30,6 +32,7 @@ const navItems = [
 export function Sidebar() {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -38,7 +41,6 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-72 min-h-screen border-r border-white/5 bg-black/40 backdrop-blur-3xl px-6 py-8 relative">
-      {/* Subtle border glow */}
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
 
       {/* Logo */}
@@ -92,19 +94,31 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
+      {/* Sign out */}
       <button
-        onClick={handleLogout}
+        onClick={() => setShowSignOutConfirm(true)}
         className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-white hover:bg-white/10 transition-all duration-300 mt-auto"
       >
         <LogOut size={20} />
         Sign out
       </button>
+
+      <ConfirmDialog
+        open={showSignOutConfirm}
+        title="Sign out?"
+        description="You'll need to sign back in to access your nutrition data and meal plans."
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        variant="danger"
+        icon="logout"
+        onConfirm={handleLogout}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
     </aside>
   );
 }
 
-// ─── Mobile Bottom Nav ───────────────────────────────────────────
+// --- Mobile Bottom Nav -------------------------------------------
 const mobileNav = [
   { to: "/app",           label: "Home",    icon: Home },
   { to: "/app/log",       label: "Log",     icon: BookOpen },

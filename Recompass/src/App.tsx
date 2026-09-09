@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom"
 import { type ReactElement } from "react"
 import Login from "./pages/auth/Login"
 import Signup from "./pages/auth/Signup"
@@ -107,7 +107,7 @@ function App() {
             <AppRoute><MenuUpload /></AppRoute>
           } />
           <Route path="/app/week" element={
-            <AppRoute><div className="space-y-4 max-w-5xl mx-auto"><h2 className="text-3xl font-bold tracking-tight text-white mb-6">This Week</h2><a href="/app/menu-upload" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-black font-bold rounded-xl hover:scale-[1.02] transition-transform">Upload this week's menu <ArrowRight className="w-4 h-4"/></a></div></AppRoute>
+            <AppRoute><div className="space-y-4 max-w-5xl mx-auto"><h2 className="text-3xl font-bold tracking-tight text-white mb-6">This Week</h2><Link to="/app/menu-upload" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-black font-bold rounded-xl hover:scale-[1.02] transition-transform">Upload this week's menu <ArrowRight className="w-4 h-4"/></Link></div></AppRoute>
           } />
           <Route path="/app/log" element={
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Daily Log</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>

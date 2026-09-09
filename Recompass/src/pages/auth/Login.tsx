@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { useState } from "react";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,27 +19,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const provider = new GoogleAuthProvider();
 
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) navigate("/app", { replace: true });
-      })
-      .catch((error) => {
-        setError(`Google login failed: ${error.message}`);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
-
-  if (currentUser && !loading) {
-    return <Navigate to="/app" replace />;
-  }
+  if (currentUser) return <Navigate to="/app" replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,17 +40,23 @@ export default function Login() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    signInWithRedirect(auth, provider).catch(err => {
+  const handleGoogleSignIn = async () => {
+    try {
+      setError("");
+      setLoading(true);
+      await signInWithPopup(auth, provider);
+      navigate("/app");
+    } catch (err: any) {
+      if (err.code !== "auth/popup-closed-by-user") {
+        setError(`Google sign-in failed: ${err.message}`);
+      }
+    } finally {
       setLoading(false);
-      setError(`Redirect failed: ${err.message}`);
-    });
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
-      {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
 
@@ -82,10 +73,9 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-5">
             {error && <div className="text-sm font-semibold text-destructive bg-destructive/10 p-3 rounded-lg">{error}</div>}
-            
-            <Button 
-              type="button" 
-              onClick={handleGoogleSignIn} 
+            <Button
+              type="button"
+              onClick={handleGoogleSignIn}
               disabled={loading}
               className="w-full h-12 rounded-xl bg-white/10 text-white font-bold text-base hover:bg-white/20 transition-all duration-300 border border-white/10 flex items-center justify-center gap-3"
             >
@@ -97,43 +87,22 @@ export default function Login() {
               </svg>
               Continue with Google
             </Button>
-
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/10" />
-              </div>
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-[#0a0a0a] px-2 text-white/50 font-semibold tracking-wider">Or continue with</span>
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white/70 font-semibold">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all"
-              />
+              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all" />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-white/70 font-semibold">Password</Label>
-                <a href="#" className="text-xs font-semibold text-white/50 hover:text-white transition-colors">
-                  Forgot password?
-                </a>
+                <a href="#" className="text-xs font-semibold text-white/50 hover:text-white transition-colors">Forgot password?</a>
               </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all"
-              />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="bg-black/40 border-white/10 text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-white/20 focus-visible:border-white/30 transition-all" />
             </div>
             <Button type="submit" className="w-full h-12 rounded-xl bg-white text-black font-bold text-base hover:bg-white/90 hover:scale-[1.02] transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.15)] mt-4" disabled={loading}>
               {loading ? "Signing in..." : "Sign in with Email"}
@@ -143,9 +112,7 @@ export default function Login() {
         <CardFooter className="flex justify-center border-t border-white/10 p-6 mt-4">
           <div className="text-sm font-medium text-white/50">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-white hover:text-white hover:underline transition-colors">
-              Sign up
-            </Link>
+            <Link to="/signup" className="text-white hover:text-white hover:underline transition-colors">Sign up</Link>
           </div>
         </CardFooter>
       </Card>
