@@ -45,8 +45,7 @@ export default async function handler(req: any, res: any) {
         break;
         
       case "extract_menu":
-        // Fall back to pro since 3.8-flash doesn't exist yet, standard flash works fine
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         prompt = `
           Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
           
