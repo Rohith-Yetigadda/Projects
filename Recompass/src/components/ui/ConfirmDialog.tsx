@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, LogOut, X } from "lucide-react";
 
 interface ConfirmDialogProps {
@@ -24,7 +25,6 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  // Close on Escape key
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -38,7 +38,7 @@ export function ConfirmDialog({
 
   const IconComponent = icon === "logout" ? LogOut : icon === "warning" ? AlertTriangle : null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       onClick={onCancel}
@@ -50,6 +50,7 @@ export function ConfirmDialog({
       <div
         className="relative w-full max-w-sm glass-card rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
+        style={{ background: "linear-gradient(180deg, rgba(25,25,25,0.98) 0%, rgba(12,12,12,0.98) 100%)", border: "1px solid rgba(255,255,255,0.08)" }}
       >
         {/* Close button */}
         <button
@@ -94,6 +95,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

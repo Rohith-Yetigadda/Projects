@@ -71,14 +71,19 @@ export default async function handler(req: Request) {
           }
         `;
         
-        const imageParts = (payload.images || []).map((imgBase64: string) => ({
+        // Support new {base64, mimeType} format (images + PDFs) and legacy data-URL images array
+        const fileParts = (payload.files || []).map((f: { base64: string; mimeType: string }) => ({
+          inlineData: { data: f.base64, mimeType: f.mimeType }
+        }));
+        const legacyImageParts = (payload.images || []).map((imgBase64: string) => ({
           inlineData: {
-            data: imgBase64.split(',')[1] || imgBase64,
-            mimeType: imgBase64.split(';')[0].split(':')[1] || "image/jpeg"
+            data: imgBase64.split(",")[1] || imgBase64,
+            mimeType: imgBase64.split(";")[0].split(":")[1] || "image/jpeg"
           }
         }));
+        const allParts = [...fileParts, ...legacyImageParts];
 
-        contents = [{ role: "user", parts: [{ text: prompt }, ...imageParts] }];
+        contents = [{ role: "user", parts: [{ text: prompt }, ...allParts] }];
         break;
         
       default:
