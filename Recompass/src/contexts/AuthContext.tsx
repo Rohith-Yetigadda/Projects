@@ -42,11 +42,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (user: User) => {
-    const docRef = doc(db, "users", user.uid, "profile", "main");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      setUserProfile(docSnap.data() as UserProfile);
-    } else {
+    try {
+      const docRef = doc(db, "users", user.uid, "profile", "main");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data() as UserProfile);
+      } else {
+        setUserProfile(null);
+      }
+    } catch (e) {
+      console.error("Failed to fetch profile:", e);
       setUserProfile(null);
     }
   };
@@ -63,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUserProfile(null);
       }
-      setLoading(false);
+      setLoading(false); // always fires now
     });
 
     return unsubscribe;
