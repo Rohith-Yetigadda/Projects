@@ -86,7 +86,17 @@ export default function MenuUpload() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to extract menu.");
+      if (!res.ok) {
+        let errStr = "Failed to extract menu.";
+        try {
+          const errData = await res.json();
+          errStr = errData.details || errData.error || errStr;
+        } catch(e) {
+           errStr += ` Server status: ${res.status}`;
+        }
+        throw new Error(errStr);
+      }
+      
       const data = await res.json();
       if (data.menu && Array.isArray(data.menu)) {
         setExtractedMenu(data.menu);
