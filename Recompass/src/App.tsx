@@ -5,6 +5,7 @@ import Signup from "./pages/auth/Signup"
 import Onboarding from "./pages/onboarding/Onboarding"
 import Home from "./pages/dashboard/Home"
 import MenuUpload from "./pages/dashboard/MenuUpload"
+import ThisWeek from "./pages/dashboard/ThisWeek"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
 import { Sparkles, ArrowRight } from "lucide-react"
@@ -107,7 +108,7 @@ function App() {
             <AppRoute><MenuUpload /></AppRoute>
           } />
           <Route path="/app/week" element={
-            <AppRoute><div className="space-y-4 max-w-5xl mx-auto"><h2 className="text-3xl font-bold tracking-tight text-white mb-6">This Week</h2><Link to="/app/menu-upload" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-black font-bold rounded-xl hover:scale-[1.02] transition-transform">Upload this week's menu <ArrowRight className="w-4 h-4"/></Link></div></AppRoute>
+            <AppRoute><ThisWeek /></AppRoute>
           } />
           <Route path="/app/log" element={
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Daily Log</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
