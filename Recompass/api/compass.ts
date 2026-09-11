@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     
     switch(action) {
       case "chat":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `
           You are Compass, an AI nutrition assistant for students.
           User Context: ${JSON.stringify(userContext)}
@@ -51,7 +51,7 @@ export default async function handler(req: any, res: any) {
         break;
         
       case "extract_menu":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `
           Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
           
