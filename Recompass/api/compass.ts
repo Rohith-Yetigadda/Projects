@@ -1,4 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
 
 export const config = {
   api: {
@@ -15,6 +19,8 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  let tempFiles: string[] = [];
+
   try {
     const { action, payload, userContext } = req.body;
 
@@ -23,14 +29,14 @@ export default async function handler(req: any, res: any) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    const fileManager = new GoogleAIFileManager(apiKey);
     let prompt = "";
     let contents: any[] = [];
     let modelInstance;
     
-    // Construct prompt based on action
     switch(action) {
       case "chat":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         prompt = `
           You are Compass, an AI nutrition assistant for students.
           User Context: ${JSON.stringify(userContext)}
@@ -45,7 +51,7 @@ export default async function handler(req: any, res: any) {
         break;
         
       case "extract_menu":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         prompt = `
           Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
           
@@ -69,9 +75,34 @@ export default async function handler(req: any, res: any) {
           }
         `;
         
-        const fileParts = (payload.files || []).map((f: { base64: string; mimeType: string }) => ({
-          inlineData: { data: f.base64, mimeType: f.mimeType }
-        }));
+        const fileParts = [];
+        
+        for (let i = 0; i < (payload.files || []).length; i++) {
+          const f = payload.files[i];
+          if (f.mimeType === "application/pdf") {
+            // PDFs must be uploaded via File API
+            const tempFilePath = path.join(os.tmpdir(), `menu-${Date.now()}-${i}.pdf`);
+            await fs.writeFile(tempFilePath, Buffer.from(f.base64, "base64"));
+            tempFiles.push(tempFilePath);
+            
+            const uploadResponse = await fileManager.uploadFile(tempFilePath, {
+              mimeType: "application/pdf",
+              displayName: "Menu PDF",
+            });
+            
+            fileParts.push({
+              fileData: {
+                mimeType: uploadResponse.file.mimeType,
+                fileUri: uploadResponse.file.uri
+              }
+            });
+          } else {
+            // Images can go inline
+            fileParts.push({
+              inlineData: { data: f.base64, mimeType: f.mimeType }
+            });
+          }
+        }
         
         contents = [{ role: "user", parts: [{ text: prompt }, ...fileParts] }];
         break;
@@ -87,7 +118,6 @@ export default async function handler(req: any, res: any) {
     const result = await modelInstance.generateContent({ contents });
     let responseText = result.response.text();
     
-    // Clean markdown code blocks from JSON response if present
     responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
     let responseData;
@@ -102,5 +132,14 @@ export default async function handler(req: any, res: any) {
   } catch (error: any) {
     console.error("AI Error:", error);
     return res.status(500).json({ error: "Failed to process AI request", details: error.message, stack: error.stack });
+  } finally {
+    // Clean up temp files
+    for (const file of tempFiles) {
+      try {
+        await fs.unlink(file);
+      } catch (e) {
+        console.error("Failed to delete temp file:", file, e);
+      }
+    }
   }
 }
