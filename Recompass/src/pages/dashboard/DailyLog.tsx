@@ -26,8 +26,11 @@ function getFoodCategory(name: string): FoodCategory {
   // Liquids — must NOT match fruits (handled below)
   if (/\b(milk|hot milk|cold milk|toned milk|skim milk|buttermilk|chaas|lassi|juice|nimbu|lemon water|lemonade|soup|tomato soup|rasam|tea|coffee|hot water|water|shake|protein shake|smoothie|syrup|sharbat)\b/.test(n)) return "liquid";
 
-  // Fruits — slices/pieces (check BEFORE generic piece items)
-  if (/\b(watermelon|melon|muskmelon|cantaloupe|banana|apple|mango|orange|grapes|grape|papaya|guava|pear|pomegranate|pineapple|kiwi|strawberry|blueberry|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
+  // Banana → whole fruit (piece)
+  if (/\bbanana\b/.test(n)) return "piece";
+
+  // Other fruits → served as small cut pieces in mess
+  if (/\b(watermelon|melon|muskmelon|cantaloupe|apple|mango|orange|grapes|grape|papaya|guava|pear|pomegranate|pineapple|kiwi|strawberry|blueberry|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
 
   // Condiments & small additions — teaspoon amounts
   if (/\b(sugar|salt|pickle|achar|chutney|coconut chutney|tomato chutney|mint chutney|green chutney|jam|bread butter jam|butter|ghee|oil|sauce|ketchup|mayo|honey|cream|papad|pappad|achaar|murabba|salsa)\b/.test(n)) return "tsp";
@@ -43,7 +46,7 @@ function getFoodCategory(name: string): FoodCategory {
 
 const PRESETS: Record<FoodCategory, string[]> = {
   liquid:  ["50ml", "100ml", "150ml", "200ml", "250ml", "270ml", "300ml", "350ml"],
-  slice:   ["1 small slice", "1 medium slice", "1 large slice", "2 slices", "1 small piece", "half piece"],
+  slice:   ["1 small piece", "2 small pieces", "3 small pieces", "4 small pieces", "5 small pieces", "6 small pieces"],
   piece:   ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"],
   tsp:     ["1 tsp (5g)", "2 tsp (10g)", "1 tbsp (15g)", "2 tbsp", "small sprinkle"],
   ladle:   ["1 small ladle (~75ml)", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~250ml)", "1 full plate"],
