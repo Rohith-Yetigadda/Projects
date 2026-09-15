@@ -109,11 +109,27 @@ export default async function handler(req: any, res: any) {
         
       case "estimate_macros":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-        prompt = `Estimate the macros for a typical Indian college mess/canteen serving of "${payload.foodName}".
-Use realistic serving sizes (e.g. 1 bowl dal ~150ml, 1 piece chicken ~80g, 2 chapatis, 1 cup rice ~150g).
-Return ONLY a JSON object, no markdown, no explanation:
+        // foodName may include quantity e.g. "2 chapatis", "270ml milk", "1 ladle rice"
+        prompt = `Estimate the macros for: "${payload.foodName}" — typical Indian college mess/canteen food.
+Use the quantity specified exactly. If no quantity given, assume a single standard serving.
+Return ONLY a JSON object, nothing else:
 {"calories":250,"protein":8,"carbs":45,"fats":6}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+
+      case "analyze_plate":
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+        prompt = `Analyze this photo of a food plate/tray from an Indian college mess.
+Identify each food item visible and estimate the quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
+For each item estimate macros based on the visible quantity.
+Return ONLY a JSON array, nothing else:
+[{"name":"Chapati","quantity":"2 pieces","calories":240,"protein":7,"carbs":44,"fats":4},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
+        {
+          const imgPart = payload.image
+            ? { inlineData: { data: payload.image, mimeType: payload.mimeType || "image/jpeg" } }
+            : null;
+          contents = [{ role: "user", parts: imgPart ? [{ text: prompt }, imgPart] : [{ text: prompt }] }];
+        }
         break;
 
       default:
