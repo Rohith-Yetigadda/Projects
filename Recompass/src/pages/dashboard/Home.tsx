@@ -1,181 +1,204 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Compass, Flame, Droplet, Wheat, Plus, ArrowRight, Activity } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { db } from "@/lib/firebase/config";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { Compass, Flame, Droplet, Wheat, Plus, ArrowRight, Coffee, Sun, Moon } from "lucide-react";
+
+type MacroEntry = { name: string; calories: number; protein: number; carbs: number; fats: number; };
+type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; totals?: { calories: number; protein: number; carbs: number; fats: number } };
+type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
+
+function calcTargets(profile: any) {
+  const weight = parseFloat(profile?.weight) || 70;
+  const height = parseFloat(profile?.height) || 170;
+  const age    = parseFloat(profile?.age)    || 20;
+  const bmr    = 10 * weight + 6.25 * height - 5 * age + 5;
+  const tdee   = bmr * 1.55;
+  const goal   = profile?.goal || "maintain_weight";
+  const kcal   = goal.includes("muscle") ? tdee + 300 : goal.includes("lose") ? tdee - 300 : tdee;
+  const protein = goal.includes("muscle") ? weight * 2.2 : weight * 1.6;
+  const fats    = (kcal * 0.25) / 9;
+  const carbs   = (kcal - protein * 4 - fats * 9) / 4;
+  return { calories: Math.round(kcal), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats) };
+}
+
+function getCurrentMeal(): "breakfast" | "lunch" | "dinner" | null {
+  const h = new Date().getHours();
+  if (h >= 7 && h < 10) return "breakfast";
+  if (h >= 12 && h < 15) return "lunch";
+  if (h >= 19 && h < 22) return "dinner";
+  return null;
+}
+
+const mealIcons: any = { breakfast: Coffee, lunch: Sun, dinner: Moon };
+const mealLabels: any = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };
 
 export default function Home() {
   const { userProfile } = useAuth();
+  const { currentUser } = useAuth();
   const firstName = userProfile?.name?.split(" ")[0] || "User";
+  const targets = calcTargets(userProfile);
 
-  // Mock data for the premium UI
-  const macros = {
-    calories: { current: 1450, target: 2400 },
-    protein: { current: 85, target: 160 },
-    carbs: { current: 120, target: 250 },
-    fats: { current: 45, target: 70 },
-  };
+  const [todayLog, setTodayLog] = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
+  const [todayMenu, setTodayMenu] = useState<MealPlan | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const caloriePercent = (macros.calories.current / macros.calories.target) * 100;
+  const today = new Date().toISOString().split("T")[0];
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const currentMeal = getCurrentMeal();
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  useEffect(() => {
+    if (!currentUser) return;
+    (async () => {
+      try {
+        const [logSnap, menuSnap] = await Promise.all([
+          getDoc(doc(db, "users", currentUser.uid, "logs", today)),
+          getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1))),
+        ]);
+        if (logSnap.exists()) setTodayLog(logSnap.data() as DayLog);
+        if (!menuSnap.empty) {
+          const extracted: MealPlan[] = menuSnap.docs[0].data().extractedData || [];
+          setTodayMenu(extracted.find(d => d.day === dayName) || extracted[0] || null);
+        }
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    })();
+  }, [currentUser, today, dayName]);
+
+  const allItems = [...(todayLog.breakfast||[]), ...(todayLog.lunch||[]), ...(todayLog.dinner||[]), ...(todayLog.snacks||[])];
+  const logged = allItems.reduce((a, i) => ({ calories: a.calories+i.calories, protein: a.protein+i.protein, carbs: a.carbs+i.carbs, fats: a.fats+i.fats }), { calories:0, protein:0, carbs:0, fats:0 });
+
+  const caloriePercent = Math.min((logged.calories / targets.calories) * 100, 100);
   const radius = 65;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (caloriePercent / 100) * circumference;
 
+  const currentMealItems = currentMeal && todayMenu ? todayMenu[currentMeal] || [] : [];
+  const remaining = { protein: targets.protein - logged.protein, carbs: targets.carbs - logged.carbs };
+  const compassSuggestion = currentMeal && currentMealItems.length > 0
+    ? (remaining.protein > 20
+        ? currentMealItems.slice(0, 2).join(" and ") + " — high protein choices for your goal"
+        : remaining.carbs < 50
+        ? "Go light today — " + currentMealItems[0] + " and skip the rice"
+        : currentMealItems.slice(0, 3).join(", "))
+    : null;
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 md:pb-0">
-      
-      {/* ─── Header ─── */}
+
+      {/* Header */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-1">
-            Good afternoon, {firstName}.
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-1">{greeting}, {firstName}.</h1>
           <p className="text-muted-foreground font-medium flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse"></span>
-            On track to hit your {userProfile?.goal?.replace("_", " ") ?? "goal"}
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
+            {logged.calories > 0 ? Math.round(targets.calories - logged.calories) + " kcal remaining today" : "Start logging your meals"}
           </p>
-        </div>
-        <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="glass rounded-full text-white hover:bg-white/10">
-            <Activity className="w-5 h-5" />
-          </Button>
         </div>
       </header>
 
-      {/* ─── Compass AI Recommendation Widget ─── */}
-      <section className="relative group">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl transition-all duration-500 group-hover:blur-2xl opacity-70"></div>
-        <div className="glass-card rounded-3xl p-6 md:p-8 relative border-white/10 flex flex-col md:flex-row items-center gap-6 md:gap-8 overflow-hidden">
-          {/* Subtle light sweep */}
-          <div className="absolute top-0 -inset-full h-full w-1/2 z-0 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-5 animate-[shimmer_3s_infinite]"></div>
-          
-          <div className="w-16 h-16 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] relative z-10">
-            <Compass className="w-8 h-8 text-black" />
+      {/* Compass AI Widget */}
+      {compassSuggestion && currentMeal ? (
+        <section className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl transition-all duration-500 group-hover:blur-2xl opacity-70" />
+          <div className="glass-card rounded-3xl p-6 md:p-8 relative border-white/10 flex flex-col md:flex-row items-center gap-6 overflow-hidden">
+            <div className="w-16 h-16 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+              <Compass className="w-8 h-8 text-black" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-sm font-semibold tracking-widest text-white/50 uppercase mb-2">
+                Compass &middot; {mealLabels[currentMeal]} now open
+              </h2>
+              <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">{compassSuggestion}</p>
+            </div>
+            <Link to="/app/log" className="shrink-0 w-full md:w-auto h-12 px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2">
+              Log meal <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          
-          <div className="flex-1 text-center md:text-left relative z-10">
-            <h2 className="text-sm font-semibold tracking-widest text-white/50 uppercase mb-2">Compass Suggestion • 1:15 PM</h2>
-            <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">
-              Mess lunch is open. Based on your macros, grab the <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded-md">Dal</span> and <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded-md">Chicken</span>, but skip the rice today.
-            </p>
+        </section>
+      ) : (
+        <section className="glass-card rounded-3xl p-6 flex items-center gap-4 border-white/5">
+          <div className="w-12 h-12 shrink-0 rounded-xl bg-white/5 flex items-center justify-center">
+            <Compass className="w-6 h-6 text-white/40" />
           </div>
-
-          <div className="relative z-10 shrink-0 w-full md:w-auto">
-            <Button className="w-full md:w-auto h-12 px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-              Log this meal
-            </Button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white/50">No meal service right now</p>
+            <p className="text-xs text-white/30 mt-0.5">Mess opens 7-9:30am, 12-2:30pm, 7-9pm</p>
           </div>
-        </div>
-      </section>
+          <Link to="/app/log" className="text-sm font-bold text-white/60 hover:text-white flex items-center gap-1 transition-colors">
+            Log food <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* ─── Macro Ring (Main Stat) ─── */}
+        {/* Calorie Ring */}
         <section className="glass-card rounded-3xl p-6 md:col-span-1 flex flex-col items-center justify-center relative border-white/5">
           <h3 className="absolute top-6 left-6 text-sm font-semibold tracking-wider text-muted-foreground uppercase">Calories</h3>
-          
           <div className="relative flex items-center justify-center mt-8 mb-4">
-            {/* Background Track */}
             <svg className="w-48 h-48 transform -rotate-90">
-              <circle
-                cx="96" cy="96" r={radius}
-                className="stroke-white/5"
-                strokeWidth="8"
-                fill="none"
-              />
-              {/* Progress Ring */}
-              <circle
-                cx="96" cy="96" r={radius}
+              <circle cx="96" cy="96" r={radius} className="stroke-white/5" strokeWidth="8" fill="none" />
+              <circle cx="96" cy="96" r={radius}
                 className="stroke-white transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-                strokeWidth="8"
-                strokeLinecap="round"
-                fill="none"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-              />
+                strokeWidth="8" strokeLinecap="round" fill="none"
+                strokeDasharray={circumference} strokeDashoffset={loading ? circumference : strokeDashoffset} />
             </svg>
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-4xl font-bold text-white tracking-tighter">
-                {macros.calories.current}
-              </span>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">
-                / {macros.calories.target} kcal
-              </span>
+              <span className="text-4xl font-bold text-white tracking-tighter">{Math.round(logged.calories)}</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">/ {targets.calories} kcal</span>
             </div>
           </div>
         </section>
 
-        {/* ─── Macro Bars (Secondary Stats) ─── */}
+        {/* Macro Bars */}
         <section className="glass-card rounded-3xl p-6 md:col-span-2 border-white/5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-sm font-bold tracking-wider text-muted-foreground uppercase">Macronutrients</h3>
-            <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-semibold text-white/50 hover:text-white hover:bg-white/10">
-              Details <ArrowRight className="w-3 h-3 ml-1" />
-            </Button>
+            <Link to="/app/log" className="h-8 px-3 rounded-lg text-xs font-semibold text-white/50 hover:text-white hover:bg-white/10 flex items-center gap-1 transition-colors">
+              Log <ArrowRight className="w-3 h-3 ml-1" />
+            </Link>
           </div>
-
           <div className="space-y-6">
-            {/* Protein */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-400" />
-                  <span className="text-sm font-bold text-white">Protein</span>
+            {[
+              { icon: Flame,   label: "Protein", current: logged.protein, target: targets.protein, color: "bg-orange-400",  unit: "g" },
+              { icon: Wheat,   label: "Carbs",   current: logged.carbs,   target: targets.carbs,   color: "bg-emerald-400", unit: "g" },
+              { icon: Droplet, label: "Fats",    current: logged.fats,    target: targets.fats,    color: "bg-blue-400",    unit: "g" },
+            ].map(m => (
+              <div key={m.label}>
+                <div className="flex justify-between items-end mb-2">
+                  <div className="flex items-center gap-2"><m.icon className="w-4 h-4" style={{}} /><span className="text-sm font-bold text-white">{m.label}</span></div>
+                  <span className="text-sm font-medium text-white/70"><span className="text-white font-bold">{Math.round(m.current)}{m.unit}</span> / {m.target}{m.unit}</span>
                 </div>
-                <span className="text-sm font-medium text-white/70">
-                  <span className="text-white font-bold">{macros.protein.current}g</span> / {macros.protein.target}g
-                </span>
-              </div>
-              <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-400 rounded-full" style={{ width: `${(macros.protein.current / macros.protein.target) * 100}%` }}></div>
-              </div>
-            </div>
-
-            {/* Carbs */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <div className="flex items-center gap-2">
-                  <Wheat className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-bold text-white">Carbs</span>
+                <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className={"h-full " + m.color + " rounded-full transition-all duration-700"} style={{ width: Math.min((m.current / m.target) * 100, 100) + "%" }} />
                 </div>
-                <span className="text-sm font-medium text-white/70">
-                  <span className="text-white font-bold">{macros.carbs.current}g</span> / {macros.carbs.target}g
-                </span>
               </div>
-              <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${(macros.carbs.current / macros.carbs.target) * 100}%` }}></div>
-              </div>
-            </div>
-
-            {/* Fats */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <div className="flex items-center gap-2">
-                  <Droplet className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm font-bold text-white">Fats</span>
-                </div>
-                <span className="text-sm font-medium text-white/70">
-                  <span className="text-white font-bold">{macros.fats.current}g</span> / {macros.fats.target}g
-                </span>
-              </div>
-              <div className="h-2.5 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-400 rounded-full" style={{ width: `${(macros.fats.current / macros.fats.target) * 100}%` }}></div>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
       </div>
 
-      {/* ─── Quick Log Actions ─── */}
+      {/* Quick Log */}
       <section>
         <h3 className="text-sm font-bold tracking-wider text-muted-foreground uppercase mb-4">Quick Log</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {["Mess Breakfast", "Mess Lunch", "Mess Dinner", "Custom Snack"].map((meal) => (
-            <button key={meal} className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-white/10 transition-colors group">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Plus className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">{meal}</span>
-            </button>
-          ))}
+          {(["Mess Breakfast","Mess Lunch","Mess Dinner","Custom Snack"]).map((meal, i) => {
+            const mealKeys: MealType[] = ["breakfast","lunch","dinner","snacks"];
+            const icons = [Coffee, Sun, Moon, Plus];
+            const Icon = icons[i];
+            return (
+              <Link key={meal} to="/app/log" className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-white/10 transition-colors group">
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">{meal}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
     </div>

@@ -107,6 +107,15 @@ export default async function handler(req: any, res: any) {
         contents = [{ role: "user", parts: [{ text: prompt }, ...fileParts] }];
         break;
         
+      case "estimate_macros":
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+        prompt = `Estimate the macros for a typical Indian college mess/canteen serving of "${payload.foodName}".
+Use realistic serving sizes (e.g. 1 bowl dal ~150ml, 1 piece chicken ~80g, 2 chapatis, 1 cup rice ~150g).
+Return ONLY a JSON object, no markdown, no explanation:
+{"calories":250,"protein":8,"carbs":45,"fats":6}`;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+
       default:
         return res.status(400).json({ error: "Unknown action" });
     }

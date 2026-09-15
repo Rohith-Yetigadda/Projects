@@ -6,6 +6,7 @@ import Onboarding from "./pages/onboarding/Onboarding"
 import Home from "./pages/dashboard/Home"
 import MenuUpload from "./pages/dashboard/MenuUpload"
 import ThisWeek from "./pages/dashboard/ThisWeek"
+import DailyLog from "./pages/dashboard/DailyLog"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
 import { Sparkles, ArrowRight } from "lucide-react"
@@ -111,7 +112,7 @@ function App() {
             <AppRoute><ThisWeek /></AppRoute>
           } />
           <Route path="/app/log" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Daily Log</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
+            <AppRoute><DailyLog /></AppRoute>
           } />
           <Route path="/app/compass" element={
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Compass AI</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
