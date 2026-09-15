@@ -10,6 +10,14 @@ type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 
 function calcTargets(profile: any) {
+  if (profile?.targetOverrides?.enabled) {
+    return {
+      calories: profile.targetOverrides.calories || 2000,
+      protein: profile.targetOverrides.protein || 120,
+      carbs: profile.targetOverrides.carbs || 200,
+      fats: profile.targetOverrides.fats || 60
+    };
+  }
   const weight = parseFloat(profile?.weight) || 70;
   const height = parseFloat(profile?.height) || 170;
   const age    = parseFloat(profile?.age)    || 20;
@@ -22,7 +30,6 @@ function calcTargets(profile: any) {
   const carbs   = (kcal - protein * 4 - fats * 9) / 4;
   return { calories: Math.round(kcal), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats) };
 }
-
 function getCurrentMeal(): "breakfast" | "lunch" | "dinner" | null {
   const now = new Date();
   const time = now.getHours() + now.getMinutes() / 60;
