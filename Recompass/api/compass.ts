@@ -37,17 +37,28 @@ export default async function handler(req: any, res: any) {
     switch(action) {
       case "chat":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-        prompt = `
-          You are Compass, an AI nutrition assistant for students.
-          User Context: ${JSON.stringify(userContext)}
-          User Message: ${payload.message}
-          
-          Respond practically and concisely. Recommend real food from their pantry if possible.
-          Output a JSON object with: 
-          - text: the text response
-          - suggestedActions: an array of strings representing buttons for the user to click (optional)
-        `;
-        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        
+        // Map history to Gemini format
+        contents = (payload.history || []).map((msg: any) => ({
+          role: msg.role,
+          parts: [{ text: msg.text }]
+        }));
+
+        // Current turn parts
+        let currentParts: any[] = [];
+        
+        // Inject system context if provided
+        const ctxStr = payload.context ? `System Instructions/Context:\n${payload.context}\n\n` : "";
+        currentParts.push({ text: `${ctxStr}User: ${payload.message}` });
+
+        // Add attached images
+        if (payload.images && payload.images.length > 0) {
+          payload.images.forEach((img: any) => {
+            currentParts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
+          });
+        }
+
+        contents.push({ role: "user", parts: currentParts });
         break;
         
       case "extract_menu":
@@ -143,8 +154,13 @@ Return ONLY a JSON array, nothing else:
     const result = await modelInstance.generateContent({ contents });
     let responseText = result.response.text();
     
-    responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // If it's chat, just return raw text
+    if (action === "chat") {
+      return res.status(200).json({ text: responseText });
+    }
     
+    // Otherwise it expects JSON
+    responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     let responseData;
     try {
       responseData = JSON.parse(responseText);
