@@ -54,12 +54,34 @@ const PRESETS: Record<FoodCategory, string[]> = {
 };
 
 // ─── Hardcoded macro truth table for items Gemini gets wrong ──────
-// These are standard nutritional values per common quantity
 const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
-  // Pure carbs — no protein, no fat
-  sugar:            { calories: 16, protein: 0, carbs: 4, fats: 0 },   // per tsp (4g)
+  // Pure carbs / No macros
+  sugar:            { calories: 16, protein: 0, carbs: 4, fats: 0 },
   salt:             { calories: 0,  protein: 0, carbs: 0, fats: 0 },
-  // Fruits - base is 1 serving (~8 cubes, ~120g)
+
+  // Condiments (per tsp ~ 5g unless noted)
+  pickle:           { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
+  achar:            { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
+  butter:           { calories: 36, protein: 0, carbs: 0, fats: 4 },
+  ghee:             { calories: 45, protein: 0, carbs: 0, fats: 5 },
+  honey:            { calories: 21, protein: 0, carbs: 6, fats: 0 },
+  jam:              { calories: 18, protein: 0, carbs: 5, fats: 0 },
+  "bread butter jam": { calories: 120, protein: 3, carbs: 18, fats: 4 }, // 1 slice bread + butter + jam
+  papad:            { calories: 35, protein: 1, carbs: 6, fats: 0.5 }, // per piece
+  chutney:          { calories: 25, protein: 1, carbs: 2, fats: 1.5 }, // coconut chutney
+
+  // Beverages (per 100ml)
+  milk:             { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
+  "hot milk":       { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
+  "cold milk":      { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
+  buttermilk:       { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
+  chaas:            { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
+  tea:              { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
+  coffee:           { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
+  rasam:            { calories: 10,  protein: 0.5, carbs: 2,   fats: 0.2 },
+  soup:             { calories: 30,  protein: 0.5, carbs: 5,   fats: 1.0 },
+
+  // Fruits (base 1 serving ~8 cubes/120g, or 1 piece)
   watermelon:       { calories: 36, protein: 0.7, carbs: 9, fats: 0.2 },
   papaya:           { calories: 52, protein: 0.6, carbs: 13, fats: 0.3 },
   pineapple:        { calories: 60, protein: 0.6, carbs: 16, fats: 0.2 },
@@ -67,27 +89,63 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   melon:            { calories: 41, protein: 1.0, carbs: 10, fats: 0.2 },
   mango:            { calories: 72, protein: 1.0, carbs: 18, fats: 0.5 },
   apple:            { calories: 62, protein: 0.3, carbs: 17, fats: 0.2 },
-  banana:           { calories: 105, protein: 1.3, carbs: 27, fats: 0.4 }, // base 1 piece (medium, 118g)
-  // Eggs
-  "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // per 1 piece
-  egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // per 1 piece
-  // Condiments
-  pickle:           { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
-  achar:            { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
-  butter:           { calories: 36, protein: 0, carbs: 0, fats: 4 },    // per tsp
-  ghee:             { calories: 45, protein: 0, carbs: 0, fats: 5 },    // per tsp
-  honey:            { calories: 21, protein: 0, carbs: 6, fats: 0 },    // per tsp
-  jam:              { calories: 18, protein: 0, carbs: 5, fats: 0 },    // per tsp
-  "bread butter jam": { calories: 120, protein: 3, carbs: 18, fats: 4 }, // 1 slice bread + butter + jam
-  papad:            { calories: 35, protein: 1, carbs: 6, fats: 0.5 },
-  // Beverages — per 100ml
-  "hot milk":       { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  milk:             { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  buttermilk:       { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
-  chaas:            { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
-  tea:              { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
-  coffee:           { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
-  rasam:            { calories: 10,  protein: 0.5, carbs: 2,   fats: 0.2 },
+  banana:           { calories: 105, protein: 1.3, carbs: 27, fats: 0.4 }, // 1 piece
+  grapes:           { calories: 82, protein: 0.8, carbs: 21, fats: 0.2 }, // 1 bowl
+
+  // Breakfast Items (per standard serving / ladle / piece)
+  poha:             { calories: 180, protein: 3, carbs: 32, fats: 5 }, // per ladle
+  upma:             { calories: 170, protein: 3, carbs: 28, fats: 5 }, // per ladle
+  "veg vermicelli upma": { calories: 160, protein: 3, carbs: 30, fats: 3 }, // per ladle
+  idli:             { calories: 60,  protein: 2, carbs: 12, fats: 0 }, // per piece
+  vada:             { calories: 140, protein: 3, carbs: 14, fats: 8 }, // per piece
+  dosa:             { calories: 130, protein: 3, carbs: 22, fats: 3 }, // per piece
+  "masala dosa":    { calories: 220, protein: 4, carbs: 30, fats: 9 }, // per piece
+  "aloo paratha":   { calories: 220, protein: 5, carbs: 32, fats: 8 }, // per piece
+
+  // Carbs (Breads/Rice)
+  chapathi:         { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
+  chapati:          { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
+  roti:             { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
+  paratha:          { calories: 150, protein: 3, carbs: 20, fats: 6 }, // plain, per piece
+  puri:             { calories: 120, protein: 2, carbs: 15, fats: 6 }, // per piece
+  "steam rice":     { calories: 130, protein: 3, carbs: 28, fats: 0.5 }, // per ladle (100g)
+  rice:             { calories: 130, protein: 3, carbs: 28, fats: 0.5 }, // per ladle (100g)
+  "jeera rice":     { calories: 140, protein: 3, carbs: 28, fats: 2 }, // per ladle
+  pulao:            { calories: 180, protein: 4, carbs: 30, fats: 5 }, // per ladle
+  biryani:          { calories: 200, protein: 5, carbs: 32, fats: 6 }, // veg, per ladle
+
+  // Dals & Legumes (per ladle ~ 150g)
+  "dal fry":        { calories: 120, protein: 7, carbs: 15, fats: 4 },
+  "dal tadka":      { calories: 130, protein: 7, carbs: 15, fats: 5 },
+  "dal makhani":    { calories: 180, protein: 8, carbs: 18, fats: 9 },
+  sambar:           { calories: 110, protein: 4, carbs: 16, fats: 3 },
+  chole:            { calories: 160, protein: 7, carbs: 22, fats: 5 }, // chickpeas
+  rajma:            { calories: 160, protein: 7, carbs: 22, fats: 5 }, // kidney beans
+
+  // Veg Sabzis / Curries (per ladle ~ 150g)
+  "aloo matar gravy":{ calories: 140, protein: 3, carbs: 18, fats: 6 },
+  "tawa veg dry":   { calories: 130, protein: 3, carbs: 14, fats: 7 },
+  "mix veg":        { calories: 130, protein: 3, carbs: 14, fats: 7 },
+  sabzi:            { calories: 120, protein: 2, carbs: 12, fats: 7 }, // generic veg
+  "bhindi masala":  { calories: 120, protein: 2, carbs: 12, fats: 7 },
+  "palak paneer":   { calories: 190, protein: 8, carbs: 10, fats: 13 },
+  "paneer butter masala": { calories: 240, protein: 8, carbs: 12, fats: 18 },
+  "malai kofta":    { calories: 260, protein: 6, carbs: 18, fats: 19 },
+  "gobi masala":    { calories: 90,  protein: 2, carbs: 8,  fats: 5 }, // cauliflower
+
+  // Non-Veg / Eggs (per ladle/piece)
+  "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // 1 piece
+  egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
+  "egg curry":      { calories: 210, protein: 14, carbs: 10, fats: 12 }, // 2 eggs + gravy
+  "chicken curry":  { calories: 220, protein: 18, carbs: 8, fats: 12 }, // per ladle
+  "butter chicken": { calories: 280, protein: 16, carbs: 10, fats: 20 }, // per ladle
+  "fish fry":       { calories: 200, protein: 15, carbs: 8, fats: 10 }, // per piece
+
+  // Desserts (per ladle/piece)
+  "gulab jamun":    { calories: 150, protein: 2, carbs: 22, fats: 6 }, // 1 piece
+  kheer:            { calories: 200, protein: 4, carbs: 32, fats: 6 }, // per ladle
+  halwa:            { calories: 220, protein: 2, carbs: 30, fats: 10 }, // per ladle
+  "ice cream":      { calories: 140, protein: 2, carbs: 16, fats: 8 }, // 1 scoop
 };
 
 // Scale known macros by quantity

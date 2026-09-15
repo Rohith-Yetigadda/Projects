@@ -17,10 +17,11 @@ const meals = [
 ];
 
 function getCurrentMealIndex() {
-  const h = new Date().getHours();
-  if (h >= 7 && h < 10) return 0;
-  if (h >= 12 && h < 15) return 1;
-  if (h >= 19 && h < 22) return 2;
+  const now = new Date();
+  const time = now.getHours() + now.getMinutes() / 60;
+  if (time >= 7 && time < 9.5) return 0;
+  if (time >= 12 && time < 14.5) return 1;
+  if (time >= 19 && time < 21) return 2;
   return -1;
 }
 
@@ -67,7 +68,7 @@ export default function ThisWeek() {
   const dayPlan = sortedMenu[selectedDay] || sortedMenu[0];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-24">
+    <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">This Week</h1>

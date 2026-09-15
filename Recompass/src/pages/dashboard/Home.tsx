@@ -24,10 +24,11 @@ function calcTargets(profile: any) {
 }
 
 function getCurrentMeal(): "breakfast" | "lunch" | "dinner" | null {
-  const h = new Date().getHours();
-  if (h >= 7 && h < 10) return "breakfast";
-  if (h >= 12 && h < 15) return "lunch";
-  if (h >= 19 && h < 22) return "dinner";
+  const now = new Date();
+  const time = now.getHours() + now.getMinutes() / 60;
+  if (time >= 7 && time < 9.5) return "breakfast"; // 7:00am - 9:30am
+  if (time >= 12 && time < 14.5) return "lunch";   // 12:00pm - 2:30pm
+  if (time >= 19 && time < 21) return "dinner";    // 7:00pm - 9:00pm
   return null;
 }
 
