@@ -504,9 +504,9 @@ export default function DailyLog() {
               <input type="text" placeholder="Add custom item..."
                 value={customInput[key]||""}
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim()});setCustomInput(prev=>({...prev,[key]:""}))}}}
+                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase()});setCustomInput(prev=>({...prev,[key]:""}))}}}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim()});setCustomInput(prev=>({...prev,[key]:""}));}}}
+              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase()});setCustomInput(prev=>({...prev,[key]:""}));}}}
                 className="px-4 py-2 bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white hover:bg-white/20 transition-colors">Add</button>
             </div>
           </div>
