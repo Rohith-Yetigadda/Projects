@@ -1,12 +1,36 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, writeBatch, Timestamp } from "firebase/firestore";
 import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-type Message = { role: "user" | "model"; text: string; image?: string };
+type Message = { id?: string; role: "user" | "model"; text: string; image?: string; createdAt?: any };
+
+// Utility to compress image to prevent Firestore 1MB document limits and save bandwidth
+const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.7)); // 70% quality JPEG
+    };
+    img.src = dataUrl;
+  });
+};
 
 export default function CompassChat() {
   const { userProfile, currentUser } = useAuth();
@@ -14,18 +38,67 @@ export default function CompassChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [contextStr, setContextStr] = useState("");
+  const [isInitializing, setIsInitializing] = useState(true);
   
-  // Image upload state
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
-
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  // Load chat history & clean up old messages
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const loadHistory = async () => {
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgoTs = Timestamp.fromDate(thirtyDaysAgo);
+
+        const msgsRef = collection(db, "users", currentUser.uid, "compass_messages");
+        
+        // 1. Delete messages older than 30 days
+        const oldQuery = query(msgsRef, where("createdAt", "<", thirtyDaysAgoTs));
+        const oldSnap = await getDocs(oldQuery);
+        if (!oldSnap.empty) {
+          const batch = writeBatch(db);
+          oldSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+          console.log(`Deleted ${oldSnap.size} old messages.`);
+        }
+
+        // 2. Load recent messages
+        const recentQuery = query(msgsRef, where("createdAt", ">=", thirtyDaysAgoTs), orderBy("createdAt", "asc"));
+        const recentSnap = await getDocs(recentQuery);
+        
+        const loadedMsgs: Message[] = [];
+        recentSnap.docs.forEach(d => {
+          const data = d.data();
+          loadedMsgs.push({
+            id: d.id,
+            role: data.role,
+            text: data.text || "",
+            image: data.image || undefined,
+            createdAt: data.createdAt
+          });
+        });
+        
+        setMessages(loadedMsgs);
+      } catch (e) {
+        console.error("Error loading chat history:", e);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    loadHistory();
+  }, [currentUser]);
+
+  // Load Context
   useEffect(() => {
     if (!currentUser) return;
     const loadCtx = async () => {
@@ -51,38 +124,57 @@ export default function CompassChat() {
     loadCtx();
   }, [currentUser, userProfile]);
 
-  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Convert to base64 and compress immediately
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const res = evt.target?.result as string;
-      setMimeType(file.type);
-      setSelectedImage(res);
+      const compressed = await compressImage(res);
+      setMimeType("image/jpeg"); // compression always outputs jpeg
+      setSelectedImage(compressed);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
   const handleSend = async (text: string) => {
-    if ((!text.trim() && !selectedImage) || loading) return;
+    if ((!text.trim() && !selectedImage) || loading || !currentUser) return;
     
-    // Base64 cleanup
     let base64 = "";
     if (selectedImage) {
       base64 = selectedImage.includes(",") ? selectedImage.split(",")[1] : selectedImage;
     }
 
-    const newMsgs = [...messages, { role: "user" as const, text: text.trim(), image: selectedImage || undefined }];
+    const userMsg: Message = { role: "user", text: text.trim(), image: selectedImage || undefined };
+    const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
     setInput("");
     setSelectedImage(null);
     setLoading(true);
 
     try {
+      // 1. Save user message to Firestore
+      const msgsRef = collection(db, "users", currentUser.uid, "compass_messages");
+      await addDoc(msgsRef, {
+        role: userMsg.role,
+        text: userMsg.text,
+        image: userMsg.image || null,
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Format history for API (strip huge images from old history if we want, but they are compressed now)
+      const apiHistory = messages.map(m => ({
+        role: m.role,
+        text: m.text || "Attached an image."
+      }));
+
+      // 3. Call AI
       const payload = {
         message: text,
-        history: messages,
+        history: apiHistory,
         context: contextStr,
         images: base64 ? [{ base64, mimeType }] : []
       };
@@ -93,9 +185,22 @@ export default function CompassChat() {
         body: JSON.stringify({ action: "chat", payload })
       });
       const data = await res.json();
-      setMessages([...newMsgs, { role: "model", text: data.text || "Something went wrong." }]);
+      
+      const modelText = data.text || "Something went wrong.";
+      const modelMsg: Message = { role: "model", text: modelText };
+      
+      setMessages(prev => [...prev, modelMsg]);
+
+      // 4. Save model response to Firestore
+      await addDoc(msgsRef, {
+        role: modelMsg.role,
+        text: modelMsg.text,
+        image: null,
+        createdAt: serverTimestamp()
+      });
+
     } catch (e) {
-      setMessages([...newMsgs, { role: "model", text: "Network error connecting to AI." }]);
+      setMessages(prev => [...prev, { role: "model", text: "Network error connecting to AI." }]);
     } finally {
       setLoading(false);
     }
@@ -106,6 +211,14 @@ export default function CompassChat() {
     "What's the healthiest option for dinner?",
     "Can I fit a Gulab Jamun into my calories?"
   ];
+
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <Compass className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto min-h-full flex flex-col relative pb-32 md:pb-28 animate-in fade-in duration-500">
@@ -127,7 +240,7 @@ export default function CompassChat() {
           <div className="glass-card rounded-3xl p-6 md:p-8 space-y-6">
             <h2 className="text-xl font-bold text-white leading-snug">
               Hey, {userProfile?.name?.split(" ")[0] || "there"}.<br/>
-              <span className="text-white/60">Upload a plate photo or ask me anything about your diet.</span>
+              <span className="text-white/60">Upload a plate photo or ask me anything about your diet. I remember our chats for 30 days!</span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((s, i) => (
