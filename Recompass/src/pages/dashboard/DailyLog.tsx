@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
@@ -331,6 +332,7 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
   const { currentUser } = useAuth();
+  const { hash } = useLocation();
   const [log, setLog]     = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
   const [menu, setMenu]   = useState<MealPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -362,6 +364,14 @@ export default function DailyLog() {
   }, [currentUser, dayName]);
 
   useEffect(() => { Promise.all([loadLog(), loadMenu()]).finally(()=>setLoading(false)); }, [loadLog, loadMenu]);
+
+  // Smooth scroll to hash when loading finishes
+  useEffect(() => {
+    if (!loading && hash) {
+      const el = document.getElementById(hash.replace("#", ""));
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    }
+  }, [loading, hash]);
 
   const persist = async (newLog: DayLog) => {
     if (!currentUser) return;
@@ -452,7 +462,7 @@ export default function DailyLog() {
         const mealKcal = loggedItems.reduce((s,i)=>s+i.calories,0);
 
         return (
-          <div key={key} className="glass-card rounded-2xl p-5 space-y-4">
+          <div key={key} id={key} className="glass-card rounded-2xl p-5 space-y-4 scroll-mt-24">
             <div className="flex items-center gap-3">
               <div className={"w-9 h-9 rounded-xl flex items-center justify-center border "+bg+" "+border}><Icon className={"w-4 h-4 "+color}/></div>
               <p className="text-sm font-bold text-white">{label}</p>
