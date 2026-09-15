@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db, auth } from "@/lib/firebase/config";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { User, Target, Activity, Settings, LogOut, Check, Loader2 } from "lucide-react";
@@ -61,7 +61,7 @@ export default function Profile() {
           fats: parseInt(data.customFats) || 60,
         }
       };
-      await updateDoc(doc(db, "users", auth.currentUser.uid, "profile", "main"), updates);
+      await setDoc(doc(db, "users", auth.currentUser.uid, "profile", "main"), updates, { merge: true });
       await refreshProfile();
     } catch (e) {
       console.error(e);
