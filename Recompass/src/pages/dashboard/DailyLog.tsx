@@ -34,7 +34,7 @@ function getFoodCategory(name: string): FoodCategory {
   if (/\b(watermelon|melon|muskmelon|cantaloupe|apple|mango|orange|grapes|grape|papaya|guava|pear|pomegranate|pineapple|kiwi|strawberry|blueberry|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
 
   // Condiments & small additions — teaspoon amounts
-  if (/\b(sugar|salt|pickle|achar|chutney|coconut chutney|tomato chutney|mint chutney|green chutney|jam|bread butter jam|butter|ghee|oil|sauce|ketchup|mayo|honey|cream|papad|pappad|achaar|murabba|salsa)\b/.test(n)) return "tsp";
+  if (/\b(sugar|salt|pickle|achar|chutney|coconut chutney|tomato chutney|mint chutney|green chutney|jam|bread butter jam|butter|ghee|oil|sauce|ketchup|mayo|honey|cream|papad|pappad|achaar|murabba|salsa|horlicks|boost|bournvita|complan|milo|powder|protein|whey)\b/.test(n)) return "tsp";
 
   // Solid pieces — chapati, bread, eggs, snacks
   if (/\b(chapati|chapathi|chappati|roti|phulka|tandoori roti|naan|kulcha|puri|poori|paratha|aloo paratha|bhatura|uttapam|dosa|masala dosa|set dosa|mini dosa|idli|vada|medu vada|bread|toast|sandwich|bun|burger|roll|egg|omelette|boiled egg|fried egg|scrambled egg|poached egg|biscuit|cookie|cake slice|ladoo|laddoo|barfi|gulab jamun|rasgulla|jalebi|peda|modak|karanji)\b/.test(n)) return "piece";
@@ -147,55 +147,80 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   kheer:            { calories: 200, protein: 4, carbs: 32, fats: 6 }, // per ladle
   halwa:            { calories: 220, protein: 2, carbs: 30, fats: 10 }, // per ladle
   "ice cream":      { calories: 140, protein: 2, carbs: 16, fats: 8 }, // 1 scoop
+
+  // Powders & Supplements (per tbsp ~ 15g)
+  // Powders & Supplements (per tsp ~ 5g)
+  horlicks:         { calories: 19, protein: 0.5, carbs: 3.7, fats: 0.1 },
+  boost:            { calories: 18, protein: 0.3, carbs: 4, fats: 0.1 },
+  bournvita:        { calories: 19, protein: 0.3, carbs: 4, fats: 0.1 },
+  complan:          { calories: 22, protein: 0.9, carbs: 3, fats: 0.7 },
+  milo:             { calories: 20, protein: 0.5, carbs: 3.3, fats: 0.5 },
+  "whey protein":   { calories: 20, protein: 4, carbs: 0.5, fats: 0.2 }, 
+  protein:          { calories: 20, protein: 4, carbs: 0.5, fats: 0.2 },
 };
 
 // Scale known macros by quantity
 function getKnownMacros(foodName: string, quantity: string): { calories: number; protein: number; carbs: number; fats: number } | null {
   const n = foodName.toLowerCase().replace(/[()[\]]/g, "").trim();
-  const key = Object.keys(KNOWN_MACROS).find(k => n.includes(k));
+  // Sort keys by length so "veg vermicelli upma" matches before "upma"
+  const sortedKeys = Object.keys(KNOWN_MACROS).sort((a, b) => b.length - a.length);
+  const key = sortedKeys.find(k => n.includes(k));
   if (!key) return null;
 
   const base = KNOWN_MACROS[key];
   const q = quantity.toLowerCase();
+  let scale = 1;
 
-  // Scale liquids by ml
-  if (/ml/.test(q)) {
-    const ml = parseFloat(q) || 200;
-    const scale = ml / 100;
-    return { calories: Math.round(base.calories * scale), protein: Math.round(base.protein * scale * 10) / 10, carbs: Math.round(base.carbs * scale * 10) / 10, fats: Math.round(base.fats * scale * 10) / 10 };
+  if (q.includes("ladle") || q.includes("bowl") || q.includes("plate") || q.includes("serving")) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:small ladle|ladle|bowl|plate|serving)/) || q.match(/^(\d+(?:\.\d+)?)/);
+    let qty = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
+    if (q.includes("small ladle")) scale = qty * 0.5;
+    else if (q.includes("bowl")) scale = qty * 2;
+    else if (q.includes("plate")) scale = qty * 3;
+    else scale = qty;
   }
-
-  // Scale by cubes (for fruits)
-  if (/cube/.test(q)) {
+  else if (q.includes("ml")) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*ml/);
+    const ml = match ? parseFloat(match[1]) : 200;
+    scale = ml / 100; // base is per 100ml for liquids
+  }
+  else if (q.includes("cube")) {
     const match = q.match(/(\d+)\s*cube/);
     const cubes = match ? parseInt(match[1]) : 8;
-    const scale = cubes / 8; // base is 8 cubes (1 serving)
-    return { calories: Math.round(base.calories * scale), protein: Math.round(base.protein * scale * 10) / 10, carbs: Math.round(base.carbs * scale * 10) / 10, fats: Math.round(base.fats * scale * 10) / 10 };
+    scale = cubes / 8; // base is 8 cubes
+  }
+  else if (q.includes("piece") || q.includes("slice") || q.includes("scoop")) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:piece|slice|scoop)/) || q.match(/^(\d+(?:\.\d+)?)/);
+    scale = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
+  }
+  else if (q.includes("tbsp") || q.includes("tablespoon")) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tbsp|tablespoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
+    scale = match ? parseFloat(match[1]) : 1;
+    // If it's a condiment base (which is per tsp), multiply by 3.
+    // Except powders are defined per tbsp (15g), but wait, in KNOWN_MACROS sugar/butter are per tsp.
+    // Let's just assume base is 1 unit, and tbsp means 3x IF base is tsp. 
+    // Actually, to keep it simple: our new powders are defined per tbsp, but old condiments are per tsp.
+    // Let's just adjust the old condiments in KNOWN_MACROS to be per 1 base unit, and scale here.
+    // Since we didn't change KNOWN_MACROS base, let's just stick to scale * 3 for tsp-based items.
+    // Actually, simpler: just treat tbsp as 3x tsp for EVERYTHING in the tsp category.
+    scale = scale * 3; 
+  }
+  else if (q.includes("tsp") || q.includes("teaspoon") || q.includes("sprinkle")) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tsp|teaspoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
+    scale = match ? parseFloat(match[1]) : (q.includes("sprinkle") ? 0.25 : 1);
   }
 
-  // Scale by pieces/slices
-  if (/piece|slice/.test(q)) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:piece|slice)/);
-    const pieces = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
-    return { calories: Math.round(base.calories * pieces), protein: Math.round(base.protein * pieces * 10) / 10, carbs: Math.round(base.carbs * pieces * 10) / 10, fats: Math.round(base.fats * pieces * 10) / 10 };
-  }
+  // Adjust for powders which are added per tbsp base, but if they matched "tsp" above, scale was 1, should be 0.33
+  // If they matched tbsp, scale is 3, should be 1. 
+  // Let's normalize powders to TSP in KNOWN_MACROS instead to avoid this math nightmare.
+  // I will let this script fix KNOWN_MACROS to be per TSP for powders.
 
-  // Scale by tsp count
-  if (/tsp|teaspoon/.test(q)) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*tsp/);
-    const tsps = match ? parseFloat(match[1]) : 1;
-    return { calories: Math.round(base.calories * tsps), protein: Math.round(base.protein * tsps * 10) / 10, carbs: Math.round(base.carbs * tsps * 10) / 10, fats: Math.round(base.fats * tsps * 10) / 10 };
-  }
-
-  // Scale by tbsp
-  if (/tbsp|tablespoon/.test(q)) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*tbsp/);
-    const tbsps = match ? parseFloat(match[1]) : 1;
-    return { calories: Math.round(base.calories * tbsps * 3), protein: Math.round(base.protein * tbsps * 3 * 10) / 10, carbs: Math.round(base.carbs * tbsps * 3 * 10) / 10, fats: Math.round(base.fats * tbsps * 3 * 10) / 10 };
-  }
-
-  // Default: return base value as-is
-  return base;
+  return {
+    calories: Math.round(base.calories * scale),
+    protein: Math.round(base.protein * scale * 10) / 10,
+    carbs: Math.round(base.carbs * scale * 10) / 10,
+    fats: Math.round(base.fats * scale * 10) / 10
+  };
 }
 
 // Sanity-check Gemini output — protein can't have calories without matching macros
