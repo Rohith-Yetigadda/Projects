@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, writeBatch, Timestamp } from "firebase/firestore";
-import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X } from "lucide-react";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, serverTimestamp, where, writeBatch, Timestamp } from "firebase/firestore";
+import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type Message = { id?: string; role: "user" | "model"; text: string; image?: string; createdAt?: any };
+type ChatSession = { id: string; title: string; updatedAt: any };
 
-// Utility to compress image to prevent Firestore 1MB document limits and save bandwidth
 const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -16,17 +16,15 @@ const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
       const canvas = document.createElement("canvas");
       let width = img.width;
       let height = img.height;
-      
       if (width > maxWidth) {
         height = Math.round((height * maxWidth) / width);
         width = maxWidth;
       }
-      
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.7)); // 70% quality JPEG
+      resolve(canvas.toDataURL("image/jpeg", 0.7)); 
     };
     img.src = dataUrl;
   });
@@ -34,12 +32,20 @@ const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
 
 export default function CompassChat() {
   const { userProfile, currentUser } = useAuth();
+  
+  // Session State
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [contextStr, setContextStr] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
   
+  // Image State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -49,56 +55,79 @@ export default function CompassChat() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Load chat history & clean up old messages
+  // 1. Load Sessions on Mount
   useEffect(() => {
     if (!currentUser) return;
-    
-    const loadHistory = async () => {
+    const loadSessions = async () => {
       try {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const thirtyDaysAgoTs = Timestamp.fromDate(thirtyDaysAgo);
 
-        const msgsRef = collection(db, "users", currentUser.uid, "compass_messages");
+        const sessionsRef = collection(db, "users", currentUser.uid, "compass_sessions");
         
-        // 1. Delete messages older than 30 days
-        const oldQuery = query(msgsRef, where("createdAt", "<", thirtyDaysAgoTs));
+        // Clean old sessions
+        const oldQuery = query(sessionsRef, where("updatedAt", "<", thirtyDaysAgoTs));
         const oldSnap = await getDocs(oldQuery);
         if (!oldSnap.empty) {
           const batch = writeBatch(db);
           oldSnap.docs.forEach(d => batch.delete(d.ref));
           await batch.commit();
-          console.log(`Deleted ${oldSnap.size} old messages.`);
         }
 
-        // 2. Load recent messages
-        const recentQuery = query(msgsRef, where("createdAt", ">=", thirtyDaysAgoTs), orderBy("createdAt", "asc"));
+        // Load valid sessions
+        const recentQuery = query(sessionsRef, where("updatedAt", ">=", thirtyDaysAgoTs), orderBy("updatedAt", "desc"));
         const recentSnap = await getDocs(recentQuery);
         
-        const loadedMsgs: Message[] = [];
+        const loadedSessions: ChatSession[] = [];
         recentSnap.docs.forEach(d => {
-          const data = d.data();
-          loadedMsgs.push({
-            id: d.id,
-            role: data.role,
-            text: data.text || "",
-            image: data.image || undefined,
-            createdAt: data.createdAt
-          });
+          loadedSessions.push({ id: d.id, ...d.data() } as ChatSession);
         });
         
+        setSessions(loadedSessions);
+        if (loadedSessions.length > 0) {
+          setCurrentSessionId(loadedSessions[0].id);
+        } else {
+          setIsInitializing(false); // No sessions yet
+        }
+      } catch (e) {
+        console.error("Error loading sessions:", e);
+        setIsInitializing(false);
+      }
+    };
+    loadSessions();
+  }, [currentUser]);
+
+  // 2. Load Messages when Session Changes
+  useEffect(() => {
+    if (!currentUser || !currentSessionId) {
+      if (!currentSessionId) setIsInitializing(false);
+      return;
+    }
+    
+    const loadMessages = async () => {
+      setIsInitializing(true);
+      try {
+        const msgsRef = collection(db, "users", currentUser.uid, "compass_sessions", currentSessionId, "messages");
+        const q = query(msgsRef, orderBy("createdAt", "asc"));
+        const snap = await getDocs(q);
+        
+        const loadedMsgs: Message[] = [];
+        snap.docs.forEach(d => {
+          const data = d.data();
+          loadedMsgs.push({ id: d.id, role: data.role, text: data.text || "", image: data.image || undefined, createdAt: data.createdAt });
+        });
         setMessages(loadedMsgs);
       } catch (e) {
-        console.error("Error loading chat history:", e);
+        console.error("Error loading messages:", e);
       } finally {
         setIsInitializing(false);
       }
     };
+    loadMessages();
+  }, [currentUser, currentSessionId]);
 
-    loadHistory();
-  }, [currentUser]);
-
-  // Load Context
+  // 3. Load Context
   useEffect(() => {
     if (!currentUser) return;
     const loadCtx = async () => {
@@ -127,17 +156,27 @@ export default function CompassChat() {
   const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Convert to base64 and compress immediately
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const res = evt.target?.result as string;
       const compressed = await compressImage(res);
-      setMimeType("image/jpeg"); // compression always outputs jpeg
+      setMimeType("image/jpeg");
       setSelectedImage(compressed);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  };
+
+  const startNewChat = () => {
+    setCurrentSessionId(null);
+    setMessages([]);
+    setShowHistory(false);
+  };
+
+  const switchSession = (id: string) => {
+    if (id === currentSessionId) return;
+    setCurrentSessionId(id);
+    setShowHistory(false);
   };
 
   const handleSend = async (text: string) => {
@@ -156,8 +195,28 @@ export default function CompassChat() {
     setLoading(true);
 
     try {
+      // Create session if it doesn't exist
+      let targetSessionId = currentSessionId;
+      if (!targetSessionId) {
+        const sessionRef = doc(collection(db, "users", currentUser.uid, "compass_sessions"));
+        targetSessionId = sessionRef.id;
+        const newSession = {
+          title: text.substring(0, 30) + (text.length > 30 ? "..." : "") || "Photo Analysis",
+          updatedAt: serverTimestamp()
+        };
+        await setDoc(sessionRef, newSession);
+        
+        setCurrentSessionId(targetSessionId);
+        setSessions(prev => [{ id: targetSessionId, ...newSession, updatedAt: new Date() }, ...prev]);
+      } else {
+        // Update existing session timestamp
+        await setDoc(doc(db, "users", currentUser.uid, "compass_sessions", targetSessionId), {
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+
       // 1. Save user message to Firestore
-      const msgsRef = collection(db, "users", currentUser.uid, "compass_messages");
+      const msgsRef = collection(db, "users", currentUser.uid, "compass_sessions", targetSessionId, "messages");
       await addDoc(msgsRef, {
         role: userMsg.role,
         text: userMsg.text,
@@ -165,7 +224,7 @@ export default function CompassChat() {
         createdAt: serverTimestamp()
       });
 
-      // 2. Format history for API (strip huge images from old history if we want, but they are compressed now)
+      // 2. Format history for API (strip images)
       const apiHistory = messages.map(m => ({
         role: m.role,
         text: m.text || "Attached an image."
@@ -223,16 +282,51 @@ export default function CompassChat() {
   return (
     <div className="max-w-3xl mx-auto min-h-full flex flex-col relative pb-32 md:pb-28 animate-in fade-in duration-500">
       
-      <header className="sticky top-[-16px] md:top-[-24px] z-30 bg-black/90 backdrop-blur-xl pt-4 pb-4 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center gap-4 shadow-lg">
-        <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] shrink-0">
-          <Compass className="w-7 h-7" />
+      {/* Session History Modal Overlay */}
+      {showHistory && (
+        <div className="absolute inset-x-0 -top-4 md:-top-6 bottom-0 z-50 bg-black/60 backdrop-blur-2xl rounded-2xl p-6 flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-white/10 shadow-2xl overflow-hidden">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2"><History className="w-5 h-5 text-emerald-400" /> Chat History</h2>
+            <button onClick={() => setShowHistory(false)} className="w-8 h-8 flex items-center justify-center rounded-full glass hover:bg-white/20 text-white"><X className="w-4 h-4" /></button>
+          </div>
+          
+          <button onClick={startNewChat} className="w-full glass bg-emerald-500/10 border-emerald-500/20 py-4 rounded-xl flex items-center justify-center gap-2 mb-6 font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+            <Plus className="w-5 h-5" /> Start New Chat
+          </button>
+          
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+            {sessions.length === 0 && <p className="text-white/40 text-center mt-10">No previous chats found.</p>}
+            {sessions.map(s => (
+              <button key={s.id} onClick={() => switchSession(s.id)} className={`w-full text-left p-4 rounded-xl transition-colors flex items-center gap-3 ${s.id === currentSessionId ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 border border-transparent'}`}>
+                <MessageSquare className={`w-5 h-5 shrink-0 ${s.id === currentSessionId ? 'text-white' : 'text-white/40'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Compass AI</h1>
-          <p className="text-muted-foreground font-medium text-sm flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-emerald-400" /> Powered by Gemini Vision
-          </p>
+      )}
+
+      {/* Main Header */}
+      <header className="sticky top-[-16px] md:top-[-24px] z-30 bg-black/90 backdrop-blur-xl pt-4 pb-4 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] shrink-0">
+            <Compass className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Compass AI</h1>
+            <p className="text-muted-foreground font-medium text-sm flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-emerald-400" /> Powered by Gemini
+            </p>
+          </div>
         </div>
+        
+        {/* History Toggle Button */}
+        <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full glass flex items-center justify-center text-white/70 hover:text-white transition-colors relative">
+          <History className="w-5 h-5" />
+          {sessions.length > 0 && <div className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black" />}
+        </button>
       </header>
 
       <div className="flex-1 space-y-6">
@@ -240,7 +334,7 @@ export default function CompassChat() {
           <div className="glass-card rounded-3xl p-6 md:p-8 space-y-6">
             <h2 className="text-xl font-bold text-white leading-snug">
               Hey, {userProfile?.name?.split(" ")[0] || "there"}.<br/>
-              <span className="text-white/60">Upload a plate photo or ask me anything about your diet. I remember our chats for 30 days!</span>
+              <span className="text-white/60">Upload a plate photo or ask me anything about your diet. I'll remember this conversation.</span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((s, i) => (
