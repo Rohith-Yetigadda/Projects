@@ -88,7 +88,7 @@ export default function Home() {
     : null;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 md:pb-0">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-28 md:pb-0">
 
       {/* Header */}
       <header className="flex items-center justify-between">
@@ -188,14 +188,18 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(["Mess Breakfast","Mess Lunch","Mess Dinner","Custom Snack"]).map((meal, i) => {
             const mealKeys: MealType[] = ["breakfast","lunch","dinner","snacks"];
+            const key = mealKeys[i];
+            const isLogged = todayLog[key] && todayLog[key].length > 0;
             const icons = [Coffee, Sun, Moon, Plus];
             const Icon = icons[i];
             return (
-              <Link key={meal} to="/app/log" className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-white/10 transition-colors group">
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Icon className="w-5 h-5 text-white" />
+              <Link key={meal} to="/app/log" className={`glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-colors group ${isLogged ? 'bg-emerald-500/10 border-emerald-500/20' : 'hover:bg-white/10'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${isLogged ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                  <Icon className={`w-5 h-5 ${isLogged ? 'text-emerald-400' : 'text-white'}`} />
                 </div>
-                <span className="text-sm font-semibold text-white/80 group-hover:text-white transition-colors">{meal}</span>
+                <span className={`text-sm font-semibold transition-colors ${isLogged ? 'text-emerald-400' : 'text-white/80 group-hover:text-white'}`}>
+                  {isLogged ? `${meal.split(" ")[1] || meal} Logged` : meal}
+                </span>
               </Link>
             );
           })}

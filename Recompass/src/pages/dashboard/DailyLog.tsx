@@ -59,6 +59,18 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   // Pure carbs — no protein, no fat
   sugar:            { calories: 16, protein: 0, carbs: 4, fats: 0 },   // per tsp (4g)
   salt:             { calories: 0,  protein: 0, carbs: 0, fats: 0 },
+  // Fruits - base is 1 serving (~8 cubes, ~120g)
+  watermelon:       { calories: 36, protein: 0.7, carbs: 9, fats: 0.2 },
+  papaya:           { calories: 52, protein: 0.6, carbs: 13, fats: 0.3 },
+  pineapple:        { calories: 60, protein: 0.6, carbs: 16, fats: 0.2 },
+  muskmelon:        { calories: 41, protein: 1.0, carbs: 10, fats: 0.2 },
+  melon:            { calories: 41, protein: 1.0, carbs: 10, fats: 0.2 },
+  mango:            { calories: 72, protein: 1.0, carbs: 18, fats: 0.5 },
+  apple:            { calories: 62, protein: 0.3, carbs: 17, fats: 0.2 },
+  banana:           { calories: 105, protein: 1.3, carbs: 27, fats: 0.4 }, // base 1 piece (medium, 118g)
+  // Eggs
+  "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // per 1 piece
+  egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // per 1 piece
   // Condiments
   pickle:           { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
   achar:            { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
@@ -71,16 +83,16 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   // Beverages — per 100ml
   "hot milk":       { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
   milk:             { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  buttermilk:       { calories: 18,  protein: 1,   carbs: 2.3, fats: 0.3 },
-  chaas:            { calories: 18,  protein: 1,   carbs: 2.3, fats: 0.3 },
-  tea:              { calories: 5,   protein: 0,   carbs: 1,   fats: 0   },
-  coffee:           { calories: 5,   protein: 0,   carbs: 1,   fats: 0   },
+  buttermilk:       { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
+  chaas:            { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
+  tea:              { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
+  coffee:           { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
   rasam:            { calories: 10,  protein: 0.5, carbs: 2,   fats: 0.2 },
 };
 
 // Scale known macros by quantity
 function getKnownMacros(foodName: string, quantity: string): { calories: number; protein: number; carbs: number; fats: number } | null {
-  const n = foodName.toLowerCase().replace(/[()[]]/g, "").trim();
+  const n = foodName.toLowerCase().replace(/[()[\]]/g, "").trim();
   const key = Object.keys(KNOWN_MACROS).find(k => n.includes(k));
   if (!key) return null;
 
@@ -94,16 +106,33 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
     return { calories: Math.round(base.calories * scale), protein: Math.round(base.protein * scale * 10) / 10, carbs: Math.round(base.carbs * scale * 10) / 10, fats: Math.round(base.fats * scale * 10) / 10 };
   }
 
+  // Scale by cubes (for fruits)
+  if (/cube/.test(q)) {
+    const match = q.match(/(\d+)\s*cube/);
+    const cubes = match ? parseInt(match[1]) : 8;
+    const scale = cubes / 8; // base is 8 cubes (1 serving)
+    return { calories: Math.round(base.calories * scale), protein: Math.round(base.protein * scale * 10) / 10, carbs: Math.round(base.carbs * scale * 10) / 10, fats: Math.round(base.fats * scale * 10) / 10 };
+  }
+
+  // Scale by pieces/slices
+  if (/piece|slice/.test(q)) {
+    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:piece|slice)/);
+    const pieces = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
+    return { calories: Math.round(base.calories * pieces), protein: Math.round(base.protein * pieces * 10) / 10, carbs: Math.round(base.carbs * pieces * 10) / 10, fats: Math.round(base.fats * pieces * 10) / 10 };
+  }
+
   // Scale by tsp count
   if (/tsp|teaspoon/.test(q)) {
-    const tsps = parseFloat(q) || 1;
-    return { calories: Math.round(base.calories * tsps), protein: base.protein * tsps, carbs: Math.round(base.carbs * tsps * 10) / 10, fats: base.fats * tsps };
+    const match = q.match(/(\d+(?:\.\d+)?)\s*tsp/);
+    const tsps = match ? parseFloat(match[1]) : 1;
+    return { calories: Math.round(base.calories * tsps), protein: Math.round(base.protein * tsps * 10) / 10, carbs: Math.round(base.carbs * tsps * 10) / 10, fats: Math.round(base.fats * tsps * 10) / 10 };
   }
 
   // Scale by tbsp
   if (/tbsp|tablespoon/.test(q)) {
-    const tbsps = parseFloat(q) || 1;
-    return { calories: Math.round(base.calories * tbsps * 3), protein: base.protein * tbsps * 3, carbs: Math.round(base.carbs * tbsps * 3 * 10) / 10, fats: base.fats * tbsps * 3 };
+    const match = q.match(/(\d+(?:\.\d+)?)\s*tbsp/);
+    const tbsps = match ? parseFloat(match[1]) : 1;
+    return { calories: Math.round(base.calories * tbsps * 3), protein: Math.round(base.protein * tbsps * 3 * 10) / 10, carbs: Math.round(base.carbs * tbsps * 3 * 10) / 10, fats: Math.round(base.fats * tbsps * 3 * 10) / 10 };
   }
 
   // Default: return base value as-is
@@ -167,8 +196,8 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
   const confirm = () => { const qty = custom.trim() || selected; if (qty) onConfirm(qty); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl mb-0" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">How much did you have?</p>
@@ -209,8 +238,8 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
   const selected = items.filter((_, i) => checked[i]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Detected from photo</p>
