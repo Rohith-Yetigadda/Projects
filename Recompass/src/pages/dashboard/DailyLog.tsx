@@ -46,7 +46,7 @@ function getFoodCategory(name: string): FoodCategory {
 
 const PRESETS: Record<FoodCategory, string[]> = {
   liquid:  ["50ml", "100ml", "150ml", "200ml", "250ml", "270ml", "300ml", "350ml"],
-  slice:   ["1 small piece", "2 small pieces", "3 small pieces", "4 small pieces", "5 small pieces", "6 small pieces"],
+  slice:   ["small serving (~5 cubes)", "1 serving (~8 cubes)", "large serving (~12 cubes)", "2 servings (~16 cubes)"],
   piece:   ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"],
   tsp:     ["1 tsp (5g)", "2 tsp (10g)", "1 tbsp (15g)", "2 tbsp", "small sprinkle"],
   ladle:   ["1 small ladle (~75ml)", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~250ml)", "1 full plate"],
