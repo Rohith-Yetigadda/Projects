@@ -254,8 +254,7 @@ async function estimateMacros(foodName: string, quantity: string, isCustom?: boo
   const data = await res.json();
   
   if (data.error === "INVALID_FOOD") {
-    alert("I couldn't recognize that as a food item. Please try being more specific!");
-    throw new Error("Invalid food item");
+    throw new Error("INVALID_FOOD");
   }
 
   const sanitized = sanitizeMacros({
@@ -430,6 +429,7 @@ export default function DailyLog() {
   const [analyzing, setAnalyzing] = useState<MealType | null>(null);
   const [photoItems, setPhotoItems] = useState<{ mealType: MealType; items: any[] } | null>(null);
   const [customInput, setCustomInput] = useState<{ [k in MealType]?: string }>({});
+  const [toast, setToast] = useState<string | null>(null);
 
   const bfRef  = useRef<HTMLInputElement>(null);
   const lRef   = useRef<HTMLInputElement>(null);
@@ -483,10 +483,17 @@ export default function DailyLog() {
     const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
     try {
       const macros = await estimateMacros(foodName, quantity, isCustom);
-      const entry: MacroEntry = { id: Date.now().toString(), name: foodName, quantity, loggedAt: new Date().toISOString(), ...macros };
+      const cleanName = (macros as any).name || foodName;
+      const { name: _, ...macroValues } = macros as any;
+      const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity, loggedAt: new Date().toISOString(), ...macroValues };
       const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
       setLog(newLog); await persist(newLog);
-    } catch(e){console.error(e);} finally{setEstimating(null);}
+    } catch(e: any){
+      if (e?.message === "INVALID_FOOD") {
+        setToast("That doesn't look like a food item. Try describing what you ate!");
+        setTimeout(() => setToast(null), 3500);
+      } else { console.error(e); }
+    } finally{setEstimating(null);}
   };
 
   const removeItem = async (mealType: MealType, id: string) => {
@@ -529,6 +536,17 @@ export default function DailyLog() {
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
       {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
+
+      {/* Custom Toast */}
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-red-500/10 border border-red-500/20 backdrop-blur-xl rounded-2xl px-5 py-3 flex items-center gap-3 shadow-2xl">
+            <X className="w-4 h-4 text-red-400 shrink-0" />
+            <p className="text-sm font-medium text-red-300">{toast}</p>
+            <button onClick={() => setToast(null)} className="text-red-400/50 hover:text-red-300 ml-2"><X className="w-3 h-3" /></button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between">

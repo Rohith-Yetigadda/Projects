@@ -135,9 +135,11 @@ export default function Profile() {
 
         {/* Goal Settings */}
         <section className="glass-card rounded-3xl p-6 md:p-8 space-y-6">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
-            <Target className="w-5 h-5 text-blue-400" />
-            <h2 className="font-bold text-white">Fitness Goal</h2>
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center gap-3">
+              <Target className="w-5 h-5 text-blue-400" />
+              <h2 className="font-bold text-white">Fitness Goal</h2>
+            </div>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -157,7 +159,7 @@ export default function Profile() {
 
         {/* Nutrition Targets */}
         <section className="glass-card rounded-3xl p-6 md:p-8 space-y-8">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-orange-400" />
               <h2 className="font-bold text-white">Daily Targets</h2>
@@ -270,8 +272,8 @@ export default function Profile() {
         </section>
 
         {/* Save Button */}
-        <button onClick={handleSave} disabled={saving} className="w-full h-14 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Check className="w-5 h-5" /> Save Changes</>}
+        <button onClick={handleSave} disabled={saving} className="w-full h-12 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-sm hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 text-emerald-400" /> Save Changes</>}
         </button>
 
       </div>
