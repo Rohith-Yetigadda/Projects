@@ -371,26 +371,30 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
       
       {/* Session History Modal Overlay */}
       {showHistory && (
-        <div className="absolute inset-x-0 -top-4 md:-top-6 bottom-0 z-50 bg-black/95 backdrop-blur-3xl rounded-2xl p-6 flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-white/10 shadow-2xl overflow-hidden">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2"><History className="w-5 h-5 text-emerald-400" /> Chat History</h2>
-            <button onClick={() => setShowHistory(false)} className="w-8 h-8 flex items-center justify-center rounded-full glass hover:bg-white/20 text-white"><X className="w-4 h-4" /></button>
-          </div>
-          
-          <button onClick={startNewChat} className="w-full glass bg-emerald-500/10 border-emerald-500/20 py-4 rounded-xl flex items-center justify-center gap-2 mb-6 font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors">
-            <Plus className="w-5 h-5" /> Start New Chat
-          </button>
-          
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-            {sessions.length === 0 && <p className="text-white/40 text-center mt-10">No previous chats found.</p>}
-            {sessions.map(s => (
-              <button key={s.id} onClick={() => switchSession(s.id)} className={`w-full text-left p-4 rounded-xl transition-colors flex items-center gap-3 ${s.id === currentSessionId ? 'bg-white/10 border border-white/20' : 'hover:bg-white/5 border border-transparent'}`}>
-                <MessageSquare className={`w-5 h-5 shrink-0 ${s.id === currentSessionId ? 'text-white' : 'text-white/40'}`} />
-                <div className="flex-1 min-w-0">
-                  <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
-                </div>
+        <div className="fixed inset-0 md:left-72 z-50 flex justify-center bg-black/80 backdrop-blur-sm p-4 md:p-6 animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl h-full flex flex-col bg-[#0a0a0a] rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/5">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2"><History className="w-5 h-5 text-emerald-400" /> Chat History</h2>
+              <button onClick={() => setShowHistory(false)} className="w-8 h-8 flex items-center justify-center rounded-full glass hover:bg-white/20 text-white"><X className="w-4 h-4" /></button>
+            </div>
+            
+            <div className="p-6 flex-1 overflow-y-auto">
+              <button onClick={startNewChat} className="w-full glass bg-emerald-500/10 border-emerald-500/20 py-4 rounded-xl flex items-center justify-center gap-2 mb-6 font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors shadow-lg">
+                <Plus className="w-5 h-5" /> Start New Chat
               </button>
-            ))}
+              
+              <div className="space-y-2">
+                {sessions.length === 0 && <p className="text-white/40 text-center mt-10">No previous chats found.</p>}
+                {sessions.map(s => (
+                  <button key={s.id} onClick={() => switchSession(s.id)} className={`w-full text-left p-4 rounded-xl transition-all flex items-center gap-3 ${s.id === currentSessionId ? 'bg-white/10 border border-white/20 shadow-md' : 'hover:bg-white/5 border border-transparent'}`}>
+                    <MessageSquare className={`w-5 h-5 shrink-0 ${s.id === currentSessionId ? 'text-white' : 'text-white/40'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
