@@ -100,6 +100,73 @@ export default function Groceries() {
     saveItems(items.filter(item => !item.purchased));
   };
 
+  const handleAiSync = async () => {
+    if (!currentUser) return;
+    setIsSyncing(true);
+    
+    try {
+      // Fetch user's meal plan and profile to generate accurate list
+      const menuSnap = await getDoc(doc(db, "users", currentUser.uid, "menu", "saved"));
+      const profileSnap = await getDoc(doc(db, "users", currentUser.uid, "profile", "data"));
+      
+      let prompt = "Based on my upcoming meals, generate a short grocery list to hit my macros.";
+      if (menuSnap.exists() && profileSnap.exists()) {
+        const goal = profileSnap.data().goal || "maintenance";
+        prompt = `I am on a ${goal} diet. My mess menu this week is ${JSON.stringify(menuSnap.data().extractedData)}. What 5-7 essential groceries should I buy to supplement my protein and macros? Format as JSON array of strings.`;
+      }
+
+      // Try calling the AI backend
+      let generatedItems = ["Whey Protein", "Eggs (30 Pack)", "Greek Yogurt", "Bananas", "Oats", "Chicken Breast"];
+      try {
+        const res = await fetch("/api/compass", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "chat", payload: { message: prompt } })
+        });
+        
+        if (res.ok) {
+           const data = await res.json();
+           const rawText = data.text || "";
+           // Simple regex to find list items or parse JSON if AI returns it
+           const matches = rawText.match(/- \*\*?(.*?)\*\*?/g);
+           if (matches && matches.length > 0) {
+              generatedItems = matches.map((m: string) => m.replace(/[-*]/g, "").trim());
+           }
+        }
+      } catch (e) {
+        console.warn("AI API failed, falling back to smart defaults.");
+      }
+
+      const newGroceryItems: GroceryItem[] = generatedItems.map(name => {
+        const lower = name.toLowerCase();
+        let category = "Other";
+        if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat")) category = "Protein";
+        else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt")) category = "Dairy";
+        else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg")) category = "Produce";
+        else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("oat")) category = "Snacks";
+        else if (lower.includes("creatine") || lower.includes("vitamin")) category = "Supplements";
+
+        return {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          name: name,
+          category,
+          purchased: false
+        };
+      });
+
+      // Avoid duplicates
+      const existingNames = new Set(items.map(i => i.name.toLowerCase()));
+      const itemsToAdd = newGroceryItems.filter(i => !existingNames.has(i.name.toLowerCase()));
+
+      await saveItems([...items, ...itemsToAdd]);
+
+    } catch (err) {
+      console.error("Sync failed:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
       <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></div>
@@ -134,11 +201,9 @@ export default function Groceries() {
             </button>
           )}
           <button 
-            onClick={() => {
-              setIsSyncing(true);
-              setTimeout(() => setIsSyncing(false), 1000);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-bold rounded-lg border border-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+            onClick={handleAiSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-400 text-sm font-bold rounded-lg border border-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
           >
             {isSyncing ? <div className="w-4 h-4 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" /> : <Sparkles className="w-4 h-4" />}
             AI Sync
