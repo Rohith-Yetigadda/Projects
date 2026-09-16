@@ -371,7 +371,7 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
       
       {/* Session History Modal Overlay */}
       {showHistory && (
-        <div className="absolute inset-x-0 -top-4 md:-top-6 bottom-0 z-50 bg-black/60 backdrop-blur-2xl rounded-2xl p-6 flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-white/10 shadow-2xl overflow-hidden">
+        <div className="absolute inset-x-0 -top-4 md:-top-6 bottom-0 z-50 bg-black/95 backdrop-blur-3xl rounded-2xl p-6 flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-white/10 shadow-2xl overflow-hidden">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2"><History className="w-5 h-5 text-emerald-400" /> Chat History</h2>
             <button onClick={() => setShowHistory(false)} className="w-8 h-8 flex items-center justify-center rounded-full glass hover:bg-white/20 text-white"><X className="w-4 h-4" /></button>
@@ -396,7 +396,7 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
       )}
 
       {/* Main Header */}
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-lg">
+      <header className="sticky top-0 z-30 bg-black pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] shrink-0">
             <Compass className="w-7 h-7" />
@@ -486,7 +486,7 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
         <div ref={endRef} className="h-4" />
       </div>
 
-      <div className="fixed bottom-[88px] md:bottom-6 left-0 right-0 px-4 md:px-0 z-40 pointer-events-none">
+      <div className="fixed bottom-[88px] md:bottom-6 left-0 md:left-72 right-0 px-4 md:px-0 z-40 pointer-events-none">
         <div className="max-w-3xl mx-auto pointer-events-auto relative">
           
           {selectedImage && (
@@ -498,7 +498,7 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
             </div>
           )}
 
-          <div className="glass-card rounded-2xl p-2 flex items-end gap-2 shadow-2xl border-white/20 relative bg-black/60 backdrop-blur-2xl">
+          <div className="glass-card rounded-2xl p-2 flex items-end gap-2 shadow-2xl border-white/20 relative bg-black/95 backdrop-blur-3xl">
             <input type="file" accept="image/*" ref={fileRef} onChange={handleImagePick} className="hidden" />
             <button onClick={() => fileRef.current?.click()} className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors mb-1 ml-1">
               <ImagePlus className="w-5 h-5" />
