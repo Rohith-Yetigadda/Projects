@@ -318,13 +318,47 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
 
 // ─── Photo Confirm Modal ───────────────────────────────────────────
 function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm: (items: any[]) => void; onCancel: () => void }) {
+  const [localItems, setLocalItems] = useState(items);
   const [checked, setChecked] = useState<boolean[]>(items.map(() => true));
-  const toggle = (i: number) => setChecked(prev => prev.map((v, idx) => idx === i ? !v : v));
-  const selected = items.filter((_, i) => checked[i]);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editVals, setEditVals] = useState({ name: "", quantity: "" });
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  const toggle = (i: number) => {
+    if (editingIdx !== null) return;
+    setChecked(prev => prev.map((v, idx) => idx === i ? !v : v));
+  };
+  const selected = localItems.filter((_, i) => checked[i]);
+
+  const startEdit = (e: any, i: number) => {
+    e.stopPropagation();
+    setEditingIdx(i);
+    setEditVals({ name: localItems[i].name, quantity: localItems[i].quantity });
+  };
+
+  const saveEdit = async (e: any, i: number) => {
+    e.stopPropagation();
+    if (editVals.name === localItems[i].name && editVals.quantity === localItems[i].quantity) {
+      setEditingIdx(null);
+      return;
+    }
+    setIsEstimating(true);
+    try {
+      const newMacros = await estimateMacros(editVals.name, editVals.quantity, true);
+      const newItems = [...localItems];
+      newItems[i] = { ...newItems[i], name: editVals.name, quantity: editVals.quantity, ...newMacros };
+      setLocalItems(newItems);
+      setEditingIdx(null);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsEstimating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0 animate-in slide-in-from-bottom-8 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Detected from photo</p>
@@ -333,22 +367,42 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
           <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="space-y-2 overflow-y-auto flex-1">
-          {items.map((item, i) => (
-            <button key={i} onClick={() => toggle(i)}
-              className={"w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all " + (checked[i] ? "border-white/20 bg-white/5" : "border-white/5 opacity-40")}>
-              <div className={"w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors " + (checked[i] ? "border-white bg-white" : "border-white/30")}>
+          {localItems.map((item, i) => (
+            <div key={i} className={"w-full flex items-center gap-3 p-3 rounded-xl border transition-all " + (checked[i] ? "border-white/20 bg-white/5" : "border-white/5 opacity-40")}>
+              
+              <button onClick={() => toggle(i)} className={"w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors " + (checked[i] ? "border-white bg-white" : "border-white/30")}>
                 {checked[i] && <Check className="w-3 h-3 text-black" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                <p className="text-xs text-white/40">{item.quantity} &middot; {item.calories} kcal &middot; P {item.protein}g C {item.carbs}g F {item.fats}g</p>
-              </div>
-            </button>
+              </button>
+              
+              {editingIdx === i ? (
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                  <input type="text" value={editVals.name} onChange={e => setEditVals(p => ({...p, name: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Name" disabled={isEstimating} />
+                  <input type="text" value={editVals.quantity} onChange={e => setEditVals(p => ({...p, quantity: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Quantity" disabled={isEstimating} />
+                  <div className="flex justify-end gap-2 mt-1">
+                    <button onClick={(e) => { e.stopPropagation(); setEditingIdx(null); }} className="px-3 py-1 rounded-lg bg-white/10 text-xs font-bold text-white/70 hover:text-white disabled:opacity-50" disabled={isEstimating}>Cancel</button>
+                    <button onClick={(e) => saveEdit(e, i)} className="px-3 py-1 rounded-lg bg-white text-xs font-bold text-black disabled:opacity-50" disabled={isEstimating}>
+                      {isEstimating ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(i)}>
+                  <p className="text-sm font-bold text-white truncate">{item.name}</p>
+                  <p className="text-xs text-white/40 truncate">{item.quantity} &middot; {item.calories} kcal &middot; P {item.protein}g C {item.carbs}g F {item.fats}g</p>
+                </div>
+              )}
+
+              {editingIdx !== i && (
+                <button onClick={(e) => startEdit(e, i)} className="p-2 shrink-0 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg">
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
-        <button onClick={() => onConfirm(selected)} disabled={selected.length === 0}
-          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex-shrink-0">
-          Log {selected.length} item{selected.length !== 1 ? "s" : ""}
+        <button onClick={() => onConfirm(selected)} disabled={selected.length === 0 || isEstimating}
+          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex-shrink-0 flex items-center justify-center gap-2">
+          {isEstimating ? <Loader2 className="w-5 h-5 animate-spin" /> : `Log ${selected.length} item${selected.length !== 1 ? "s" : ""}`}
         </button>
       </div>
     </div>
