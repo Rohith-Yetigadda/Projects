@@ -177,7 +177,7 @@ EXAMPLES:
 
 - User: "Add milk and eggs to my grocery list."
   Response: "I've added milk and eggs to your groceries." + \`\`\`command
-  {"action":"ADD_GROCERIES","data":{"items":["Milk","Eggs"]}}
+  {"action":"ADD_GROCERIES","data":{"items":[{"name":"Milk","category":"Dairy"},{"name":"Eggs","category":"Protein"}]}}
   \`\`\`
 
 - User: "Set my goal to bulk"
@@ -189,7 +189,7 @@ Valid actions:
 - "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
-- "ADD_GROCERIES" (data: { "items": string[] })
+- "ADD_GROCERIES" (data: { "items": Array<{name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other"}> })
 
 Instructions: Be concise. Estimate macros accurately. If they ask you to log something, ALWAYS output the \`\`\`command block. Do not ask for permission if they explicitly say "log it".`);
     };
@@ -345,20 +345,31 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
           }
 
           if (cmd.action === "ADD_GROCERIES") {
-            const itemsToAdd: string[] = cmd.data.items || [];
+            const itemsToAdd: any[] = cmd.data.items || [];
             if (itemsToAdd.length > 0) {
               const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
               const grocSnap = await getDoc(grocRef);
               let currentItems = grocSnap.exists() ? grocSnap.data().items || [] : [];
               
-              const newGroceryItems = itemsToAdd.map(name => {
+              const newGroceryItems = itemsToAdd.map(itemObj => {
+                // Support both string arrays (fallback) and the new object format
+                const name = typeof itemObj === "string" ? itemObj : itemObj.name;
+                const aiCategory = typeof itemObj === "string" ? null : itemObj.category;
+                
                 const lower = name.toLowerCase();
-                let category = "Other";
-                if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya") || lower.includes("paneer")) category = "Protein";
-                else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
-                else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
-                else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie") || lower.includes("oat")) category = "Snacks";
-                else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
+                let category = aiCategory || "Other";
+                
+                // Fallback auto-categorization only if AI didn't provide a valid one
+                if (!aiCategory) {
+                  if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya") || lower.includes("paneer")) category = "Protein";
+                  else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
+                  else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
+                  else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie") || lower.includes("oat") || lower.includes("pasta") || lower.includes("bread")) category = "Snacks";
+                  else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
+                  else if (lower.includes("rice") || lower.includes("wheat") || lower.includes("atta") || lower.includes("flour") || lower.includes("dal") || lower.includes("lentil")) category = "Grains";
+                  else if (lower.includes("cumin") || lower.includes("turmeric") || lower.includes("chili") || lower.includes("salt") || lower.includes("pepper") || lower.includes("spice") || lower.includes("garlic") || lower.includes("ginger")) category = "Spices";
+                  else if (lower.includes("oil")) category = "Oils";
+                }
 
                 return {
                   id: Date.now().toString() + Math.random().toString(36).substr(2, 5),

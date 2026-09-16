@@ -18,6 +18,9 @@ const getCategoryColor = (cat: string) => {
     case "Dairy": return "text-amber-400 bg-amber-400/10 border-amber-400/20";
     case "Snacks": return "text-rose-400 bg-rose-400/10 border-rose-400/20";
     case "Supplements": return "text-purple-400 bg-purple-400/10 border-purple-400/20";
+    case "Grains": return "text-yellow-200 bg-yellow-200/10 border-yellow-200/20";
+    case "Spices": return "text-orange-400 bg-orange-400/10 border-orange-400/20";
+    case "Oils": return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
     default: return "text-white/60 bg-white/5 border-white/10";
   }
 };
@@ -27,7 +30,6 @@ export default function Groceries() {
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newItem, setNewItem] = useState("");
-  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -75,6 +77,9 @@ export default function Groceries() {
     else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
     else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie")) category = "Snacks";
     else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
+    else if (lower.includes("rice") || lower.includes("wheat") || lower.includes("atta") || lower.includes("flour") || lower.includes("dal") || lower.includes("lentil") || lower.includes("oat") || lower.includes("pasta") || lower.includes("bread")) category = "Grains";
+    else if (lower.includes("cumin") || lower.includes("turmeric") || lower.includes("chili") || lower.includes("salt") || lower.includes("pepper") || lower.includes("spice") || lower.includes("garlic") || lower.includes("ginger")) category = "Spices";
+    else if (lower.includes("oil")) category = "Oils";
 
     const item: GroceryItem = {
       id: Date.now().toString(),
