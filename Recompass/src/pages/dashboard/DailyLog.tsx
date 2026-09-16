@@ -240,33 +240,40 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
 }
 
 async function estimateMacros(foodName: string, quantity: string, isCustom?: boolean) {
-  if (!isCustom) {
-    const known = getKnownMacros(foodName, quantity);
-    if (known) return known;
-  }
+  // ALWAYS check known macros first — even for custom inputs
+  const known = getKnownMacros(foodName, quantity || "1 serving");
+  if (known) return { ...known, name: foodName.toUpperCase() };
 
   const queryStr = quantity ? `${quantity} ${foodName}` : foodName;
+  console.log("[estimateMacros] Calling AI for:", queryStr);
   const res = await fetch("/api/compass", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "estimate_macros", payload: { foodName: queryStr } }),
   });
   const data = await res.json();
+  console.log("[estimateMacros] AI response:", JSON.stringify(data));
   
   if (data.error === "INVALID_FOOD") {
     throw new Error("INVALID_FOOD");
   }
 
+  // If the response has parseError or no valid calories, something went wrong
+  if (data.parseError || (!data.calories && data.calories !== 0)) {
+    console.error("[estimateMacros] AI parse failed, raw:", data.raw || data.text);
+    throw new Error("INVALID_FOOD");
+  }
+
   const sanitized = sanitizeMacros({
-    calories: Number(data.calories) || 100,
-    protein:  Number(data.protein)  || 3,
-    carbs:    Number(data.carbs)    || 15,
-    fats:     Number(data.fats)     || 3,
+    calories: Number(data.calories),
+    protein:  Number(data.protein) || 0,
+    carbs:    Number(data.carbs) || 0,
+    fats:     Number(data.fats) || 0,
   });
   
   return {
     ...sanitized,
-    name: data.name || foodName // Preserve the concise AI name
+    name: data.name || foodName.toUpperCase()
   };
 }
 
@@ -489,10 +496,13 @@ export default function DailyLog() {
       const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
       setLog(newLog); await persist(newLog);
     } catch(e: any){
+      console.error("[logWithQuantity] Error:", e);
       if (e?.message === "INVALID_FOOD") {
-        setToast("That doesn't look like a food item. Try describing what you ate!");
-        setTimeout(() => setToast(null), 3500);
-      } else { console.error(e); }
+        setToast("Couldn't recognize that as food. Try being more specific!");
+      } else {
+        setToast("Something went wrong estimating macros. Try again!");
+      }
+      setTimeout(() => setToast(null), 3500);
     } finally{setEstimating(null);}
   };
 
@@ -631,9 +641,27 @@ export default function DailyLog() {
               <input type="text" placeholder="Add custom item or describe what you ate..."
                 value={customInput[key]||""}
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){logWithQuantity(key,customInput[key]!.trim(),"",true);setCustomInput(prev=>({...prev,[key]:""}))}}}
+                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){
+                  const text = customInput[key]!.trim();
+                  const isDescription = text.length > 30 || /\d+\s*(g|gm|gms|gram|ml|box|plate|bowl|piece|from|at)\b/i.test(text);
+                  if (isDescription) {
+                    logWithQuantity(key, text, "", true);
+                  } else {
+                    setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
+                  }
+                  setCustomInput(prev=>({...prev,[key]:""}));
+                }}}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){logWithQuantity(key,customInput[key]!.trim(),"",true);setCustomInput(prev=>({...prev,[key]:""}));}}}
+              <button onClick={()=>{if(customInput[key]?.trim()){
+                  const text = customInput[key]!.trim();
+                  const isDescription = text.length > 30 || /\d+\s*(g|gm|gms|gram|ml|box|plate|bowl|piece|from|at)\b/i.test(text);
+                  if (isDescription) {
+                    logWithQuantity(key, text, "", true);
+                  } else {
+                    setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
+                  }
+                  setCustomInput(prev=>({...prev,[key]:""}));
+                }}}
                 className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors">Add</button>
             </div>
           </div>
