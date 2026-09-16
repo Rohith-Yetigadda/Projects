@@ -239,10 +239,11 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   return raw;
 }
 
-async function estimateMacros(foodName: string, quantity: string) {
-  // Use hardcoded truth table first
-  const known = getKnownMacros(foodName, quantity);
-  if (known) return known;
+async function estimateMacros(foodName: string, quantity: string, isCustom?: boolean) {
+  if (!isCustom) {
+    const known = getKnownMacros(foodName, quantity);
+    if (known) return known;
+  }
 
   const res = await fetch("/api/compass", {
     method: "POST",
@@ -361,7 +362,7 @@ export default function DailyLog() {
   const [log, setLog]     = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
   const [menu, setMenu]   = useState<MealPlan | null>(null);
   const [loading, setLoading] = useState(true);
-  const [picker, setPicker] = useState<{ mealType: MealType; foodName: string } | null>(null);
+  const [picker, setPicker] = useState<{ mealType: MealType; foodName: string; isCustom?: boolean } | null>(null);
   const [estimating, setEstimating] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<MealType | null>(null);
   const [photoItems, setPhotoItems] = useState<{ mealType: MealType; items: any[] } | null>(null);
@@ -405,10 +406,10 @@ export default function DailyLog() {
     await setDoc(doc(db,"users",currentUser.uid,"logs",today),{...newLog,totals,date:today});
   };
 
-  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string) => {
+  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom?: boolean) => {
     const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
     try {
-      const macros = await estimateMacros(foodName, quantity);
+      const macros = await estimateMacros(foodName, quantity, isCustom);
       const entry: MacroEntry = { id: Date.now().toString(), name: foodName, quantity, loggedAt: new Date().toISOString(), ...macros };
       const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
       setLog(newLog); await persist(newLog);
@@ -453,7 +454,7 @@ export default function DailyLog() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
-      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty)} onCancel={()=>setPicker(null)} />}
+      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
 
       {/* Header */}
@@ -539,9 +540,9 @@ export default function DailyLog() {
               <input type="text" placeholder="Add custom item..."
                 value={customInput[key]||""}
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase()});setCustomInput(prev=>({...prev,[key]:""}))}}}
+                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}))}}}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase()});setCustomInput(prev=>({...prev,[key]:""}));}}}
+              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}));}}}
                 className="px-4 py-2 bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white hover:bg-white/20 transition-colors">Add</button>
             </div>
           </div>
