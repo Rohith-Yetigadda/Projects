@@ -252,12 +252,23 @@ async function estimateMacros(foodName: string, quantity: string, isCustom?: boo
     body: JSON.stringify({ action: "estimate_macros", payload: { foodName: queryStr } }),
   });
   const data = await res.json();
-  return sanitizeMacros({
+  
+  if (data.error === "INVALID_FOOD") {
+    alert("I couldn't recognize that as a food item. Please try being more specific!");
+    throw new Error("Invalid food item");
+  }
+
+  const sanitized = sanitizeMacros({
     calories: Number(data.calories) || 100,
     protein:  Number(data.protein)  || 3,
     carbs:    Number(data.carbs)    || 15,
     fats:     Number(data.fats)     || 3,
   });
+  
+  return {
+    ...sanitized,
+    name: data.name || foodName // Preserve the concise AI name
+  };
 }
 
 async function analyzePlate(base64: string, mimeType: string) {
