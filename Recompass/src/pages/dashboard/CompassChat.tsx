@@ -646,7 +646,8 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
             </div>
           </div>
         )}
-        <div ref={endRef} className="h-4" />
+        {/* Extra tall spacer to ensure the last message scrolls past the fixed input bar */}
+        <div ref={endRef} className="h-40 md:h-32 shrink-0" />
       </div>
 
       <div className="fixed bottom-[88px] md:bottom-6 left-0 md:left-72 right-0 px-4 md:px-0 z-40 pointer-events-none">
