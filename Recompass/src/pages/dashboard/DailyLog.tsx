@@ -245,10 +245,11 @@ async function estimateMacros(foodName: string, quantity: string, isCustom?: boo
     if (known) return known;
   }
 
+  const queryStr = quantity ? `${quantity} ${foodName}` : foodName;
   const res = await fetch("/api/compass", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "estimate_macros", payload: { foodName: quantity + " " + foodName } }),
+    body: JSON.stringify({ action: "estimate_macros", payload: { foodName: queryStr } }),
   });
   const data = await res.json();
   return sanitizeMacros({
@@ -598,13 +599,13 @@ export default function DailyLog() {
             )}
 
             <div className="flex gap-2">
-              <input type="text" placeholder="Add custom item..."
+              <input type="text" placeholder="Add custom item or describe what you ate..."
                 value={customInput[key]||""}
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}))}}}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}));}}}
-                className="px-4 py-2 bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white hover:bg-white/20 transition-colors">Add</button>
+                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){logWithQuantity(key,customInput[key]!.trim(),"",true);setCustomInput(prev=>({...prev,[key]:""}))}}}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
+              <button onClick={()=>{if(customInput[key]?.trim()){logWithQuantity(key,customInput[key]!.trim(),"",true);setCustomInput(prev=>({...prev,[key]:""}));}}}
+                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors">Add</button>
             </div>
           </div>
         );
