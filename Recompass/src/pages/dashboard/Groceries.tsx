@@ -120,7 +120,7 @@ export default function Groceries() {
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Shopping List</h1>
           <p className="text-sm font-medium text-white/40 mt-1">
-            {pendingCount === 0 ? "You're all stocked up." : \`\${pendingCount} items remaining\`}
+            {pendingCount === 0 ? "You're all stocked up." : `${pendingCount} items remaining`}
           </p>
         </div>
         
