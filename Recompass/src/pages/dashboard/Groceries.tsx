@@ -70,11 +70,11 @@ export default function Groceries() {
     
     const lower = newItem.toLowerCase();
     let category = "Other";
-    if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat")) category = "Protein";
-    else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("paneer")) category = "Dairy";
-    else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg")) category = "Produce";
-    else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack")) category = "Snacks";
-    else if (lower.includes("creatine") || lower.includes("vitamin")) category = "Supplements";
+    if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya")) category = "Protein";
+    else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("paneer") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
+    else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
+    else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie")) category = "Snacks";
+    else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
 
     const item: GroceryItem = {
       id: Date.now().toString(),

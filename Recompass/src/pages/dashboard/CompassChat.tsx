@@ -354,11 +354,11 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
               const newGroceryItems = itemsToAdd.map(name => {
                 const lower = name.toLowerCase();
                 let category = "Other";
-                if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("paneer")) category = "Protein";
-                else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt")) category = "Dairy";
-                else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("onion") || lower.includes("tomato")) category = "Produce";
-                else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("oat")) category = "Snacks";
-                else if (lower.includes("creatine") || lower.includes("vitamin")) category = "Supplements";
+                if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya") || lower.includes("paneer")) category = "Protein";
+                else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
+                else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
+                else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie") || lower.includes("oat")) category = "Snacks";
+                else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
 
                 return {
                   id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
