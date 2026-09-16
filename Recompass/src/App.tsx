@@ -9,6 +9,7 @@ import ThisWeek from "./pages/dashboard/ThisWeek"
 import DailyLog from "./pages/dashboard/DailyLog"
 import Profile from "./pages/dashboard/Profile"
 import CompassChat from "./pages/dashboard/CompassChat"
+import Progress from './pages/dashboard/Progress';
 import Groceries from "./pages/dashboard/Groceries"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
@@ -133,7 +134,7 @@ function App() {
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Pantry</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
           <Route path="/app/progress" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Progress</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
+            <AppRoute><Progress /></AppRoute>
           } />
           <Route path="/app/profile" element={
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Profile</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
