@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { Plus, Check, Sparkles, Trash2, ShoppingCart } from "lucide-react";
+import { Plus, Check, Sparkles, Trash2, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
 
 type GroceryItem = {
   id: string;
@@ -30,6 +30,9 @@ export default function Groceries() {
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newItem, setNewItem] = useState("");
+
+  const [sortBy, setSortBy] = useState<"name" | "category">("category");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     if (!currentUser) return;
@@ -105,6 +108,15 @@ export default function Groceries() {
     saveItems(items.filter(item => !item.purchased));
   };
 
+  const handleSort = (field: "name" | "category") => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
+
   if (loading) return (
     <div className="flex-1 flex items-center justify-center min-h-[50vh]">
       <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></div>
@@ -113,8 +125,17 @@ export default function Groceries() {
 
   const pendingCount = items.filter(i => !i.purchased).length;
   const sortedItems = [...items].sort((a, b) => {
-    if (a.purchased === b.purchased) return 0;
-    return a.purchased ? 1 : -1; // purchased items go to bottom
+    if (a.purchased !== b.purchased) return a.purchased ? 1 : -1;
+
+    let comparison = 0;
+    if (sortBy === "name") {
+      comparison = a.name.localeCompare(b.name);
+    } else if (sortBy === "category") {
+      comparison = a.category.localeCompare(b.category);
+      if (comparison === 0) comparison = a.name.localeCompare(b.name);
+    }
+
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   return (
@@ -147,9 +168,21 @@ export default function Groceries() {
         {/* Table Header */}
         <div className="grid grid-cols-[48px_1fr_120px_60px] md:grid-cols-[64px_1fr_200px_100px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/5 text-xs font-bold text-white/30 uppercase tracking-widest">
           <div className="text-center">#</div>
-          <div>Item Name</div>
-          <div>Category</div>
-          <div className="text-center">Act</div>
+          <button 
+            onClick={() => handleSort("name")}
+            className="flex items-center gap-1 hover:text-white/60 transition-colors justify-start uppercase tracking-widest font-bold"
+          >
+            Item Name
+            {sortBy === "name" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
+          <button 
+            onClick={() => handleSort("category")}
+            className="flex items-center gap-1 hover:text-white/60 transition-colors justify-start uppercase tracking-widest font-bold"
+          >
+            Category
+            {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
+          <div className="text-center"></div> {/* Blank Action Header */}
         </div>
 
         {/* Quick Add Row */}
