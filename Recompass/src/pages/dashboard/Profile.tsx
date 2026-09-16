@@ -186,25 +186,81 @@ export default function Profile() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Manual Override Active</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/40">Calories</label>
-                  <input type="number" value={data.customCalories} onChange={e=>setData({...data, customCalories: e.target.value})} className="w-full bg-white/5 border border-orange-500/30 rounded-xl px-4 py-3 text-white font-mono" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                
+                {/* Calories */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-orange-500/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl"></div>
+                  <div className="relative bg-[#0a0a0a] border border-white/5 group-focus-within:border-orange-500/30 rounded-2xl p-4 transition-all hover:bg-white/[0.02]">
+                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-2">Calories</label>
+                    <div className="flex items-baseline gap-1">
+                      <input 
+                        type="number" 
+                        value={data.customCalories} 
+                        onChange={e=>setData({...data, customCalories: e.target.value})} 
+                        className="w-full bg-transparent text-white font-mono font-bold text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
+                        placeholder="2000"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/40">Protein (g)</label>
-                  <input type="number" value={data.customProtein} onChange={e=>setData({...data, customProtein: e.target.value})} className="w-full bg-white/5 border border-orange-500/30 rounded-xl px-4 py-3 text-white font-mono" />
+
+                {/* Protein */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-orange-500/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl"></div>
+                  <div className="relative bg-[#0a0a0a] border border-white/5 group-focus-within:border-orange-500/30 rounded-2xl p-4 transition-all hover:bg-white/[0.02]">
+                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-2">Protein</label>
+                    <div className="flex items-baseline gap-1">
+                      <input 
+                        type="number" 
+                        value={data.customProtein} 
+                        onChange={e=>setData({...data, customProtein: e.target.value})} 
+                        className="w-full bg-transparent text-white font-mono font-bold text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
+                        placeholder="120"
+                      />
+                      <span className="text-white/20 text-sm font-bold">g</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/40">Carbs (g)</label>
-                  <input type="number" value={data.customCarbs} onChange={e=>setData({...data, customCarbs: e.target.value})} className="w-full bg-white/5 border border-orange-500/30 rounded-xl px-4 py-3 text-white font-mono" />
+
+                {/* Carbs */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-orange-500/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl"></div>
+                  <div className="relative bg-[#0a0a0a] border border-white/5 group-focus-within:border-orange-500/30 rounded-2xl p-4 transition-all hover:bg-white/[0.02]">
+                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-2">Carbs</label>
+                    <div className="flex items-baseline gap-1">
+                      <input 
+                        type="number" 
+                        value={data.customCarbs} 
+                        onChange={e=>setData({...data, customCarbs: e.target.value})} 
+                        className="w-full bg-transparent text-white font-mono font-bold text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
+                        placeholder="200"
+                      />
+                      <span className="text-white/20 text-sm font-bold">g</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-white/40">Fats (g)</label>
-                  <input type="number" value={data.customFats} onChange={e=>setData({...data, customFats: e.target.value})} className="w-full bg-white/5 border border-orange-500/30 rounded-xl px-4 py-3 text-white font-mono" />
+
+                {/* Fats */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-orange-500/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-2xl"></div>
+                  <div className="relative bg-[#0a0a0a] border border-white/5 group-focus-within:border-orange-500/30 rounded-2xl p-4 transition-all hover:bg-white/[0.02]">
+                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-2">Fats</label>
+                    <div className="flex items-baseline gap-1">
+                      <input 
+                        type="number" 
+                        value={data.customFats} 
+                        onChange={e=>setData({...data, customFats: e.target.value})} 
+                        className="w-full bg-transparent text-white font-mono font-bold text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
+                        placeholder="60"
+                      />
+                      <span className="text-white/20 text-sm font-bold">g</span>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
           )}

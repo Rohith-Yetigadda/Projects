@@ -31,7 +31,7 @@ const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
 };
 
 export default function CompassChat() {
-  const { userProfile, currentUser } = useAuth();
+  const { currentUser, userProfile, refreshProfile } = useAuth();
   
   // Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -355,6 +355,7 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
           if (cmd.action === "UPDATE_WEIGHT") {
             await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: cmd.data.weight }, { merge: true });
             sysMessages.push(`🎯 *Weight successfully updated to ${cmd.data.weight}kg.*`);
+            await refreshProfile();
           }
 
           if (cmd.action === "UPDATE_PROFILE") {
@@ -364,19 +365,22 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
             if (cmd.data.name) updates.name = cmd.data.name;
             await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), updates, { merge: true });
             sysMessages.push(`👤 *Profile details updated.*`);
+            await refreshProfile();
           }
 
           if (cmd.action === "UPDATE_TARGETS") {
+            // Provide fallbacks in case AI doesn't send all macros
             await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { 
               targetOverrides: {
                 enabled: true,
-                calories: cmd.data.calories,
-                protein: cmd.data.protein,
-                carbs: cmd.data.carbs,
-                fats: cmd.data.fats
+                calories: cmd.data.calories || userProfile?.targetOverrides?.calories || 2000,
+                protein: cmd.data.protein || userProfile?.targetOverrides?.protein || 120,
+                carbs: cmd.data.carbs || userProfile?.targetOverrides?.carbs || 200,
+                fats: cmd.data.fats || userProfile?.targetOverrides?.fats || 60
               }
             }, { merge: true });
             sysMessages.push(`🎯 *Daily macro targets manually overridden to ${cmd.data.calories} kcal.*`);
+            await refreshProfile();
           }
 
           if (cmd.action === "CLEAR_TODAY_LOGS") {
