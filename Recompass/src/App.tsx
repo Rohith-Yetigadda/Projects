@@ -9,6 +9,7 @@ import ThisWeek from "./pages/dashboard/ThisWeek"
 import DailyLog from "./pages/dashboard/DailyLog"
 import Profile from "./pages/dashboard/Profile"
 import CompassChat from "./pages/dashboard/CompassChat"
+import Groceries from "./pages/dashboard/Groceries"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
 import { Sparkles, ArrowRight } from "lucide-react"
@@ -123,7 +124,7 @@ function App() {
             <AppRoute><CompassChat /></AppRoute>
           } />
           <Route path="/app/groceries" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Groceries</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
+            <AppRoute><Groceries /></AppRoute>
           } />
           <Route path="/app/cook" element={
             <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Recipes</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
