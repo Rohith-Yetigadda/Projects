@@ -15,7 +15,7 @@ export default function Progress() {
   const [stats, setStats] = useState({ avgCals: 0, avgPro: 0, activeDays: 0 });
 
   useEffect(() => {
-    if (!currentUser || !userProfile) return;
+    if (!currentUser) return;
 
     const fetchLast7Days = async () => {
       try {
@@ -26,9 +26,9 @@ export default function Progress() {
 
         // Calculate user's target calories
         let targetCals = 2000;
-        if (userProfile.targetOverrides?.enabled && userProfile.targetOverrides.calories) {
+        if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.calories) {
           targetCals = userProfile.targetOverrides.calories;
-        } else if (userProfile.weight && userProfile.height && userProfile.age) {
+        } else if (userProfile && userProfile.weight && userProfile.height && userProfile.age) {
           const w = userProfile.weight;
           const h = userProfile.height;
           const a = userProfile.age;
@@ -163,21 +163,22 @@ export default function Progress() {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorCals" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#63e6a4" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#63e6a4" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
               <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
               <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#111', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                itemStyle={{ color: '#fff' }}
+                contentStyle={{ backgroundColor: 'rgba(10,10,10,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }}
               />
               <Area 
                 type="monotone" 
                 dataKey="target" 
-                stroke="#64748b" 
+                stroke="rgba(255,255,255,0.15)" 
                 strokeWidth={2}
                 strokeDasharray="5 5" 
                 fill="none" 
@@ -186,11 +187,12 @@ export default function Progress() {
               <Area 
                 type="monotone" 
                 dataKey="calories" 
-                stroke="#3b82f6" 
+                stroke="#63e6a4" 
                 strokeWidth={3}
                 fillOpacity={1} 
                 fill="url(#colorCals)" 
                 name="Consumed (kcal)"
+                activeDot={{ r: 6, fill: '#63e6a4', stroke: '#000', strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -202,17 +204,20 @@ export default function Progress() {
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
               <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
               <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
               <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                contentStyle={{ backgroundColor: '#111', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                itemStyle={{ color: '#fff' }}
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                contentStyle={{ backgroundColor: 'rgba(10,10,10,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                itemStyle={{ color: '#fff', fontWeight: 'bold' }}
               />
-              <Bar dataKey="protein" radius={[4, 4, 0, 0]} name="Protein (g)">
+              <Bar dataKey="protein" radius={[6, 6, 0, 0]} name="Protein (g)" maxBarSize={40}>
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.protein > stats.avgPro ? '#10b981' : '#3b82f6'} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.protein > 0 ? (entry.protein >= stats.avgPro ? '#63e6a4' : 'rgba(255,255,255,0.2)') : 'transparent'} 
+                  />
                 ))}
               </Bar>
             </BarChart>
