@@ -2,13 +2,24 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { Plus, Check, Sparkles, X, ShoppingCart } from "lucide-react";
+import { Plus, Check, Sparkles, X, ShoppingCart, Beef, Apple, Milk, Cookie, Pill, Package2 } from "lucide-react";
 
 type GroceryItem = {
   id: string;
   name: string;
   category: string;
   purchased: boolean;
+};
+
+const getCategoryIcon = (cat: string) => {
+  switch (cat) {
+    case "Protein": return <Beef className="w-5 h-5 text-blue-400" />;
+    case "Produce": return <Apple className="w-5 h-5 text-emerald-400" />;
+    case "Dairy": return <Milk className="w-5 h-5 text-amber-400" />;
+    case "Snacks": return <Cookie className="w-5 h-5 text-rose-400" />;
+    case "Supplements": return <Pill className="w-5 h-5 text-purple-400" />;
+    default: return <Package2 className="w-5 h-5 text-white/40" />;
+  }
 };
 
 export default function Groceries() {
@@ -60,9 +71,9 @@ export default function Groceries() {
     const lower = newItem.toLowerCase();
     let category = "Other";
     if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat")) category = "Protein";
-    else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt")) category = "Dairy";
+    else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("paneer")) category = "Dairy";
     else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg")) category = "Produce";
-    else if (lower.includes("bar") || lower.includes("chips")) category = "Snacks";
+    else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack")) category = "Snacks";
     else if (lower.includes("creatine") || lower.includes("vitamin")) category = "Supplements";
 
     const item: GroceryItem = {
@@ -98,128 +109,148 @@ export default function Groceries() {
   const pendingItems = items.filter(i => !i.purchased);
   const purchasedItems = items.filter(i => i.purchased);
 
+  const groupedPending = pendingItems.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, GroceryItem[]>);
+
   return (
-    <div className="max-w-3xl mx-auto animate-in fade-in duration-500 pb-28 md:pb-12">
+    <div className="w-full max-w-[1600px] mx-auto animate-in fade-in duration-500 pb-28 md:pb-12 space-y-10 px-2 md:px-6">
       
-      {/* Clean, Elegant Header */}
-      <div className="flex items-end justify-between mb-8 mt-4 md:mt-8 px-2 md:px-0">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Groceries</h1>
-          <p className="text-sm font-medium text-white/40">
-            {pendingItems.length === 0 ? "You're all stocked up." : `${pendingItems.length} items to pick up`}
+      {/* Header & Global Input */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pt-4 md:pt-8 border-b border-white/5 pb-8">
+        <div className="flex-1">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white mb-2">Groceries</h1>
+          <p className="text-base font-medium text-white/40">
+            {pendingItems.length === 0 ? "You're all stocked up." : `${pendingItems.length} items on your list`}
           </p>
         </div>
-        <button 
-          onClick={() => {
-            setIsSyncing(true);
-            setTimeout(() => setIsSyncing(false), 1000);
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 text-sm font-semibold"
-        >
-          {isSyncing ? <div className="w-4 h-4 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          <span className="hidden sm:inline">AI Sync</span>
-        </button>
+
+        <div className="flex-1 max-w-xl w-full flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleAddItem} className="relative flex-1 group">
+            <button 
+              type="submit"
+              disabled={!newItem.trim()}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-white/30 group-focus-within:text-white transition-colors disabled:opacity-50"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <input 
+              type="text" 
+              placeholder="Quick add item..."
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
+            />
+          </form>
+          <button 
+            onClick={() => {
+              setIsSyncing(true);
+              setTimeout(() => setIsSyncing(false), 1000);
+            }}
+            className="h-14 px-6 rounded-2xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all border border-emerald-500/20 text-sm font-bold flex items-center justify-center gap-2 shrink-0"
+          >
+            {isSyncing ? <div className="w-4 h-4 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            AI Sync
+          </button>
+        </div>
       </div>
 
-      {/* Input Section */}
-      <form onSubmit={handleAddItem} className="mb-10 px-2 md:px-0">
-        <div className="relative flex items-center group">
-          <button 
-            type="submit"
-            disabled={!newItem.trim()}
-            className="absolute left-4 w-6 h-6 flex items-center justify-center text-white/30 group-focus-within:text-emerald-400 transition-colors disabled:opacity-50"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-          <input 
-            type="text" 
-            placeholder="Add an item..."
-            value={newItem}
-            onChange={(e) => setNewItem(e.target.value)}
-            className="w-full h-14 pl-12 pr-4 bg-transparent border-b-2 border-white/10 text-white text-lg placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors"
-          />
+      {/* Main Content Grid */}
+      {items.length === 0 ? (
+        <div className="py-24 flex flex-col items-center justify-center text-center opacity-30 border border-dashed border-white/10 rounded-3xl mx-4">
+          <ShoppingCart className="w-16 h-16 mb-4" />
+          <p className="text-xl font-medium text-white">Your list is empty</p>
+          <p className="text-sm mt-2">Add items manually or sync with your meal plan.</p>
         </div>
-      </form>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+          
+          {/* Render each category as a masonry-style block */}
+          {Object.entries(groupedPending).map(([category, catItems]) => (
+            <div key={category} className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                  {getCategoryIcon(category)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">{category}</h3>
+                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest">{catItems.length} Items</p>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                {catItems.map((item) => (
+                  <div key={item.id} className="group flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.04] transition-colors -mx-3">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => togglePurchased(item.id)}
+                        className="w-6 h-6 shrink-0 rounded-full border-2 border-white/20 hover:border-emerald-400 flex items-center justify-center transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5 opacity-0 text-emerald-400 transition-opacity" />
+                      </button>
+                      <span className="text-base font-semibold text-white/90">{item.name}</span>
+                    </div>
+                    <button 
+                      onClick={() => deleteItem(item.id)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white/0 group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
 
-      {/* List Section */}
-      <div className="space-y-8 px-2 md:px-0">
-        
-        {/* Pending Items */}
-        {pendingItems.length === 0 ? (
-          <div className="py-16 flex flex-col items-center justify-center text-center opacity-40">
-            <ShoppingCart className="w-12 h-12 mb-4" />
-            <p className="text-lg font-medium text-white">Your list is empty</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {pendingItems.map((item) => (
-              <div 
-                key={item.id} 
-                className="group flex items-center justify-between p-4 rounded-2xl hover:bg-white/[0.03] transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => togglePurchased(item.id)}
-                    className="w-6 h-6 shrink-0 rounded-full border-2 border-white/20 hover:border-emerald-400 flex items-center justify-center transition-colors"
-                  >
-                    <Check className="w-3.5 h-3.5 opacity-0 text-emerald-400 transition-opacity" />
-                  </button>
-                  <div className="flex flex-col">
-                    <span className="text-base font-semibold text-white/90">{item.name}</span>
-                    <span className="text-xs font-medium text-white/40">{item.category}</span>
+          {/* Purchased Items Card (always at the end if items exist) */}
+          {purchasedItems.length > 0 && (
+            <div className="bg-black/40 border border-white/5 rounded-3xl p-6 flex flex-col gap-4 opacity-70">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                    <Check className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Checked Off</h3>
+                    <p className="text-xs font-bold text-white/30 uppercase tracking-widest">{purchasedItems.length} Items</p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => deleteItem(item.id)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/0 group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all"
+                  onClick={clearPurchased} 
+                  className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors bg-red-500/10 px-3 py-1.5 rounded-lg"
                 >
-                  <X className="w-4 h-4" />
+                  Clear
                 </button>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Purchased Items */}
-        {purchasedItems.length > 0 && (
-          <div className="pt-8">
-            <div className="flex items-center justify-between px-4 mb-4">
-              <h3 className="text-sm font-semibold text-white/30">Checked Off</h3>
-              <button 
-                onClick={clearPurchased} 
-                className="text-xs font-semibold text-red-400/70 hover:text-red-400 transition-colors"
-              >
-                Clear all
-              </button>
-            </div>
-            <div className="space-y-1">
-              {purchasedItems.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="group flex items-center justify-between p-4 rounded-2xl hover:bg-white/[0.02] transition-colors opacity-50"
-                >
-                  <div className="flex items-center gap-4">
+              <div className="space-y-1">
+                {purchasedItems.map((item) => (
+                  <div key={item.id} className="group flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.04] transition-colors -mx-3">
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => togglePurchased(item.id)}
+                        className="w-6 h-6 shrink-0 rounded-full border-2 border-emerald-500/50 bg-emerald-500/10 flex items-center justify-center transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      </button>
+                      <span className="text-base font-medium text-white/40 line-through decoration-white/20">{item.name}</span>
+                    </div>
                     <button 
-                      onClick={() => togglePurchased(item.id)}
-                      className="w-6 h-6 shrink-0 rounded-full border-2 border-emerald-500/50 bg-emerald-500/10 flex items-center justify-center transition-colors"
+                      onClick={() => deleteItem(item.id)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white/0 group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all shrink-0"
                     >
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <X className="w-4 h-4" />
                     </button>
-                    <span className="text-base font-medium text-white/50 line-through decoration-white/20">{item.name}</span>
                   </div>
-                  <button 
-                    onClick={() => deleteItem(item.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white/0 group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-      </div>
+          )}
+          
+        </div>
+      )}
     </div>
   );
 }
