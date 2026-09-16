@@ -643,22 +643,22 @@ export default function DailyLog() {
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
                 onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){
                   const text = customInput[key]!.trim();
-                  const isDescription = text.length > 30 || /\d+\s*(g|gm|gms|gram|ml|box|plate|bowl|piece|from|at)\b/i.test(text);
-                  if (isDescription) {
-                    logWithQuantity(key, text, "", true);
-                  } else {
+                  const isKnown = getKnownMacros(text, "1 serving") !== null;
+                  if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
+                  } else {
+                    logWithQuantity(key, text, "", true);
                   }
                   setCustomInput(prev=>({...prev,[key]:""}));
                 }}}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
               <button onClick={()=>{if(customInput[key]?.trim()){
                   const text = customInput[key]!.trim();
-                  const isDescription = text.length > 30 || /\d+\s*(g|gm|gms|gram|ml|box|plate|bowl|piece|from|at)\b/i.test(text);
-                  if (isDescription) {
-                    logWithQuantity(key, text, "", true);
-                  } else {
+                  const isKnown = getKnownMacros(text, "1 serving") !== null;
+                  if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
+                  } else {
+                    logWithQuantity(key, text, "", true);
                   }
                   setCustomInput(prev=>({...prev,[key]:""}));
                 }}}
