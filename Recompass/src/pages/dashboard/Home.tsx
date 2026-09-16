@@ -81,7 +81,7 @@ export default function Home() {
   const logged = allItems.reduce((a, i) => ({ calories: a.calories+i.calories, protein: a.protein+i.protein, carbs: a.carbs+i.carbs, fats: a.fats+i.fats }), { calories:0, protein:0, carbs:0, fats:0 });
 
   const caloriePercent = Math.min((logged.calories / targets.calories) * 100, 100);
-  const radius = 65;
+  const radius = 70;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (caloriePercent / 100) * circumference;
 
@@ -154,9 +154,9 @@ export default function Home() {
             </div>
           </div>
           <div className="relative flex items-center justify-center md:mt-8 md:mb-4">
-            <svg className="w-32 h-32 md:w-48 md:h-48 transform -rotate-90">
-              <circle cx="50%" cy="50%" r={radius} className="stroke-white/5" strokeWidth="8" fill="none" />
-              <circle cx="50%" cy="50%" r={radius}
+            <svg viewBox="0 0 160 160" className="w-32 h-32 md:w-48 md:h-48 transform -rotate-90">
+              <circle cx="80" cy="80" r={radius} className="stroke-white/5" strokeWidth="8" fill="none" />
+              <circle cx="80" cy="80" r={radius}
                 className="stroke-white transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
                 strokeWidth="8" strokeLinecap="round" fill="none"
                 strokeDasharray={circumference} strokeDashoffset={loading ? circumference : strokeDashoffset} />

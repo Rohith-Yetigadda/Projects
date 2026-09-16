@@ -125,7 +125,6 @@ const mobileNav = [
   { to: "/app",           label: "Home",    icon: Home },
   { to: "/app/log",       label: "Log",     icon: BookOpen },
   { to: "/app/compass",   label: "Compass", icon: Compass },
-  { to: "/app/groceries", label: "Shop",    icon: ShoppingCart },
   { to: "/app/progress",  label: "Stats",   icon: TrendingUp },
 ];
 
@@ -160,43 +159,50 @@ export function MobileHeader() {
       </header>
 
       {/* Side Drawer Menu Overlay */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[100] flex justify-start">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setMenuOpen(false)} />
-          
-          {/* Drawer Panel */}
-          <div className="relative w-64 h-full bg-[#050505] border-r border-white/10 shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col pb-safe">
-            <div className="p-6 border-b border-white/5 flex flex-col gap-1 bg-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-3">
-                <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/50 hover:text-white transition-colors">
-                  <X className="w-4 h-4"/>
-                </button>
-              </div>
-              <div className="w-12 h-12 mb-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-black font-bold text-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                {userProfile?.name?.charAt(0) || "U"}
-              </div>
-              <h2 className="text-lg font-bold text-white truncate">{userProfile?.name || "User"}</h2>
-              <p className="text-xs text-white/50 capitalize truncate">{userProfile?.goal?.replace(/_/g, " ") || "Welcome"}</p>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-              {navItems.map(item => (
-                <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className={({isActive}) => `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${isActive ? 'bg-emerald-500/10 text-emerald-400 font-bold' : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'}`}>
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-
-            <div className="p-4 border-t border-white/5">
-              <button onClick={() => setShowSignOutConfirm(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-colors">
-                <LogOut className="w-4 h-4" /> Sign out
+      <div className={`md:hidden fixed inset-0 z-[100] flex justify-start transition-all duration-300 ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
+        {/* Backdrop */}
+        <div 
+          className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} 
+          onClick={() => setMenuOpen(false)} 
+        />
+        
+        {/* Drawer Panel */}
+        <div className={`relative w-64 h-full bg-[#050505] border-r border-white/10 shadow-2xl transition-transform duration-300 flex flex-col pb-safe ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="p-6 border-b border-white/5 flex flex-col gap-1 bg-white/5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3">
+              <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/50 hover:text-white transition-colors">
+                <X className="w-4 h-4"/>
               </button>
             </div>
+            <div className="w-12 h-12 mb-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-black font-bold text-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              {userProfile?.name?.charAt(0) || "U"}
+            </div>
+            <h2 className="text-lg font-bold text-white truncate">{userProfile?.name || "User"}</h2>
+            <p className="text-xs text-white/50 capitalize truncate">{userProfile?.goal?.replace(/_/g, " ") || "Welcome"}</p>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            {navItems.map(item => (
+              <NavLink 
+                key={item.to} 
+                to={item.to} 
+                end={item.to === "/app"}
+                onClick={() => setMenuOpen(false)} 
+                className={({isActive}) => `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${isActive ? 'bg-emerald-500/10 text-emerald-400 font-bold' : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'}`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+
+          <div className="p-4 border-t border-white/5">
+            <button onClick={() => setShowSignOutConfirm(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-colors">
+              <LogOut className="w-4 h-4" /> Sign out
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
       <ConfirmDialog
         open={showSignOutConfirm}
