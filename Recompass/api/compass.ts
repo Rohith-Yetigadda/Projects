@@ -121,11 +121,11 @@ export default async function handler(req: any, res: any) {
       case "estimate_macros":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         // foodName may include a long descriptive text or quantities
-        prompt = `Estimate the macros for: "${payload.foodName}".
-Condense the description into a concise, UPPERCASE name (e.g. "BONELESS CHICKEN BIRYANI"). DO NOT include quantities, breakdowns, or parentheticals in the name.
-Use the quantity specified in the text to calculate macros. If no quantity given, assume a single standard serving.
-CRITICAL: If the input is clearly NOT a food/beverage item, or is a joke/random text (e.g. "your mom", "asdfgh"), return exactly {"error": "INVALID_FOOD"} and nothing else.
-Return ONLY a JSON object, nothing else:
+        prompt = `Estimate the nutritional macros for: "${payload.foodName}".
+Condense the description into a concise, UPPERCASE name for the log (e.g. "BONELESS CHICKEN BIRYANI"). DO NOT include quantities or parentheticals in the name.
+Use the quantity specified in the text to calculate the total macros.
+CRITICAL: Even if the text is ALL CAPS or contains brand names (like "Meghana"), treat it as food. Only return {"error": "INVALID_FOOD"} if it is explicitly a joke or random keyboard mashing (like "asdfgh").
+Return ONLY a valid JSON object:
 {"name":"BONELESS CHICKEN BIRYANI","calories":250,"protein":8,"carbs":45,"fats":6}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
@@ -178,6 +178,15 @@ Return ONLY a JSON array, nothing else:
       }
       
       responseData = JSON.parse(jsonStr);
+
+      // Normalize keys to lowercase to prevent AI capitalization errors (e.g., "Calories" instead of "calories")
+      if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+        const normalized: any = {};
+        for (const k in responseData) {
+          normalized[k.toLowerCase()] = responseData[k];
+        }
+        responseData = normalized;
+      }
     } catch (e) {
       responseData = { text: responseText, parseError: true, raw: responseText };
     }
