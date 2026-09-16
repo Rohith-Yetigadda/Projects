@@ -244,9 +244,13 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
 }
 
 async function estimateMacros(foodName: string, quantity: string, isCustom?: boolean) {
-  // ALWAYS check known macros first — even for custom inputs
-  const known = getKnownMacros(foodName, quantity || "1 serving");
-  if (known) return { ...known, name: foodName.toUpperCase() };
+  // If it's a long description, do NOT check known macros (it will blindly match substrings like "chicken")
+  const isDescription = foodName.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(foodName) || foodName.split(" ").length > 4;
+  
+  if (!isDescription) {
+    const known = getKnownMacros(foodName, quantity || "1 serving");
+    if (known) return { ...known, name: foodName.toUpperCase() };
+  }
 
   const queryStr = quantity ? `${quantity} ${foodName}` : foodName;
   console.log("[estimateMacros] Calling AI for:", queryStr);
