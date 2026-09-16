@@ -160,18 +160,36 @@ TODAY'S MENU:
 ${menuStr}
 
 AGENTIC CAPABILITIES (CRITICAL):
-You have the power to make changes in the app. If the user asks you to log a meal, update their weight, or change their goal, you MUST output a JSON command block at the end of your message.
+You have the power to make changes in the app. If the user asks you to log a meal, update their weight, change their goal, or add items to their groceries, you MUST output a JSON command block at the end of your message.
 Format:
 \`\`\`command
 {
-  "action": "LOG_MEAL",
-  "data": { "foodName": "California Burrito Bowl", "quantity": "1 bowl", "calories": 650, "protein": 35, "carbs": 60, "fats": 25, "mealType": "lunch" }
+  "action": "LOG_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "ADD_GROCERIES",
+  "data": { ... }
 }
 \`\`\`
+
+EXAMPLES:
+- User: "I just ate 2 chapatis for lunch."
+  Response: "Got it, I've logged 2 chapatis for lunch." + \`\`\`command
+  {"action":"LOG_MEAL","data":{"foodName":"2 chapatis","mealType":"lunch","calories":240,"protein":7,"carbs":44,"fats":4}}
+  \`\`\`
+
+- User: "Add milk and eggs to my grocery list."
+  Response: "I've added milk and eggs to your groceries." + \`\`\`command
+  {"action":"ADD_GROCERIES","data":{"items":["Milk","Eggs"]}}
+  \`\`\`
+
+- User: "Set my goal to bulk"
+  Response: "Updated your goal to bulk." + \`\`\`command
+  {"action":"UPDATE_GOAL","data":{"goal":"bulk"}}
+  \`\`\`
+
 Valid actions: 
 - "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
+- "ADD_GROCERIES" (data: { "items": string[] })
 
 Instructions: Be concise. Estimate macros accurately. If they ask you to log something, ALWAYS output the \`\`\`command block. Do not ask for permission if they explicitly say "log it".`);
     };
@@ -323,7 +341,43 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
           
           if (cmd.action === "UPDATE_WEIGHT") {
             await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: cmd.data.weight }, { merge: true });
-            sysMessages.push(`✅ *Weight successfully updated to ${cmd.data.weight}kg.*`);
+            sysMessages.push(`🎯 *Weight successfully updated to ${cmd.data.weight}kg.*`);
+          }
+
+          if (cmd.action === "ADD_GROCERIES") {
+            const itemsToAdd: string[] = cmd.data.items || [];
+            if (itemsToAdd.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              let currentItems = grocSnap.exists() ? grocSnap.data().items || [] : [];
+              
+              const newGroceryItems = itemsToAdd.map(name => {
+                const lower = name.toLowerCase();
+                let category = "Other";
+                if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("paneer")) category = "Protein";
+                else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt")) category = "Dairy";
+                else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("onion") || lower.includes("tomato")) category = "Produce";
+                else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("oat")) category = "Snacks";
+                else if (lower.includes("creatine") || lower.includes("vitamin")) category = "Supplements";
+
+                return {
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                  name: name,
+                  category,
+                  purchased: false
+                };
+              });
+              
+              const existingNames = new Set(currentItems.map((i:any) => i.name.toLowerCase()));
+              const filteredNew = newGroceryItems.filter(i => !existingNames.has(i.name.toLowerCase()));
+              
+              await setDoc(grocRef, {
+                items: [...currentItems, ...filteredNew],
+                lastUpdated: new Date().toISOString()
+              }, { merge: true });
+
+              sysMessages.push(`🛒 *Added ${filteredNew.length} items to your shopping list.*`);
+            }
           }
         } catch(e) {
           console.error("Command failed", e);
