@@ -141,38 +141,41 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Full Screen Menu Overlay */}
+      {/* Side Drawer Menu Overlay */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[80] bg-[#050505]/95 backdrop-blur-3xl animate-in fade-in slide-in-from-bottom-8 duration-300 flex flex-col p-6 pt-12 pb-32 overflow-y-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xl border border-emerald-500/30">
-              {userProfile?.name?.charAt(0) || "U"}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">{userProfile?.name || "User"}</h2>
-              <p className="text-sm text-white/50">{userProfile?.goal?.replace(/_/g, " ") || "Welcome"}</p>
-            </div>
-          </div>
+        <div className="md:hidden fixed inset-0 z-[80] flex justify-end">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setMenuOpen(false)} />
           
-          <div className="grid grid-cols-4 gap-y-8 gap-x-2">
-            {navItems.map(item => (
-              <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className={({isActive}) => `flex flex-col items-center gap-3 transition-transform active:scale-95 ${isActive ? 'text-white' : 'text-white/60 hover:text-white'}`}>
-                {({isActive}) => (
-                  <>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors shadow-lg ${isActive ? 'bg-white text-black shadow-white/20' : 'bg-white/5 border border-white/10'}`}>
-                      <item.icon className="w-6 h-6" />
-                    </div>
-                    <span className="text-[10px] font-bold text-center uppercase tracking-widest">{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </div>
+          {/* Drawer Panel */}
+          <div className="relative w-64 h-full bg-[#111] border-l border-white/10 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col pb-24">
+            <div className="p-6 border-b border-white/10 flex flex-col gap-1 bg-white/5">
+              <div className="flex justify-between items-center mb-2">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold border border-emerald-500/30">
+                  {userProfile?.name?.charAt(0) || "U"}
+                </div>
+                <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/50 hover:text-white transition-colors">
+                  <X className="w-4 h-4"/>
+                </button>
+              </div>
+              <h2 className="text-lg font-bold text-white truncate">{userProfile?.name || "User"}</h2>
+              <p className="text-xs text-white/50 capitalize truncate">{userProfile?.goal?.replace(/_/g, " ") || "Welcome"}</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+              {navItems.map(item => (
+                <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)} className={({isActive}) => `flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white font-bold' : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'}`}>
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
 
-          <div className="mt-auto pt-10">
-            <button onClick={() => setShowSignOutConfirm(true)} className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-colors">
-              <LogOut className="w-5 h-5" /> Sign out
-            </button>
+            <div className="p-4 border-t border-white/10">
+              <button onClick={() => setShowSignOutConfirm(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-colors">
+                <LogOut className="w-4 h-4" /> Sign out
+              </button>
+            </div>
           </div>
         </div>
       )}
