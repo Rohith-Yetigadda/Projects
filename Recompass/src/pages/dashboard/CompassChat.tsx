@@ -148,7 +148,32 @@ export default function CompassChat() {
       const pData = `Goal: ${userProfile?.goal}\nWeight: ${userProfile?.weight}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto")}`;
       const lData = logData ? `Logged today: ${JSON.stringify(logData.totals)}` : "Nothing logged yet.";
       
-      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, and what the mess is serving today.\n\nPROFILE:\n${pData}\n\nTODAY'S LOG:\n${lData}\n\nTODAY'S MENU:\n${menuStr}\n\nInstructions: Be concise. If they upload a food photo, estimate the macros or tell them what it is. Recommend things based on their remaining calories for the day.`);
+      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, and what the mess is serving today.
+
+PROFILE:
+${pData}
+
+TODAY'S LOG:
+${lData}
+
+TODAY'S MENU:
+${menuStr}
+
+AGENTIC CAPABILITIES (CRITICAL):
+You have the power to make changes in the app. If the user asks you to log a meal, update their weight, or change their goal, you MUST output a JSON command block at the end of your message.
+Format:
+\`\`\`command
+{
+  "action": "LOG_MEAL",
+  "data": { "foodName": "California Burrito Bowl", "quantity": "1 bowl", "calories": 650, "protein": 35, "carbs": 60, "fats": 25, "mealType": "lunch" }
+}
+\`\`\`
+Valid actions: 
+- "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
+- "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
+- "UPDATE_WEIGHT" (data: { "weight": number })
+
+Instructions: Be concise. Estimate macros accurately. If they ask you to log something, ALWAYS output the \`\`\`command block. Do not ask for permission if they explicitly say "log it".`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -244,10 +269,72 @@ export default function CompassChat() {
         body: JSON.stringify({ action: "chat", payload })
       });
       const data = await res.json();
+      let rawText = data.text || "Something went wrong.";
       
-      const modelText = data.text || "Something went wrong.";
-      const modelMsg: Message = { role: "model", text: modelText };
+      // Parse Commands
+      const commandRegex = /\`\`\`command\n([\s\S]*?)\n\`\`\`/g;
+      const commands = [];
+      let match;
+      while ((match = commandRegex.exec(rawText)) !== null) {
+        try { commands.push(JSON.parse(match[1])); } catch (e) {}
+      }
       
+      // Remove commands from visible text
+      rawText = rawText.replace(/\`\`\`command\n[\s\S]*?\n\`\`\`/g, '').trim();
+      
+      let sysMessages = [];
+      for (const cmd of commands) {
+        try {
+          if (cmd.action === "LOG_MEAL") {
+            const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            const logRef = doc(db, "users", currentUser.uid, "logs", today);
+            const logSnap = await getDoc(logRef);
+            const d = logSnap.exists() ? logSnap.data() : { breakfast: [], lunch: [], dinner: [], snacks: [] };
+            
+            const mealType = cmd.data.mealType || "snacks";
+            const entry = {
+              id: Date.now().toString(),
+              name: cmd.data.foodName,
+              quantity: cmd.data.quantity || "1 serving",
+              calories: cmd.data.calories,
+              protein: cmd.data.protein,
+              carbs: cmd.data.carbs,
+              fats: cmd.data.fats,
+              loggedAt: new Date().toISOString()
+            };
+            
+            d[mealType] = [...(d[mealType] || []), entry];
+            const all = [...(d.breakfast||[]), ...(d.lunch||[]), ...(d.dinner||[]), ...(d.snacks||[])];
+            d.totals = all.reduce((a:any,i:any)=>({
+              calories: a.calories + i.calories,
+              protein: a.protein + i.protein,
+              carbs: a.carbs + i.carbs,
+              fats: a.fats + i.fats
+            }), { calories:0, protein:0, carbs:0, fats:0 });
+            
+            await setDoc(logRef, { ...d, date: today });
+            sysMessages.push(`✅ *Successfully logged ${entry.quantity} of ${entry.name} to ${mealType}.*`);
+          }
+          
+          if (cmd.action === "UPDATE_GOAL") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { goal: cmd.data.goal }, { merge: true });
+            sysMessages.push(`✅ *Goal successfully updated to ${cmd.data.goal}.*`);
+          }
+          
+          if (cmd.action === "UPDATE_WEIGHT") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: cmd.data.weight }, { merge: true });
+            sysMessages.push(`✅ *Weight successfully updated to ${cmd.data.weight}kg.*`);
+          }
+        } catch(e) {
+          console.error("Command failed", e);
+        }
+      }
+
+      if (sysMessages.length > 0) {
+        rawText += "\n\n" + sysMessages.join("\n");
+      }
+
+      const modelMsg: Message = { role: "model", text: rawText };
       setMessages(prev => [...prev, modelMsg]);
 
       // 4. Save model response to Firestore

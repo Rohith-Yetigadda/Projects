@@ -160,12 +160,24 @@ Return ONLY a JSON array, nothing else:
     }
     
     // Otherwise it expects JSON
-    responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     let responseData;
     try {
-      responseData = JSON.parse(responseText);
+      // Find the first { or [ and last } or ]
+      const firstCurly = responseText.indexOf('{');
+      const lastCurly = responseText.lastIndexOf('}');
+      const firstSquare = responseText.indexOf('[');
+      const lastSquare = responseText.lastIndexOf(']');
+      
+      let jsonStr = responseText;
+      if (firstCurly !== -1 && lastCurly !== -1 && (firstSquare === -1 || firstCurly < firstSquare)) {
+        jsonStr = responseText.substring(firstCurly, lastCurly + 1);
+      } else if (firstSquare !== -1 && lastSquare !== -1) {
+        jsonStr = responseText.substring(firstSquare, lastSquare + 1);
+      }
+      
+      responseData = JSON.parse(jsonStr);
     } catch (e) {
-      responseData = { text: responseText, parseError: true };
+      responseData = { text: responseText, parseError: true, raw: responseText };
     }
 
     return res.status(200).json(responseData);
