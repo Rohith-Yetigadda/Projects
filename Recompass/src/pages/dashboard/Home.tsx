@@ -39,7 +39,6 @@ function getCurrentMeal(): "breakfast" | "lunch" | "dinner" | null {
   return null;
 }
 
-const mealIcons: any = { breakfast: Coffee, lunch: Sun, dinner: Moon };
 const mealLabels: any = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };
 
 export default function Home() {
@@ -200,10 +199,10 @@ export default function Home() {
       <section>
         <h3 className="text-sm font-bold tracking-wider text-muted-foreground uppercase mb-4">Quick Log</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {(["Mess Breakfast","Mess Lunch","Mess Dinner","Custom Snack"]).map((meal, i) => {
-            const mealKeys: MealType[] = ["breakfast","lunch","dinner","snacks"];
-            const key = mealKeys[i];
-            const isLogged = todayLog[key] && todayLog[key].length > 0;
+            {(["Mess Breakfast","Mess Lunch","Mess Dinner","Custom Snack"]).map((meal, i) => {
+              const mealKeys: ("breakfast"|"lunch"|"dinner"|"snacks")[] = ["breakfast","lunch","dinner","snacks"];
+              const key = mealKeys[i];
+            const isLogged = todayLog[key as keyof DayLog] && (todayLog[key as keyof DayLog] as any).length > 0;
             const icons = [Coffee, Sun, Moon, Plus];
             const Icon = icons[i];
             return (

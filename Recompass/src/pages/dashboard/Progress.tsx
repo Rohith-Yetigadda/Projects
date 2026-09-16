@@ -27,11 +27,11 @@ export default function Progress() {
         // Calculate user's target calories
         let targetCals = 2000;
         if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.calories) {
-          targetCals = userProfile.targetOverrides.calories;
+          targetCals = Number(userProfile.targetOverrides.calories);
         } else if (userProfile && userProfile.weight && userProfile.height && userProfile.age) {
-          const w = userProfile.weight;
-          const h = userProfile.height;
-          const a = userProfile.age;
+          const w = Number(userProfile.weight);
+          const h = Number(userProfile.height);
+          const a = Number(userProfile.age);
           const isMale = userProfile.gender !== "female";
           const bmr = isMale ? (10 * w) + (6.25 * h) - (5 * a) + 5 : (10 * w) + (6.25 * h) - (5 * a) - 161;
           

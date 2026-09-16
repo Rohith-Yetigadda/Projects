@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { Plus, Check, Sparkles, Trash2, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Check, Trash2, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
 
 type GroceryItem = {
   id: string;

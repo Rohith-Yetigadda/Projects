@@ -232,6 +232,26 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
     setShowHistory(false);
   };
 
+  const createNewSession = async () => {
+    if (!currentUser) return;
+    setMessages([]);
+    setCurrentSessionId(null);
+  };
+
+  const deleteSession = async (e: React.MouseEvent, id: string | null) => {
+    e.stopPropagation();
+    if (!id || !currentUser) return;
+    try {
+      await deleteDoc(doc(db, "users", currentUser.uid, "compass_sessions", id));
+      setSessions(prev => prev.filter(s => s.id !== id));
+      if (currentSessionId === id) {
+        createNewSession();
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
   const switchSession = (id: string) => {
     if (id === currentSessionId) return;
     setCurrentSessionId(id);
@@ -266,7 +286,7 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
         await setDoc(sessionRef, newSession);
         
         setCurrentSessionId(targetSessionId);
-        setSessions(prev => [{ id: targetSessionId, ...newSession, updatedAt: new Date() }, ...prev]);
+        setSessions(prev => [{ id: targetSessionId as string, ...newSession, updatedAt: new Date() }, ...prev]);
       } else {
         // Update existing session timestamp
         await setDoc(doc(db, "users", currentUser.uid, "compass_sessions", targetSessionId), {

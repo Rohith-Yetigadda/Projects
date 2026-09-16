@@ -15,6 +15,15 @@ interface UserProfile {
   diet?: string;
   cookingSkill?: string;
   budget?: string;
+  gender?: string;
+  activity?: string;
+  targetOverrides?: {
+    enabled?: boolean;
+    calories?: string;
+    protein?: string;
+    carbs?: string;
+    fats?: string;
+  };
   createdAt?: string;
 }
 

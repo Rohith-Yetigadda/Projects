@@ -243,7 +243,7 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   return raw;
 }
 
-async function estimateMacros(foodName: string, quantity: string, isCustom?: boolean) {
+async function estimateMacros(foodName: string, quantity: string) {
   // If it's a long description, do NOT check known macros (it will blindly match substrings like "chicken")
   const isDescription = foodName.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(foodName) || foodName.split(" ").length > 4;
   
@@ -367,9 +367,9 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
     }
     setIsEstimating(true);
     try {
-      const newMacros = await estimateMacros(editVals.name, editVals.quantity, true);
+      const newMacros = await estimateMacros(editVals.name, editVals.quantity);
       const newItems = [...localItems];
-      newItems[i] = { ...newItems[i], name: editVals.name, quantity: editVals.quantity, ...newMacros };
+      newItems[i] = { ...newItems[i], quantity: editVals.quantity, ...newMacros };
       setLocalItems(newItems);
       setEditingIdx(null);
     } catch(err) {
@@ -450,7 +450,7 @@ export default function DailyLog() {
   const lRef   = useRef<HTMLInputElement>(null);
   const dRef   = useRef<HTMLInputElement>(null);
   const snRef  = useRef<HTMLInputElement>(null);
-  const fileRefs: Record<MealType, React.RefObject<HTMLInputElement>> = { breakfast: bfRef, lunch: lRef, dinner: dRef, snacks: snRef };
+  const fileRefs: Record<MealType, React.RefObject<HTMLInputElement | null>> = { breakfast: bfRef, lunch: lRef, dinner: dRef, snacks: snRef };
 
   const today = todayStr();
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
@@ -494,10 +494,10 @@ export default function DailyLog() {
     await setDoc(doc(db,"users",currentUser.uid,"logs",today),{...newLog,totals,date:today});
   };
 
-  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom?: boolean) => {
+  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string) => {
     const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
     try {
-      const macros = await estimateMacros(foodName, quantity, isCustom);
+      const macros = await estimateMacros(foodName, quantity);
       const cleanName = (macros as any).name || foodName;
       const { name: _, ...macroValues } = macros as any;
       const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity, loggedAt: new Date().toISOString(), ...macroValues };
@@ -552,7 +552,7 @@ export default function DailyLog() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
-      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
+      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
 
       {/* Custom Toast */}
@@ -657,7 +657,7 @@ export default function DailyLog() {
                   if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
                   } else {
-                    logWithQuantity(key, text, "", true);
+                    logWithQuantity(key, text, "");
                   }
                   setCustomInput(prev=>({...prev,[key]:""}));
                 }}}
@@ -670,7 +670,7 @@ export default function DailyLog() {
                   if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
                   } else {
-                    logWithQuantity(key, text, "", true);
+                    logWithQuantity(key, text, "");
                   }
                   setCustomInput(prev=>({...prev,[key]:""}));
                 }}}

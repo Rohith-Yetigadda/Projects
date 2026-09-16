@@ -4,13 +4,12 @@ import { db, auth } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { User, Target, Activity, Settings, LogOut, Check, Loader2 } from "lucide-react";
+import { User, Target, Activity, LogOut, Check, Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { userProfile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
   const [data, setData] = useState({
