@@ -185,13 +185,20 @@ EXAMPLES:
   {"action":"UPDATE_GOAL","data":{"goal":"bulk"}}
   \`\`\`
 
+- User: "Clear my grocery list"
+  Response: "I've emptied your grocery list." + \`\`\`command
+  {"action":"CLEAR_GROCERIES","data":{}}
+  \`\`\`
+
 Valid actions: 
 - "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
 - "ADD_GROCERIES" (data: { "items": Array<{name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other"}> })
+- "REMOVE_GROCERIES" (data: { "items": string[] })
+- "CLEAR_GROCERIES" (data: {})
 
-Instructions: Be concise. Estimate macros accurately. If they ask you to log something, ALWAYS output the \`\`\`command block. Do not ask for permission if they explicitly say "log it".`);
+Instructions: Be concise. Estimate macros accurately. If the user asks you to take an action (add/remove/clear/update/log), ALWAYS output the \`\`\`command block to execute it. Do not tell the user to do it manually. You have full permission to manage their groceries and logs.`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -388,6 +395,34 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
               }, { merge: true });
 
               sysMessages.push(`🛒 *Added ${filteredNew.length} items to your shopping list.*`);
+            }
+          }
+
+          if (cmd.action === "CLEAR_GROCERIES") {
+            const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+            await setDoc(grocRef, {
+              items: [],
+              lastUpdated: new Date().toISOString()
+            }, { merge: true });
+            sysMessages.push(`🗑️ *Cleared your entire grocery list.*`);
+          }
+
+          if (cmd.action === "REMOVE_GROCERIES") {
+            const itemsToRemove: string[] = cmd.data.items || [];
+            if (itemsToRemove.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              if (grocSnap.exists()) {
+                const currentItems = grocSnap.data().items || [];
+                const lowerToRemove = new Set(itemsToRemove.map(i => i.toLowerCase()));
+                const filtered = currentItems.filter((item: any) => !lowerToRemove.has(item.name.toLowerCase()));
+                
+                await setDoc(grocRef, {
+                  items: filtered,
+                  lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                sysMessages.push(`🗑️ *Removed ${currentItems.length - filtered.length} items from your grocery list.*`);
+              }
             }
           }
         } catch(e) {
