@@ -125,7 +125,7 @@ const mobileNav = [
   { to: "/app",           label: "Home",    icon: Home },
   { to: "/app/log",       label: "Log",     icon: BookOpen },
   { to: "/app/compass",   label: "Compass", icon: Compass },
-  { to: "/app/groceries", label: "Shop",    icon: ShoppingCart },
+  { to: "/app/groceries", label: "Groceries", icon: ShoppingCart },
   { to: "/app/progress",  label: "Progress",icon: TrendingUp },
 ];
 
