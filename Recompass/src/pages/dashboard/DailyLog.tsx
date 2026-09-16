@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check } from "lucide-react";
+import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil } from "lucide-react";
 
 type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -318,13 +318,47 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
 
 // ─── Photo Confirm Modal ───────────────────────────────────────────
 function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm: (items: any[]) => void; onCancel: () => void }) {
+  const [localItems, setLocalItems] = useState(items);
   const [checked, setChecked] = useState<boolean[]>(items.map(() => true));
-  const toggle = (i: number) => setChecked(prev => prev.map((v, idx) => idx === i ? !v : v));
-  const selected = items.filter((_, i) => checked[i]);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editVals, setEditVals] = useState({ name: "", quantity: "" });
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  const toggle = (i: number) => {
+    if (editingIdx !== null) return;
+    setChecked(prev => prev.map((v, idx) => idx === i ? !v : v));
+  };
+  const selected = localItems.filter((_, i) => checked[i]);
+
+  const startEdit = (e: any, i: number) => {
+    e.stopPropagation();
+    setEditingIdx(i);
+    setEditVals({ name: localItems[i].name, quantity: localItems[i].quantity });
+  };
+
+  const saveEdit = async (e: any, i: number) => {
+    e.stopPropagation();
+    if (editVals.name === localItems[i].name && editVals.quantity === localItems[i].quantity) {
+      setEditingIdx(null);
+      return;
+    }
+    setIsEstimating(true);
+    try {
+      const newMacros = await estimateMacros(editVals.name, editVals.quantity, true);
+      const newItems = [...localItems];
+      newItems[i] = { ...newItems[i], name: editVals.name, quantity: editVals.quantity, ...newMacros };
+      setLocalItems(newItems);
+      setEditingIdx(null);
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsEstimating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0 animate-in slide-in-from-bottom-8 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Detected from photo</p>
@@ -333,221 +367,44 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
           <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="space-y-2 overflow-y-auto flex-1">
-          {items.map((item, i) => (
-            <button key={i} onClick={() => toggle(i)}
-              className={"w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all " + (checked[i] ? "border-white/20 bg-white/5" : "border-white/5 opacity-40")}>
-              <div className={"w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors " + (checked[i] ? "border-white bg-white" : "border-white/30")}>
+          {localItems.map((item, i) => (
+            <div key={i} className={"w-full flex items-center gap-3 p-3 rounded-xl border transition-all " + (checked[i] ? "border-white/20 bg-white/5" : "border-white/5 opacity-40")}>
+              
+              <button onClick={() => toggle(i)} className={"w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors " + (checked[i] ? "border-white bg-white" : "border-white/30")}>
                 {checked[i] && <Check className="w-3 h-3 text-black" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                <p className="text-xs text-white/40">{item.quantity} &middot; {item.calories} kcal &middot; P {item.protein}g C {item.carbs}g F {item.fats}g</p>
-              </div>
-            </button>
+              </button>
+              
+              {editingIdx === i ? (
+                <div className="flex-1 flex flex-col gap-2 min-w-0">
+                  <input type="text" value={editVals.name} onChange={e => setEditVals(p => ({...p, name: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Name" disabled={isEstimating} />
+                  <input type="text" value={editVals.quantity} onChange={e => setEditVals(p => ({...p, quantity: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Quantity" disabled={isEstimating} />
+                  <div className="flex justify-end gap-2 mt-1">
+                    <button onClick={(e) => { e.stopPropagation(); setEditingIdx(null); }} className="px-3 py-1 rounded-lg bg-white/10 text-xs font-bold text-white/70 hover:text-white disabled:opacity-50" disabled={isEstimating}>Cancel</button>
+                    <button onClick={(e) => saveEdit(e, i)} className="px-3 py-1 rounded-lg bg-white text-xs font-bold text-black disabled:opacity-50" disabled={isEstimating}>
+                      {isEstimating ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(i)}>
+                  <p className="text-sm font-bold text-white truncate">{item.name}</p>
+                  <p className="text-xs text-white/40 truncate">{item.quantity} &middot; {item.calories} kcal &middot; P {item.protein}g C {item.carbs}g F {item.fats}g</p>
+                </div>
+              )}
+
+              {editingIdx !== i && (
+                <button onClick={(e) => startEdit(e, i)} className="p-2 shrink-0 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg">
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
-        <button onClick={() => onConfirm(selected)} disabled={selected.length === 0}
-          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex-shrink-0">
-          Log {selected.length} item{selected.length !== 1 ? "s" : ""}
+        <button onClick={() => onConfirm(selected)} disabled={selected.length === 0 || isEstimating}
+          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex-shrink-0 flex items-center justify-center gap-2">
+          {isEstimating ? <Loader2 className="w-5 h-5 animate-spin" /> : `Log ${selected.length} item${selected.length !== 1 ? "s" : ""}`}
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── Main Component ────────────────────────────────────────────────
-export default function DailyLog() {
-  const { currentUser } = useAuth();
-  const { hash } = useLocation();
-  const [log, setLog]     = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
-  const [menu, setMenu]   = useState<MealPlan | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [picker, setPicker] = useState<{ mealType: MealType; foodName: string; isCustom?: boolean } | null>(null);
-  const [estimating, setEstimating] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState<MealType | null>(null);
-  const [photoItems, setPhotoItems] = useState<{ mealType: MealType; items: any[] } | null>(null);
-  const [customInput, setCustomInput] = useState<{ [k in MealType]?: string }>({});
-
-  const bfRef  = useRef<HTMLInputElement>(null);
-  const lRef   = useRef<HTMLInputElement>(null);
-  const dRef   = useRef<HTMLInputElement>(null);
-  const snRef  = useRef<HTMLInputElement>(null);
-  const fileRefs: Record<MealType, React.RefObject<HTMLInputElement>> = { breakfast: bfRef, lunch: lRef, dinner: dRef, snacks: snRef };
-
-  const today = todayStr();
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-
-  const loadLog = useCallback(async () => {
-    if (!currentUser) return;
-    const snap = await getDoc(doc(db, "users", currentUser.uid, "logs", today));
-    if (snap.exists()) { const d = snap.data(); setLog({ breakfast: d.breakfast||[], lunch: d.lunch||[], dinner: d.dinner||[], snacks: d.snacks||[] }); }
-  }, [currentUser, today]);
-
-  const loadMenu = useCallback(async () => {
-    if (!currentUser) return;
-    const snap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt","desc"), limit(1)));
-    if (!snap.empty) { const ext: MealPlan[] = snap.docs[0].data().extractedData||[]; setMenu(ext.find(d=>d.day===dayName)||ext[0]||null); }
-  }, [currentUser, dayName]);
-
-  useEffect(() => { Promise.all([loadLog(), loadMenu()]).finally(()=>setLoading(false)); }, [loadLog, loadMenu]);
-
-  // Smooth scroll to hash when loading finishes
-  useEffect(() => {
-    if (!loading && hash) {
-      const el = document.getElementById(hash.replace("#", ""));
-      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-    }
-  }, [loading, hash]);
-
-  const persist = async (newLog: DayLog) => {
-    if (!currentUser) return;
-    const all = [...newLog.breakfast,...newLog.lunch,...newLog.dinner,...newLog.snacks];
-    const totals = all.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fats:a.fats+i.fats}),{calories:0,protein:0,carbs:0,fats:0});
-    await setDoc(doc(db,"users",currentUser.uid,"logs",today),{...newLog,totals,date:today});
-  };
-
-  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom?: boolean) => {
-    const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
-    try {
-      const macros = await estimateMacros(foodName, quantity, isCustom);
-      const entry: MacroEntry = { id: Date.now().toString(), name: foodName, quantity, loggedAt: new Date().toISOString(), ...macros };
-      const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
-      setLog(newLog); await persist(newLog);
-    } catch(e){console.error(e);} finally{setEstimating(null);}
-  };
-
-  const removeItem = async (mealType: MealType, id: string) => {
-    const newLog = { ...log, [mealType]: log[mealType].filter(i=>i.id!==id) };
-    setLog(newLog); await persist(newLog);
-  };
-
-  const handlePhotoSelect = (mealType: MealType, file: File) => {
-    setAnalyzing(mealType);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const dataUrl = e.target?.result as string;
-        const items = await analyzePlate(dataUrl.split(",")[1], file.type);
-        if (items.length > 0) setPhotoItems({ mealType, items });
-      } catch(err){console.error(err);} finally{setAnalyzing(null);}
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const confirmPhotoItems = async (items: any[]) => {
-    if (!photoItems) return;
-    const { mealType } = photoItems;
-    const entries: MacroEntry[] = items.map(item => ({
-      id: Date.now().toString()+Math.random(), name: item.name, quantity: item.quantity||"",
-      loggedAt: new Date().toISOString(), ...sanitizeMacros({ calories: Number(item.calories)||0, protein: Number(item.protein)||0, carbs: Number(item.carbs)||0, fats: Number(item.fats)||0 }),
-    }));
-    const newLog = { ...log, [mealType]: [...(log[mealType]||[]), ...entries] };
-    setLog(newLog); await persist(newLog); setPhotoItems(null);
-  };
-
-  const totals = [...log.breakfast,...log.lunch,...log.dinner,...log.snacks].reduce(
-    (a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fats:a.fats+i.fats}),
-    {calories:0,protein:0,carbs:0,fats:0}
-  );
-
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin"/></div>;
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-24">
-      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
-      {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
-
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Daily Log</h1>
-          <p className="text-white/40 text-sm font-medium mt-1">{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})}</p>
-        </div>
-        <div className="glass-card rounded-2xl px-4 py-2 text-right">
-          <p className="text-2xl font-bold text-white">{Math.round(totals.calories)}</p>
-          <p className="text-xs text-white/40 font-medium">kcal logged</p>
-        </div>
-      </div>
-
-      {/* Macro Strip */}
-      <div className="grid grid-cols-3 gap-3">
-        {[{label:"Protein",value:totals.protein,color:"text-orange-400"},{label:"Carbs",value:totals.carbs,color:"text-emerald-400"},{label:"Fats",value:totals.fats,color:"text-blue-400"}].map(m=>(
-          <div key={m.label} className="glass-card rounded-2xl p-4 text-center">
-            <p className={"text-xl font-bold "+m.color}>{Math.round(m.value)}<span className="text-sm font-medium text-white/40">g</span></p>
-            <p className="text-xs text-white/40 font-medium mt-1">{m.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Meal Sections */}
-      {mealConfig.map(({ key, label, icon: Icon, color, bg, border }) => {
-        const loggedItems = log[key]||[];
-        const menuItems: string[] = key!=="snacks"&&menu ? (menu[key as "breakfast"|"lunch"|"dinner"]||[]) : [];
-        const alreadyLogged = new Set(loggedItems.map(i=>i.name));
-        const quickChips = menuItems.filter(item=>!alreadyLogged.has(item));
-        const mealKcal = loggedItems.reduce((s,i)=>s+i.calories,0);
-
-        return (
-          <div key={key} id={key} className="glass-card rounded-2xl p-5 space-y-4 scroll-mt-24">
-            <div className="flex items-center gap-3">
-              <div className={"w-9 h-9 rounded-xl flex items-center justify-center border "+bg+" "+border}><Icon className={"w-4 h-4 "+color}/></div>
-              <p className="text-sm font-bold text-white">{label}</p>
-              <div className="ml-auto flex items-center gap-3">
-                {mealKcal>0 && <span className="text-xs font-bold text-white/30">{Math.round(mealKcal)} kcal</span>}
-                <button onClick={()=>fileRefs[key].current?.click()} disabled={analyzing===key}
-                  className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all "+(analyzing===key?"border-white/10 text-white/30":"border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}>
-                  {analyzing===key?<Loader2 className="w-3 h-3 animate-spin"/>:<Camera className="w-3 h-3"/>}
-                  {analyzing===key?"Analyzing...":"Photo"}
-                </button>
-                <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileRefs[key]}
-                  onChange={e=>{const f=e.target.files?.[0];if(f)handlePhotoSelect(key,f);e.target.value="";}}/>
-              </div>
-            </div>
-
-            {loggedItems.length>0&&(
-              <div className="space-y-2">
-                {loggedItems.map(item=>(
-                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        {item.quantity&&<span className="text-xs text-white/30 font-medium bg-white/5 px-2 py-0.5 rounded-full">{item.quantity}</span>}
-                      </div>
-                      <p className="text-xs text-white/40 mt-0.5">{item.calories} kcal &middot; P {item.protein}g &middot; C {item.carbs}g &middot; F {item.fats}g</p>
-                    </div>
-                    <button onClick={()=>removeItem(key,item.id)} className="text-white/20 hover:text-red-400 transition-colors p-1"><Trash2 className="w-3.5 h-3.5"/></button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {quickChips.length>0&&(
-              <div className="flex flex-wrap gap-2">
-                {quickChips.map(item=>{
-                  const chipKey=key+":"+item; const isLoading=estimating===chipKey;
-                  return (
-                    <button key={item} onClick={()=>setPicker({mealType:key,foodName:item})} disabled={!!estimating}
-                      className={"flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-medium transition-all "+(isLoading?"border-white/10 text-white/30":"border-white/10 text-white/70 hover:bg-white/10 hover:text-white")}>
-                      {isLoading?<Loader2 className="w-3 h-3 animate-spin"/>:<Plus className="w-3 h-3"/>}
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <input type="text" placeholder="Add custom item..."
-                value={customInput[key]||""}
-                onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}))}}}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){setPicker({mealType:key,foodName:customInput[key]!.trim().toUpperCase(),isCustom:true});setCustomInput(prev=>({...prev,[key]:""}));}}}
-                className="px-4 py-2 bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-white hover:bg-white/20 transition-colors">Add</button>
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
