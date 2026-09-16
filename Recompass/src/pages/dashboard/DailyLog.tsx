@@ -164,7 +164,11 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
   const n = foodName.toLowerCase().replace(/[()[\]]/g, "").trim();
   // Sort keys by length so "veg vermicelli upma" matches before "upma"
   const sortedKeys = Object.keys(KNOWN_MACROS).sort((a, b) => b.length - a.length);
-  const key = sortedKeys.find(k => n.includes(k));
+  const key = sortedKeys.find(k => {
+    // Exact word match using regex boundary, e.g. \begg\b
+    const regex = new RegExp(`\\b${k}\\b`, 'i');
+    return regex.test(n);
+  });
   if (!key) return null;
 
   const base = KNOWN_MACROS[key];
@@ -643,7 +647,9 @@ export default function DailyLog() {
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
                 onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){
                   const text = customInput[key]!.trim();
-                  const isKnown = getKnownMacros(text, "1 serving") !== null;
+                  const isDescription = text.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(text) || text.split(" ").length > 4;
+                  const isKnown = !isDescription && getKnownMacros(text, "1 serving") !== null;
+                  
                   if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
                   } else {
@@ -654,7 +660,9 @@ export default function DailyLog() {
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
               <button onClick={()=>{if(customInput[key]?.trim()){
                   const text = customInput[key]!.trim();
-                  const isKnown = getKnownMacros(text, "1 serving") !== null;
+                  const isDescription = text.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(text) || text.split(" ").length > 4;
+                  const isKnown = !isDescription && getKnownMacros(text, "1 serving") !== null;
+                  
                   if (isKnown) {
                     setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
                   } else {
