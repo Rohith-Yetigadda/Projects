@@ -182,23 +182,29 @@ EXAMPLES:
 
 - User: "Set my goal to bulk"
   Response: "Updated your goal to bulk." + \`\`\`command
-  {"action":"UPDATE_GOAL","data":{"goal":"bulk"}}
+- User: "I am now 22 years old and 180cm tall."
+  Response: "I've updated your profile details." + \`\`\`command
+  {"action":"UPDATE_PROFILE","data":{"age":22,"height":180}}
   \`\`\`
 
-- User: "Clear my grocery list"
-  Response: "I've emptied your grocery list." + \`\`\`command
-  {"action":"CLEAR_GROCERIES","data":{}}
+- User: "Clear everything I ate today"
+  Response: "I've wiped today's food logs." + \`\`\`command
+  {"action":"CLEAR_TODAY_LOGS","data":{}}
   \`\`\`
 
 Valid actions: 
 - "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
+- "UPDATE_PROFILE" (data: { "age"?: number, "height"?: number, "name"?: string })
+- "UPDATE_TARGETS" (data: { "calories": number, "protein": number, "carbs": number, "fats": number })
+- "CLEAR_TODAY_LOGS" (data: {})
 - "ADD_GROCERIES" (data: { "items": Array<{name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other"}> })
 - "REMOVE_GROCERIES" (data: { "items": string[] })
 - "CLEAR_GROCERIES" (data: {})
+- "CHECK_GROCERIES" (data: { "items": string[] })
 
-Instructions: Be concise. Estimate macros accurately. If the user asks you to take an action (add/remove/clear/update/log), ALWAYS output the \`\`\`command block to execute it. Do not tell the user to do it manually. You have full permission to manage their groceries and logs.`);
+Instructions: Be concise. Estimate macros accurately. If the user asks you to take ANY action in the app (add/remove/clear/update/log/check/uncheck), ALWAYS output the \`\`\`command block to execute it. Do not tell the user to do it manually. You have absolute, full permission to manage their groceries, logs, targets, and profile.`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -349,6 +355,54 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
           if (cmd.action === "UPDATE_WEIGHT") {
             await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: cmd.data.weight }, { merge: true });
             sysMessages.push(`🎯 *Weight successfully updated to ${cmd.data.weight}kg.*`);
+          }
+
+          if (cmd.action === "UPDATE_PROFILE") {
+            const updates: any = {};
+            if (cmd.data.age) updates.age = cmd.data.age;
+            if (cmd.data.height) updates.height = cmd.data.height;
+            if (cmd.data.name) updates.name = cmd.data.name;
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), updates, { merge: true });
+            sysMessages.push(`👤 *Profile details updated.*`);
+          }
+
+          if (cmd.action === "UPDATE_TARGETS") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { 
+              targetOverrides: {
+                enabled: true,
+                calories: cmd.data.calories,
+                protein: cmd.data.protein,
+                carbs: cmd.data.carbs,
+                fats: cmd.data.fats
+              }
+            }, { merge: true });
+            sysMessages.push(`🎯 *Daily macro targets manually overridden to ${cmd.data.calories} kcal.*`);
+          }
+
+          if (cmd.action === "CLEAR_TODAY_LOGS") {
+            const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            await setDoc(doc(db, "users", currentUser.uid, "logs", today), { 
+              breakfast: [], lunch: [], dinner: [], snacks: [],
+              totals: { calories: 0, protein: 0, carbs: 0, fats: 0 }
+            }, { merge: true });
+            sysMessages.push(`🗑️ *Cleared all food logs for today.*`);
+          }
+
+          if (cmd.action === "CHECK_GROCERIES") {
+            const itemsToCheck: string[] = cmd.data.items || [];
+            if (itemsToCheck.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              if (grocSnap.exists()) {
+                const currentItems = grocSnap.data().items || [];
+                const lowerToCheck = new Set(itemsToCheck.map(i => i.toLowerCase()));
+                const updated = currentItems.map((item: any) => 
+                  lowerToCheck.has(item.name.toLowerCase()) ? { ...item, purchased: true } : item
+                );
+                await setDoc(grocRef, { items: updated, lastUpdated: new Date().toISOString() }, { merge: true });
+                sysMessages.push(`✅ *Checked off ${itemsToCheck.length} items from your list.*`);
+              }
+            }
           }
 
           if (cmd.action === "ADD_GROCERIES") {
