@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, serverTimestamp, where, writeBatch, Timestamp } from "firebase/firestore";
-import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare } from "lucide-react";
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, serverTimestamp, where, writeBatch, Timestamp, deleteDoc } from "firebase/firestore";
+import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -386,12 +386,17 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
               <div className="space-y-2">
                 {sessions.length === 0 && <p className="text-white/40 text-center mt-10">No previous chats found.</p>}
                 {sessions.map(s => (
-                  <button key={s.id} onClick={() => switchSession(s.id)} className={`w-full text-left p-4 rounded-xl transition-all flex items-center gap-3 ${s.id === currentSessionId ? 'bg-white/10 border border-white/20 shadow-md' : 'hover:bg-white/5 border border-transparent'}`}>
-                    <MessageSquare className={`w-5 h-5 shrink-0 ${s.id === currentSessionId ? 'text-white' : 'text-white/40'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
-                    </div>
-                  </button>
+                  <div key={s.id} className={`w-full text-left p-4 rounded-xl transition-all flex items-center justify-between group ${s.id === currentSessionId ? 'bg-white/10 border border-white/20 shadow-md' : 'hover:bg-white/5 border border-transparent'}`}>
+                    <button onClick={() => switchSession(s.id)} className="flex-1 min-w-0 flex items-center gap-3">
+                      <MessageSquare className={`w-5 h-5 shrink-0 ${s.id === currentSessionId ? 'text-white' : 'text-white/40'}`} />
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
+                      </div>
+                    </button>
+                    <button onClick={(e) => deleteSession(e, s.id)} className="shrink-0 w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-400 text-white/40 border border-white/5 ml-2">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
