@@ -112,52 +112,61 @@ export default function Home() {
       {/* Compass AI Widget */}
       {compassSuggestion && currentMeal ? (
         <section className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-xl transition-all duration-500 group-hover:blur-2xl opacity-70" />
-          <div className="glass-card rounded-3xl p-6 md:p-8 relative border-white/10 flex flex-col md:flex-row items-center gap-6 overflow-hidden">
-            <div className="w-16 h-16 shrink-0 rounded-2xl bg-white flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-              <Compass className="w-8 h-8 text-black" />
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-3xl blur-lg transition-all duration-500 opacity-40" />
+          <div className="glass-card rounded-3xl p-5 relative border-white/10 flex flex-row items-center gap-4 overflow-hidden">
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+              <Compass className="w-6 h-6 text-white" />
             </div>
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="text-sm font-semibold tracking-widest text-white/50 uppercase mb-2">
-                Compass &middot; {mealLabels[currentMeal]} now open
+            <div className="flex-1 text-left min-w-0">
+              <h2 className="text-[10px] font-bold tracking-widest text-white/50 uppercase mb-0.5 truncate">
+                Compass &middot; {mealLabels[currentMeal]} open
               </h2>
-              <p className="text-xl md:text-2xl font-medium text-white leading-relaxed">{compassSuggestion}</p>
+              <p className="text-sm font-semibold text-white leading-tight line-clamp-2">{compassSuggestion}</p>
             </div>
-            <Link to="/app/log" className="shrink-0 w-full md:w-auto h-12 px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/90 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2">
-              Log meal <ArrowRight className="w-4 h-4" />
+            <Link to="/app/log" className="shrink-0 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-white/90 transition-all shadow-lg">
+              <Plus className="w-5 h-5" />
             </Link>
           </div>
         </section>
       ) : (
-        <section className="glass-card rounded-3xl p-6 flex items-center gap-4 border-white/5">
-          <div className="w-12 h-12 shrink-0 rounded-xl bg-white/5 flex items-center justify-center">
+        <section className="glass-card rounded-3xl p-5 flex items-center gap-4 border-white/5">
+          <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 flex items-center justify-center">
             <Compass className="w-6 h-6 text-white/40" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-white/50">No meal service right now</p>
             <p className="text-xs text-white/30 mt-0.5">Mess opens 7-9:30am, 12-2:30pm, 7-9pm</p>
           </div>
-          <Link to="/app/log" className="text-sm font-bold text-white/60 hover:text-white flex items-center gap-1 transition-colors">
-            Log food <ArrowRight className="w-3.5 h-3.5" />
+          <Link to="/app/log" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </section>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {/* Calorie Ring */}
-        <section className="glass-card rounded-3xl p-6 md:col-span-1 flex flex-col items-center justify-center relative border-white/5">
-          <h3 className="absolute top-6 left-6 text-sm font-semibold tracking-wider text-muted-foreground uppercase">Calories</h3>
-          <div className="relative flex items-center justify-center mt-8 mb-4">
-            <svg className="w-48 h-48 transform -rotate-90">
-              <circle cx="96" cy="96" r={radius} className="stroke-white/5" strokeWidth="8" fill="none" />
-              <circle cx="96" cy="96" r={radius}
+        <section className="glass-card rounded-3xl p-6 md:col-span-1 flex flex-row md:flex-col items-center justify-between md:justify-center relative border-white/5">
+          <div className="flex flex-col md:absolute md:top-6 md:left-6 md:items-start">
+            <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase mb-1 md:mb-0">Calories</h3>
+            <div className="flex flex-col md:hidden">
+              <span className="text-4xl font-bold text-white tracking-tighter">{Math.round(logged.calories)}</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">/ {targets.calories} kcal</span>
+            </div>
+          </div>
+          <div className="relative flex items-center justify-center md:mt-8 md:mb-4">
+            <svg className="w-32 h-32 md:w-48 md:h-48 transform -rotate-90">
+              <circle cx="50%" cy="50%" r={radius} className="stroke-white/5" strokeWidth="8" fill="none" />
+              <circle cx="50%" cy="50%" r={radius}
                 className="stroke-white transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"
                 strokeWidth="8" strokeLinecap="round" fill="none"
                 strokeDasharray={circumference} strokeDashoffset={loading ? circumference : strokeDashoffset} />
             </svg>
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-4xl font-bold text-white tracking-tighter">{Math.round(logged.calories)}</span>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">/ {targets.calories} kcal</span>
+              <Flame className="w-6 h-6 text-white/20 md:hidden" />
+              <div className="hidden md:flex flex-col items-center">
+                <span className="text-4xl font-bold text-white tracking-tighter">{Math.round(logged.calories)}</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">/ {targets.calories} kcal</span>
+              </div>
             </div>
           </div>
         </section>
