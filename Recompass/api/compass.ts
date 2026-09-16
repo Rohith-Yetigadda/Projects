@@ -120,11 +120,12 @@ export default async function handler(req: any, res: any) {
         
       case "estimate_macros":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-        // foodName may include quantity e.g. "2 chapatis", "270ml milk", "1 ladle rice"
-        prompt = `Estimate the macros for: "${payload.foodName}" — typical Indian college mess/canteen food.
-Use the quantity specified exactly. If no quantity given, assume a single standard serving.
+        // foodName may include a long descriptive text or quantities
+        prompt = `Estimate the macros for: "${payload.foodName}".
+Condense the description into a concise, UPPERCASE name (e.g. "BONELESS CHICKEN BIRYANI"). DO NOT include quantities, breakdowns, or parentheticals in the name.
+Use the quantity specified in the text to calculate macros. If no quantity given, assume a single standard serving.
 Return ONLY a JSON object, nothing else:
-{"calories":250,"protein":8,"carbs":45,"fats":6}`;
+{"name":"BONELESS CHICKEN BIRYANI","calories":250,"protein":8,"carbs":45,"fats":6}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
 

@@ -172,7 +172,7 @@ Format:
 EXAMPLES:
 - User: "I just ate 2 chapatis for lunch."
   Response: "Got it, I've logged 2 chapatis for lunch." + \`\`\`command
-  {"action":"LOG_MEAL","data":{"foodName":"2 chapatis","mealType":"lunch","calories":240,"protein":7,"carbs":44,"fats":4}}
+  {"action":"LOG_MEAL","data":{"foodName":"CHAPATI","quantity":"2 pieces","mealType":"lunch","calories":240,"protein":7,"carbs":44,"fats":4}}
   \`\`\`
 
 - User: "Add milk and eggs to my grocery list."
@@ -182,6 +182,9 @@ EXAMPLES:
 
 - User: "Set my goal to bulk"
   Response: "Updated your goal to bulk." + \`\`\`command
+  {"action":"UPDATE_GOAL","data":{"goal":"muscle_gain"}}
+  \`\`\`
+
 - User: "I am now 22 years old and 180cm tall."
   Response: "I've updated your profile details." + \`\`\`command
   {"action":"UPDATE_PROFILE","data":{"age":22,"height":180}}
@@ -193,7 +196,7 @@ EXAMPLES:
   \`\`\`
 
 Valid actions: 
-- "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks")
+- "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks". foodName MUST be concise and UPPERCASE without breakdowns or parentheses, e.g. "CHICKEN BIRYANI". quantity is an optional string e.g. "1 box".)
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
 - "UPDATE_PROFILE" (data: { "age"?: number, "height"?: number, "name"?: string })
