@@ -129,7 +129,7 @@ const mobileNav = [
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t-0 border-white/10 pb-safe">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[90] bg-[#050505] border-t border-white/10 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       <div className="flex items-center justify-around h-20 px-2 pb-2">
         {mobileNav.map(({ to, label, icon: Icon }) => (

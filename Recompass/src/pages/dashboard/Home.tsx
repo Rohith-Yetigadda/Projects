@@ -166,9 +166,6 @@ export default function Home() {
         <section className="glass-card rounded-3xl p-6 md:col-span-2 border-white/5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-sm font-bold tracking-wider text-muted-foreground uppercase">Macronutrients</h3>
-            <Link to="/app/log" className="h-8 px-3 rounded-lg text-xs font-semibold text-white/50 hover:text-white hover:bg-white/10 flex items-center gap-1 transition-colors">
-              Log <ArrowRight className="w-3 h-3 ml-1" />
-            </Link>
           </div>
           <div className="space-y-6">
             {[
@@ -201,7 +198,7 @@ export default function Home() {
             const icons = [Coffee, Sun, Moon, Plus];
             const Icon = icons[i];
             return (
-              <Link key={meal} to="/app/log" className={`glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-colors group ${isLogged ? 'bg-emerald-500/10 border-emerald-500/20' : 'hover:bg-white/10'}`}>
+              <Link key={meal} to={"/app/log#" + key} className={`glass rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-colors group ${isLogged ? 'bg-emerald-500/10 border-emerald-500/20' : 'hover:bg-white/10'}`}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${isLogged ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
                   <Icon className={`w-5 h-5 ${isLogged ? 'text-emerald-400' : 'text-white'}`} />
                 </div>

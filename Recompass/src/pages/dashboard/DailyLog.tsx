@@ -281,8 +281,8 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
   const confirm = () => { const qty = custom.trim() || selected; if (qty) onConfirm(qty); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl mb-0" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">How much did you have?</p>
@@ -300,16 +300,13 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
             </button>
           ))}
         </div>
-        <div>
-          <p className="text-xs font-semibold text-white/30 mb-2">Or describe exactly</p>
-          <input type="text" placeholder="e.g. 270ml, 2 small pieces, 1.5 ladles..."
-            value={custom} onChange={e => { setCustom(e.target.value); setSelected(null); }}
-            onKeyDown={e => e.key === "Enter" && confirm()}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30" />
-        </div>
-        <button onClick={confirm} disabled={!selected && !custom.trim()}
-          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex items-center justify-center gap-2">
-          <Check className="w-4 h-4" /> Log it
+        <input type="text" placeholder="Or type custom amount..." value={custom}
+          onChange={e => { setCustom(e.target.value); setSelected(null); }}
+          onKeyDown={e => e.key === "Enter" && confirm()}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-white/30" />
+        <button onClick={confirm} disabled={!custom.trim() && !selected}
+          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors">
+          Confirm Quantity
         </button>
       </div>
     </div>
@@ -357,8 +354,8 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border-t border-white/10 md:border md:rounded-3xl rounded-t-3xl p-6 pb-safe space-y-4 shadow-2xl max-h-[85vh] flex flex-col mb-0 animate-in slide-in-from-bottom-8 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Detected from photo</p>
@@ -430,6 +427,16 @@ export default function DailyLog() {
 
   const today = todayStr();
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+  useEffect(() => {
+    if (hash) {
+      const id = hash.replace("#", "");
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [hash]);
 
   const loadLog = useCallback(async () => {
     if (!currentUser) return;
