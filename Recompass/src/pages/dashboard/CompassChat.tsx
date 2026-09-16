@@ -396,7 +396,7 @@ Instructions: Be concise. Estimate macros accurately. If they ask you to log som
       )}
 
       {/* Main Header */}
-      <header className="sticky top-[-16px] md:top-[-24px] z-30 bg-black/90 backdrop-blur-xl pt-4 pb-4 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-lg">
+      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] shrink-0">
             <Compass className="w-7 h-7" />

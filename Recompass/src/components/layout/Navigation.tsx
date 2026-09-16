@@ -40,7 +40,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-72 min-h-screen border-r border-white/5 bg-black/40 backdrop-blur-3xl px-6 py-8 relative">
+    <aside className="hidden md:flex flex-col w-72 h-full border-r border-white/5 bg-black/40 backdrop-blur-3xl px-6 py-8 relative">
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
 
       {/* Logo */}
