@@ -251,7 +251,12 @@ export default function Products() {
 
       {/* Add Product Modal (Task 2 in UI) */}
       {isModalOpen && (
-        <div className="modal-backdrop">
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsModalOpen(false);
+          }}
+        >
           <div className="modal-dialog">
             <div className="modal-header">
               <div className="modal-title-group">
