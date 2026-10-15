@@ -85,7 +85,7 @@ export default function OrderSuccess({ user }) {
           <span className="success-pill">Payment Verified</span>
           <h1 className="success-title">Order Placed Successfully!</h1>
           <p className="success-subtitle">
-            Thank you for shopping with ShopKart. Your order has been registered and is being prepared for dispatch.
+            Thank you for acquiring with Atelier Three. Your object order has been registered and is being prepared for dispatch.
           </p>
         </div>
 

@@ -56,7 +56,7 @@ export default function Navbar({ user, setUser }) {
         <div className="strip-container">
           <div className="strip-left">
             <span className="live-dot" />
-            <span className="strip-text">FUTURE THREE ARCHIVE / EDITION 2026</span>
+            <span className="strip-text">ATELIER THREE / SHOPKART EDITION 2026</span>
           </div>
           <div className="strip-center">
             <span className="strip-text-dim">WORLDWIDE DISPATCH • 256-BIT ENCRYPTED RAZORPAY CHECKOUT</span>
@@ -72,8 +72,8 @@ export default function Navbar({ user, setUser }) {
         <div className="nav-grid">
           {/* Brand */}
           <Link to={user ? "/home" : "/products"} className="studio-brand" id="nav-brand-logo">
-            <span className="brand-primary">SHOPKART<span className="brand-dot">®</span></span>
-            <span className="brand-sub">STUDIO EDITION</span>
+            <span className="brand-primary">ATELIER THREE<span className="brand-dot">®</span></span>
+            <span className="brand-sub">SHOPKART LAB ARCHIVE</span>
           </Link>
 
           {/* Center Navigation */}

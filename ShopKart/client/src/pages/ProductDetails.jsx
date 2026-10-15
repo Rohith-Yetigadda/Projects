@@ -235,8 +235,8 @@ export default function ProductDetails() {
             <div className="guarantee-pill">
               <ShieldCheck size={18} className="text-emerald" />
               <div>
-                <strong>Authentic Product</strong>
-                <span>100% Genuine ShopKart</span>
+                <strong>Authentic Object</strong>
+                <span>100% Genuine Atelier Three</span>
               </div>
             </div>
             <div className="guarantee-pill">

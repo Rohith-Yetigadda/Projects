@@ -147,8 +147,8 @@ export default function Checkout({ user }) {
           key: orderData.key,
           amount: orderData.amount,
           currency: orderData.currency || "INR",
-          name: "ShopKart Commerce",
-          description: `Order #${orderData.shopKartOrderId}`,
+          name: "Atelier Three",
+          description: `Acquisition #${orderData.shopKartOrderId}`,
           order_id: orderData.razorpayOrderId,
           prefill: {
             name: formData.fullName,
@@ -156,7 +156,7 @@ export default function Checkout({ user }) {
             email: user?.email,
           },
           theme: {
-            color: "#6366f1",
+            color: "#242021",
           },
           handler: async function (response) {
             await handlePaymentSuccess({

@@ -100,7 +100,7 @@ export default function Login({ setUser }) {
           <div className="auth-icon-badge">
             <LogIn size={28} />
           </div>
-          <h1 className="auth-title">Welcome back to ShopKart</h1>
+          <h1 className="auth-title">Welcome back to Atelier Three</h1>
           <p className="auth-subtitle">
             Sign in to access your orders, profile, and secure checkout
           </p>
@@ -227,7 +227,7 @@ export default function Login({ setUser }) {
 
         {/* Footer Link */}
         <div className="auth-footer-text">
-          <span>New to ShopKart?</span>
+          <span>New to Atelier Three?</span>
           <Link to="/register" id="link-goto-register" className="auth-switch-link">
             Create an Account
           </Link>

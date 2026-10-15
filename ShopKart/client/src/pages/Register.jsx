@@ -153,9 +153,9 @@ export default function Register() {
           <div className="auth-icon-badge">
             <UserPlus size={28} />
           </div>
-          <h1 className="auth-title">Create your ShopKart account</h1>
+          <h1 className="auth-title">Create your Atelier Three account</h1>
           <p className="auth-subtitle">
-            Join thousands of shoppers and enjoy seamless checkout & order tracking
+            Join thousands of collectors and enjoy seamless checkout & order tracking
           </p>
         </div>
 
