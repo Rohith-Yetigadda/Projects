@@ -206,11 +206,3 @@ node test-e2e-labs.js
 Runs **18 automated integration tests** covering registration, login, catalog retrieval, wishlist CRUD, cart stock limits, order creation, signature verification, and delivery progression with 100% pass rate.
 
 ---
-
-## 👨‍💻 Submission & Academic Compliance
-
-* **Project Title:** ShopKart Full-Stack Lab Project
-* **Deadline:** 15 October 2026
-* **Form Submission Link:** [https://forms.gle/LVMrJnE1NubWRQ3k6](https://forms.gle/LVMrJnE1NubWRQ3k6)
-* **Clean Code Guarantee:** Zero secrets, API keys, or active `.env` files pushed to version control.
-* **License:** MIT License. Built for Full-Stack Web Development Course Evaluation.
