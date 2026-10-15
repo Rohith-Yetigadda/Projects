@@ -1,4 +1,4 @@
-# ShopKart — Frontend Customer Authentication (Lab 02)
+# Atelier Three — Studio Frontend (ShopKart Lab 02)
 
 Welcome to **ShopKart Frontend Customer Authentication Hub**. This project implements the end-to-end user authentication flow for customers, seamlessly interfacing with the Lab 01 backend authentication service using secure, HttpOnly cookies.
 

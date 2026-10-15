@@ -1,4 +1,4 @@
-# ShopKart — Customer Authentication Service (Lab 01)
+# Atelier Three — Backend Core Service (ShopKart Lab 01)
 
 ## 📌 Project Overview
 A secure, production-ready Customer Authentication REST API backend built for **ShopKart** following the **MVC (Model-View-Controller)** architecture using **Node.js, Express.js, MongoDB, Mongoose, bcryptjs, jsonwebtoken**, and **cookie-parser**.
