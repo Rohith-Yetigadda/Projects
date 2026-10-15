@@ -1,0 +1,204 @@
+{
+  "info": {
+    "name": "ShopKart - Product Catalog & Discovery (Lab 03)",
+    "description": "Postman Collection for evaluating Lab 03 ShopKart Product APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Product (POST /products - 201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Mechanical Keyboard\",\n  \"description\": \"RGB mechanical keyboard with blue switches.\",\n  \"price\": 2999,\n  \"category\": \"Electronics\",\n  \"image\": \"https://example.com/keyboard.jpg\",\n  \"stock\": 10\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/products",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"]
+        }
+      }
+    },
+    {
+      "name": "2. Create Product - Missing Field (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Mechanical Keyboard\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/products",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"]
+        }
+      }
+    },
+    {
+      "name": "3. Create Product - Invalid Price (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Mechanical Keyboard\",\n  \"description\": \"RGB mechanical keyboard with blue switches.\",\n  \"price\": -50,\n  \"category\": \"Electronics\",\n  \"image\": \"https://example.com/keyboard.jpg\",\n  \"stock\": 10\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/products",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"]
+        }
+      }
+    },
+    {
+      "name": "4. Get All Products (GET /products - 200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"]
+        }
+      }
+    },
+    {
+      "name": "5. Search Products (GET /products?search=keyboard)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products?search=keyboard",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"],
+          "query": [
+            {
+              "key": "search",
+              "value": "keyboard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Filter by Category (GET /products?category=Electronics)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products?category=Electronics",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"],
+          "query": [
+            {
+              "key": "category",
+              "value": "Electronics"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Search & Filter Combined (GET /products?search=keyboard&category=Electronics)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products?search=keyboard&category=Electronics",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"],
+          "query": [
+            {
+              "key": "search",
+              "value": "keyboard"
+            },
+            {
+              "key": "category",
+              "value": "Electronics"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Bonus Sorting - Price Ascending (GET /products?sort=price_asc)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products?sort=price_asc",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products"],
+          "query": [
+            {
+              "key": "sort",
+              "value": "price_asc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Get Product By ID (GET /products/:id)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products/YOUR_PRODUCT_ID",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products", "YOUR_PRODUCT_ID"]
+        }
+      }
+    },
+    {
+      "name": "10. Get Product By Invalid ID (400)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/products/invalid-id-string",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["products", "invalid-id-string"]
+        }
+      }
+    }
+  ]
+}

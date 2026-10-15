@@ -1,0 +1,45 @@
+# ==============================================================================
+# SHOPKART STUDIO EDITION — GITIGNORE
+# ==============================================================================
+
+# Node Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production Distribution Builds
+dist/
+build/
+out/
+
+# Environment Variables & Secrets (CRITICAL: Do NOT Commit Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test & Coverage Outputs
+coverage/
+.nyc_output/

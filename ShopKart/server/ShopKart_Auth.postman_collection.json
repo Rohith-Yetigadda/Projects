@@ -1,0 +1,189 @@
+{
+  "info": {
+    "name": "ShopKart - Customer Authentication Service (Lab 01)",
+    "description": "Postman Collection for evaluating Lab 01 ShopKart Customer Authentication API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Customer (Success 201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@gmail.com\",\n  \"password\": \"john123\",\n  \"phone\": \"9876543210\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "register"]
+        }
+      }
+    },
+    {
+      "name": "2. Register - Missing Field (Validation 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@gmail.com\",\n  \"password\": \"john123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "register"]
+        }
+      }
+    },
+    {
+      "name": "3. Register - Duplicate Email (Conflict 409)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@gmail.com\",\n  \"password\": \"john123\",\n  \"phone\": \"9876543210\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "register"]
+        }
+      }
+    },
+    {
+      "name": "4. Login Customer (Success 200 + HttpOnly Cookie)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john@gmail.com\",\n  \"password\": \"john123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "login"]
+        }
+      }
+    },
+    {
+      "name": "5. Login - Invalid Credentials (Unauthorized 401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john@gmail.com\",\n  \"password\": \"wrongpass\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "login"]
+        }
+      }
+    },
+    {
+      "name": "6. Get My Profile (Protected 200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/customers/me",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "me"]
+        }
+      }
+    },
+    {
+      "name": "7. Change Password - Bonus Challenge (Protected 200)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"john123\",\n  \"newPassword\": \"john456\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/customers/change-password",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "change-password"]
+        }
+      }
+    },
+    {
+      "name": "8. Logout (Protected 200 + Cookie Cleared)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/customers/logout",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "logout"]
+        }
+      }
+    },
+    {
+      "name": "9. Profile After Logout (Unauthorized 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/customers/me",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["customers", "me"]
+        }
+      }
+    }
+  ]
+}
