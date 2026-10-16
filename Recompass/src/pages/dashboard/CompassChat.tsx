@@ -226,7 +226,10 @@ Valid actions:
 - "CLEAR_GROCERIES" (data: {})
 - "CHECK_GROCERIES" (data: { "items": string[] })
 
-Instructions: Be concise. Estimate macros accurately. If the user tells you about food they ate, or asks to modify/correct a logged item, ALWAYS calculate the accurate macros and emit the command block. You have complete permission to manage their meals, groceries, and targets.`);
+Instructions: Be concise. Estimate macros accurately. If the user tells you about food they ate, or asks to modify/correct a logged item, ALWAYS calculate the accurate macros and emit the command block. You have complete permission to manage their meals, groceries, and targets.
+If the user shares an image:
+- If the image contains a food plate, snack, meal, or beverage: identify the items, estimate portions & macros, and if they ask to log it (or if they just sent a photo of their meal), log it.
+- If the image DOES NOT contain any food or drink (e.g. selfie, room, car, object, furniture, electronics, screenshot, pet, document): clearly inform the user that no food was detected in the photo and ask them to share a picture of their plate or describe what they ate.`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -330,7 +333,7 @@ Instructions: Be concise. Estimate macros accurately. If the user tells you abou
 
       // 3. Call AI
       const payload = {
-        message: text,
+        message: text.trim() || (base64 ? "Please analyze this attached photo." : ""),
         history: apiHistory,
         context: contextStr,
         images: base64 ? [{ base64, mimeType }] : []

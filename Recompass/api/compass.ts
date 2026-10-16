@@ -170,11 +170,16 @@ OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
 
       case "analyze_plate":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-        prompt = `Analyze this photo of a food plate/tray from an Indian college mess.
-Identify each food item visible and estimate the quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
-For each item estimate macros based on the visible quantity.
-Return ONLY a JSON array, nothing else:
-[{"name":"Chapati","quantity":"2 pieces","calories":240,"protein":7,"carbs":44,"fats":4},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
+        prompt = `Analyze this photo of a food plate/tray, meal, snack, or beverage.
+Identify each food or beverage item visible and estimate its quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
+For each item estimate realistic macros based on the visible portion.
+
+CRITICAL INSTRUCTIONS:
+1. If the photo DOES NOT contain any food, meal, or edible beverage (for example: person, selfie, furniture, car, room, empty plate/table, electronics, screenshot of text/code, paper, animal, or non-food object), return STRICTLY:
+   {"error": "NO_FOOD_DETECTED", "items": []}
+
+2. If food or drink IS present, return ONLY a JSON array of items:
+   [{"name":"Chapati","quantity":"2 pieces","calories":240,"protein":7,"carbs":44,"fats":4},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
         {
           const imgPart = payload.image
             ? { inlineData: { data: payload.image, mimeType: payload.mimeType || "image/jpeg" } }

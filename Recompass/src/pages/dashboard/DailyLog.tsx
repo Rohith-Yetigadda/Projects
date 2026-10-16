@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil } from "lucide-react";
+import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle } from "lucide-react";
 
 type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -275,16 +275,24 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
   };
 }
 
-async function analyzePlate(base64: string, mimeType: string) {
-  const res = await fetch("/api/compass", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "analyze_plate", payload: { image: base64, mimeType } }),
-  });
-  const data = await res.json();
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.items)) return data.items;
-  return [];
+async function analyzePlate(base64: string, mimeType: string): Promise<{ items: any[]; error?: string }> {
+  try {
+    const res = await fetch("/api/compass", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "analyze_plate", payload: { image: base64, mimeType } }),
+    });
+    const data = await res.json();
+    if (data?.error === "NO_FOOD_DETECTED") {
+      return { items: [], error: "NO_FOOD_DETECTED" };
+    }
+    if (Array.isArray(data)) return { items: data };
+    if (Array.isArray(data?.items)) return { items: data.items };
+    return { items: [] };
+  } catch (err) {
+    console.error("[analyzePlate] Error:", err);
+    return { items: [], error: "NETWORK_ERROR" };
+  }
 }
 
 // ─── Quantity Picker Modal ─────────────────────────────────────────
@@ -683,9 +691,20 @@ export default function DailyLog() {
     reader.onload = async (e) => {
       try {
         const dataUrl = e.target?.result as string;
-        const items = await analyzePlate(dataUrl.split(",")[1], file.type);
-        if (items.length > 0) setPhotoItems({ mealType, items });
-      } catch(err){console.error(err);} finally{setAnalyzing(null);}
+        const result = await analyzePlate(dataUrl.split(",")[1], file.type);
+        if (result.items && result.items.length > 0) {
+          setPhotoItems({ mealType, items: result.items });
+        } else {
+          setToast("No food detected in this photo. Please upload a clear photo of your meal or plate!");
+          setTimeout(() => setToast(null), 4500);
+        }
+      } catch (err) {
+        console.error("[handlePhotoSelect] Error:", err);
+        setToast("Failed to analyze image. Please try again with a clearer photo!");
+        setTimeout(() => setToast(null), 4500);
+      } finally {
+        setAnalyzing(null);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -727,11 +746,13 @@ export default function DailyLog() {
 
       {/* Custom Toast */}
       {toast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="bg-red-500/10 border border-red-500/20 backdrop-blur-xl rounded-2xl px-5 py-3 flex items-center gap-3 shadow-2xl">
-            <X className="w-4 h-4 text-red-400 shrink-0" />
-            <p className="text-sm font-medium text-red-300">{toast}</p>
-            <button onClick={() => setToast(null)} className="text-red-400/50 hover:text-red-300 ml-2"><X className="w-3 h-3" /></button>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300 max-w-md w-[90%]">
+          <div className="bg-amber-500/10 border border-amber-500/25 backdrop-blur-xl rounded-2xl px-5 py-3.5 flex items-center gap-3 shadow-2xl">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+            <p className="text-sm font-medium text-amber-200 flex-1 leading-snug">{toast}</p>
+            <button onClick={() => setToast(null)} className="text-amber-400/50 hover:text-amber-200 transition-colors ml-1 p-1">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
