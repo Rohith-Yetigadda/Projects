@@ -127,17 +127,8 @@ function App() {
           <Route path="/app/groceries" element={
             <AppRoute><Groceries /></AppRoute>
           } />
-          <Route path="/app/cook" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Recipes</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
-          } />
-          <Route path="/app/pantry" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Pantry</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
-          } />
           <Route path="/app/progress" element={
             <AppRoute><Progress /></AppRoute>
-          } />
-          <Route path="/app/profile" element={
-            <AppRoute><div className="space-y-4"><h2 className="text-3xl font-bold tracking-tight text-gradient">Profile</h2><p className="text-muted-foreground font-medium">Coming soon</p></div></AppRoute>
           } />
 
           {/* Fallback */}

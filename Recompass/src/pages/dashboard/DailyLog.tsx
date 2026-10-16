@@ -22,25 +22,25 @@ const mealConfig: { key: MealType; label: string; icon: any; color: string; bg: 
 
 // ─── Comprehensive Indian mess food categorization ─────────────────
 function getFoodCategory(name: string): FoodCategory {
-  const n = name.toLowerCase().replace(/[()[]]/g, "").trim();
+  const n = name.toLowerCase().replace(/[()[\]]/g, "").trim();
 
   // Liquids — must NOT match fruits (handled below)
-  if (/\b(milk|hot milk|cold milk|toned milk|skim milk|buttermilk|chaas|lassi|juice|nimbu|lemon water|lemonade|soup|tomato soup|rasam|tea|coffee|hot water|water|shake|protein shake|smoothie|syrup|sharbat)\b/.test(n)) return "liquid";
+  if (/\b(milks?|hot milk|cold milk|toned milk|skim milk|buttermilk|chaas|lassis?|juices?|nimbu|lemon water|lemonade|soups?|tomato soup|rasam|teas?|coffees?|hot water|water|shakes?|protein shake|smoothies?|syrup|sharbat)\b/.test(n)) return "liquid";
 
   // Banana → whole fruit (piece)
-  if (/\bbanana\b/.test(n)) return "piece";
+  if (/\bbananas?\b/.test(n)) return "piece";
 
   // Other fruits → served as small cut pieces in mess
-  if (/\b(watermelon|melon|muskmelon|cantaloupe|apple|mango|orange|grapes|grape|papaya|guava|pear|pomegranate|pineapple|kiwi|strawberry|blueberry|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
+  if (/\b(watermelons?|melons?|muskmelons?|cantaloupes?|apples?|mangoes?|oranges?|grapes?|papayas?|guavas?|pears?|pomegranates?|pineapples?|kiwis?|strawberries?|blueberries?|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
 
   // Condiments & small additions — teaspoon amounts
-  if (/\b(sugar|salt|pickle|achar|chutney|coconut chutney|tomato chutney|mint chutney|green chutney|jam|bread butter jam|butter|ghee|oil|sauce|ketchup|mayo|honey|cream|papad|pappad|achaar|murabba|salsa|horlicks|boost|bournvita|complan|milo|powder|protein|whey)\b/.test(n)) return "tsp";
+  if (/\b(sugar|salt|pickle|achar|chutneys?|coconut chutney|tomato chutney|mint chutney|green chutney|jams?|bread butter jam|butter|ghee|oils?|sauces?|ketchup|mayo|honey|cream|papads?|pappads?|achaar|murabba|salsa|horlicks|boost|bournvita|complan|milo|powders?|protein|whey)\b/.test(n)) return "tsp";
 
   // Solid pieces — chapati, bread, eggs, snacks
-  if (/\b(chapati|chapathi|chappati|roti|phulka|tandoori roti|naan|kulcha|puri|poori|paratha|aloo paratha|bhatura|uttapam|dosa|masala dosa|set dosa|mini dosa|idli|vada|medu vada|bread|toast|sandwich|bun|burger|roll|egg|omelette|boiled egg|fried egg|scrambled egg|poached egg|biscuit|cookie|cake slice|ladoo|laddoo|barfi|gulab jamun|rasgulla|jalebi|peda|modak|karanji)\b/.test(n)) return "piece";
+  if (/\b(chapatis?|chapathis?|chappatis?|rotis?|phulkas?|tandoori roti|naans?|kulchas?|puris?|pooris?|parathas?|aloo paratha|bhaturas?|uttapams?|dosas?|masala dosa|set dosa|mini dosa|idlis?|vadas?|medu vada|breads?|toasts?|sandwich(es)?|buns?|burgers?|rolls?|eggs?|omelettes?|boiled eggs?|fried eggs?|scrambled eggs?|poached eggs?|egg whites?|biscuits?|cookies?|cake slice|ladoos?|laddoos?|barfis?|gulab jamuns?|rasgullas?|jalebis?|pedas?|modaks?|karanjis?)\b/.test(n)) return "piece";
 
   // Ladle/bowl items — cooked grains, curries, sabzis, desserts
-  if (/\b(rice|steamed rice|steam rice|plain rice|fried rice|pulao|biryani|khichdi|pongal|ven pongal|upma|rava upma|semolina|semiya|vermicelli|oats|porridge|daliya|broken wheat|poha|aval|dal|lentil|sambar|rasam|kadhi|chole|rajma|black bean|kidney bean|mung|moong|masoor|arhar|toor|chana|chickpea|sabzi|subzi|sabji|vegetable|veg dry|veg gravy|aloo|potato|gobi|cauliflower|matar|peas|palak|spinach|paneer|soya|tofu|mushroom|mixed veg|avial|kootu|poriyal|thoran|stir fry|gravy|curry|masala|fry|roast|bhurji|bhaji|bhujia|pakora|fritter|bonda|bajji|cutlet|tikki|patty|kebab|chicken|mutton|fish|egg curry|prawn|seafood|halwa|sooji halwa|carrot halwa|moong dal halwa|kheer|payasam|phirni|custard|pudding|shrikhand|rabdi|rasmalai|ice cream|curd|yogurt|dahi|raita|boondi|salad|sprouts|kachumber)\b/.test(n)) return "ladle";
+  if (/\b(rices?|steamed rice|steam rice|plain rice|fried rice|pulaos?|biryanis?|khichdis?|pongals?|ven pongal|upmas?|rava upma|semolina|semiya|vermicelli|oats|porridge|daliya|broken wheat|pohas?|avals?|dals?|lentils?|sambars?|rasams?|kadhis?|chole|rajma|black beans?|kidney beans?|mungs?|moong|masoor|arhar|toor|chanas?|chickpeas?|sabzis?|subzis?|sabjis?|vegetables?|veg dry|veg gravy|aloo|potato|gobi|cauliflower|matar|peas|palak|spinach|paneer|soya|tofus?|mushrooms?|mixed veg|avial|kootu|poriyal|thoran|stir fry|gravy|curries?|curry|masala|fry|roast|bhurji|bhaji|bhujia|pakoras?|fritters?|bonda|bajjis?|cutlets?|tikkis?|patties?|patty|kebabs?|chickens?|mutton|fishes?|fish|egg curry|prawns?|seafood|halwa|sooji halwa|carrot halwa|moong dal halwa|kheer|payasam|phirni|custards?|puddings?|shrikhand|rabdi|rasmalai|ice cream|curds?|yogurts?|dahi|raita|boondi|salads?|sprouts?|kachumber)\b/.test(n)) return "ladle";
 
   return "generic";
 }
@@ -51,7 +51,7 @@ const PRESETS: Record<FoodCategory, string[]> = {
   piece:   ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"],
   tsp:     ["1 tsp (5g)", "2 tsp (10g)", "1 tbsp (15g)", "2 tbsp", "small sprinkle"],
   ladle:   ["1 small ladle (~75ml)", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~250ml)", "1 full plate"],
-  generic: ["small serving", "medium serving", "large serving", "half serving"],
+  generic: ["1 piece", "2 pieces", "small serving", "medium serving", "large serving", "1 bowl"],
 };
 
 // ─── Hardcoded macro truth table for items Gemini gets wrong ──────
@@ -137,6 +137,7 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   // Non-Veg / Eggs (per ladle/piece)
   "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // 1 piece
   egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
+  "boiled egg":     { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
   "egg curry":      { calories: 210, protein: 14, carbs: 10, fats: 12 }, // 2 eggs + gravy
   "chicken curry":  { calories: 220, protein: 18, carbs: 8, fats: 12 }, // per ladle
   "butter chicken": { calories: 280, protein: 16, carbs: 10, fats: 20 }, // per ladle
@@ -148,7 +149,6 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   halwa:            { calories: 220, protein: 2, carbs: 30, fats: 10 }, // per ladle
   "ice cream":      { calories: 140, protein: 2, carbs: 16, fats: 8 }, // 1 scoop
 
-  // Powders & Supplements (per tbsp ~ 15g)
   // Powders & Supplements (per tsp ~ 5g)
   horlicks:         { calories: 19, protein: 0.5, carbs: 3.7, fats: 0.1 },
   boost:            { calories: 18, protein: 0.3, carbs: 4, fats: 0.1 },
@@ -165,8 +165,8 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
   // Sort keys by length so "veg vermicelli upma" matches before "upma"
   const sortedKeys = Object.keys(KNOWN_MACROS).sort((a, b) => b.length - a.length);
   const key = sortedKeys.find(k => {
-    // Exact word match using regex boundary, e.g. \begg\b
-    const regex = new RegExp(`\\b${k}\\b`, 'i');
+    // Exact word match handling singular and plural (e.g. \begg whites?\b)
+    const regex = new RegExp(`\\b${k}s?\\b`, 'i');
     return regex.test(n);
   });
   if (!key) return null;
@@ -200,24 +200,12 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
   else if (q.includes("tbsp") || q.includes("tablespoon")) {
     const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tbsp|tablespoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
     scale = match ? parseFloat(match[1]) : 1;
-    // If it's a condiment base (which is per tsp), multiply by 3.
-    // Except powders are defined per tbsp (15g), but wait, in KNOWN_MACROS sugar/butter are per tsp.
-    // Let's just assume base is 1 unit, and tbsp means 3x IF base is tsp. 
-    // Actually, to keep it simple: our new powders are defined per tbsp, but old condiments are per tsp.
-    // Let's just adjust the old condiments in KNOWN_MACROS to be per 1 base unit, and scale here.
-    // Since we didn't change KNOWN_MACROS base, let's just stick to scale * 3 for tsp-based items.
-    // Actually, simpler: just treat tbsp as 3x tsp for EVERYTHING in the tsp category.
     scale = scale * 3; 
   }
   else if (q.includes("tsp") || q.includes("teaspoon") || q.includes("sprinkle")) {
     const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tsp|teaspoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
     scale = match ? parseFloat(match[1]) : (q.includes("sprinkle") ? 0.25 : 1);
   }
-
-  // Adjust for powders which are added per tbsp base, but if they matched "tsp" above, scale was 1, should be 0.33
-  // If they matched tbsp, scale is 3, should be 1. 
-  // Let's normalize powders to TSP in KNOWN_MACROS instead to avoid this math nightmare.
-  // I will let this script fix KNOWN_MACROS to be per TSP for powders.
 
   return {
     calories: Math.round(base.calories * scale),
@@ -227,25 +215,27 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
   };
 }
 
-// Sanity-check Gemini output — protein can't have calories without matching macros
+// Clean and validate macro values without corrupting high-protein ratios
 function sanitizeMacros(raw: { calories: number; protein: number; carbs: number; fats: number }) {
-  const fromMacros = raw.protein * 4 + raw.carbs * 4 + raw.fats * 9;
-  // If macros sum is way off from stated calories, trust the calorie count and re-balance
-  if (Math.abs(fromMacros - raw.calories) > raw.calories * 0.4 && raw.calories > 0) {
-    // Rough split: protein 20%, carbs 55%, fat 25%
-    return {
-      calories: raw.calories,
-      protein:  Math.round((raw.calories * 0.20) / 4),
-      carbs:    Math.round((raw.calories * 0.55) / 4),
-      fats:     Math.round((raw.calories * 0.25) / 9),
-    };
-  }
-  return raw;
+  const calories = Math.max(0, Math.round(Number(raw.calories) || 0));
+  const protein  = Math.max(0, Math.round((Number(raw.protein) || 0) * 10) / 10);
+  const carbs    = Math.max(0, Math.round((Number(raw.carbs) || 0) * 10) / 10);
+  const fats     = Math.max(0, Math.round((Number(raw.fats) || 0) * 10) / 10);
+  
+  // If calories were 0 but macros exist, compute accurate calories
+  const finalCals = calories > 0 ? calories : Math.round(protein * 4 + carbs * 4 + fats * 9);
+  
+  return {
+    calories: finalCals,
+    protein,
+    carbs,
+    fats,
+  };
 }
 
 async function estimateMacros(foodName: string, quantity: string) {
-  // If it's a long description, do NOT check known macros (it will blindly match substrings like "chicken")
-  const isDescription = foodName.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(foodName) || foodName.split(" ").length > 4;
+  // If user provided a complex sentence or detailed description, bypass hardcoded tables
+  const isDescription = foodName.length > 25 || /\d+\s*(g|gm|gms|gram|grams|ml|kg)\b/i.test(foodName) || foodName.split(" ").length > 3;
   
   if (!isDescription) {
     const known = getKnownMacros(foodName, quantity || "1 serving");
@@ -649,32 +639,44 @@ export default function DailyLog() {
               <input type="text" placeholder="Add custom item or describe what you ate..."
                 value={customInput[key]||""}
                 onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
-                onKeyDown={e=>{if(e.key==="Enter"&&customInput[key]?.trim()){
-                  const text = customInput[key]!.trim();
-                  const isDescription = text.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(text) || text.split(" ").length > 4;
-                  const isKnown = !isDescription && getKnownMacros(text, "1 serving") !== null;
-                  
-                  if (isKnown) {
-                    setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
-                  } else {
-                    logWithQuantity(key, text, "");
+                onKeyDown={e => {
+                  if (e.key === "Enter" && customInput[key]?.trim()) {
+                    const text = customInput[key]!.trim();
+                    const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
+                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
+                    const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
+                    const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
+
+                    if (isDirectAI) {
+                      logWithQuantity(key, text, "");
+                    } else {
+                      setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
+                    }
+                    setCustomInput(prev => ({ ...prev, [key]: "" }));
                   }
-                  setCustomInput(prev=>({...prev,[key]:""}));
-                }}}
+                }}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
-              <button onClick={()=>{if(customInput[key]?.trim()){
+              <button onClick={() => {
+                if (customInput[key]?.trim()) {
                   const text = customInput[key]!.trim();
-                  const isDescription = text.length > 25 || /\d+\s*(g|gm|gms|gram|ml)\b/i.test(text) || text.split(" ").length > 4;
-                  const isKnown = !isDescription && getKnownMacros(text, "1 serving") !== null;
-                  
-                  if (isKnown) {
-                    setPicker({mealType:key, foodName:text.toUpperCase(), isCustom:true});
-                  } else {
+                  const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
+                  const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
+                  const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
+                  const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
+
+                  if (isDirectAI) {
                     logWithQuantity(key, text, "");
+                  } else {
+                    setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
                   }
-                  setCustomInput(prev=>({...prev,[key]:""}));
-                }}}
-                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors">Add</button>
+                  setCustomInput(prev => ({ ...prev, [key]: "" }));
+                }
+              }}
+              disabled={!!estimating}
+              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors flex items-center gap-1.5">
+                {estimating?.startsWith(key + ":") ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                Add
+              </button>
             </div>
           </div>
         );

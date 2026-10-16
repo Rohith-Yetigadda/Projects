@@ -240,7 +240,8 @@ export default function Groceries() {
                 <div className="flex justify-center">
                   <button 
                     onClick={() => deleteItem(item.id)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/0 group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white/25 md:text-white/0 md:group-hover:text-white/30 hover:!text-red-400 hover:bg-red-500/10 transition-all"
+                    title="Delete item"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

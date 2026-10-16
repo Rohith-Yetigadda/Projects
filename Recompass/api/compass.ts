@@ -120,13 +120,51 @@ export default async function handler(req: any, res: any) {
         
       case "estimate_macros":
         modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-        // foodName may include a long descriptive text or quantities
-        prompt = `Estimate the nutritional macros for: "${payload.foodName}".
-Condense the description into a concise, UPPERCASE name for the log (e.g. "BONELESS CHICKEN BIRYANI"). DO NOT include quantities or parentheticals in the name.
-Use the quantity specified in the text to calculate the total macros.
-CRITICAL: Even if the text is ALL CAPS or contains brand names (like "Meghana"), treat it as food. Only return {"error": "INVALID_FOOD"} if it is explicitly a joke or random keyboard mashing (like "asdfgh").
-Return ONLY a valid JSON object:
-{"name":"BONELESS CHICKEN BIRYANI","calories":250,"protein":8,"carbs":45,"fats":6}`;
+        prompt = `Estimate accurate, realistic nutritional macronutrients for the meal or item described as: "${payload.foodName}".
+
+RULES:
+1. "name": Return a clean, concise, UPPERCASE food title (e.g. "CHICKEN BIRYANI", "BANANA", "EGG WHITES", "DAL TADKA", "PANEER TIKKA").
+   DO NOT paste the user's raw sentence into "name". DO NOT include parentheticals or gram specs in "name".
+2. CALCULATE ACCURATE MACROS based on the full portion or description provided:
+   - Example: "350g rice and 140g chicken biryani from meghana":
+     350g cooked rice (~450 kcal, ~9g protein, ~98g carbs, ~1g fat) + 140g chicken (~230 kcal, ~43g protein, ~5g fat) + cooking oil/ghee (~250-350 kcal, ~30g fat) => Total ~950-1050 kcal, ~52g protein, ~98g carbs, ~35g fat.
+   - Example: "2 bananas": ~210 kcal, ~2.5g protein, ~54g carbs, ~0.8g fat.
+   - Example: "4 egg whites": ~68 kcal, ~14.4g protein, ~0.8g carbs, ~0.4g fat.
+3. Treat Indian restaurant/mess foods realistically. Meals cooked in ghee or oil contain significant calories and fats.
+4. CRITICAL: If the input describes ANY food, meal, restaurant dish, snack, beverage, or brand (even in ALL CAPS or messy typing), calculate its macros. ONLY return {"error": "INVALID_FOOD"} if the input is explicitly gibberish keyboard spam (e.g. "asdfghjk") or an inedible object (e.g. "chair").
+
+OUTPUT STRICTLY AS JSON (no markdown formatting, no extra commentary):
+{"name":"UPPERCASE_NAME","calories":1000,"protein":50,"carbs":95,"fats":30}`;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+
+      case "generate_recipes":
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+        prompt = `You are an expert student chef creating practical hostel recipes.
+The student has these available ingredients in their pantry: ${JSON.stringify(payload.ingredients || [])}.
+Their fitness goal is: ${payload.goal || "healthy nutrition"}.
+Preferred equipment/method: ${payload.method || "any (microwave, kettle, induction, or no-cook)"}.
+
+Generate 3 creative, delicious, high-protein recipes they can make in a hostel room with minimal equipment.
+
+OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
+[
+  {
+    "id": "recipe-1",
+    "title": "High Protein Banana Peanut Butter Mug Cake",
+    "time": "5 mins",
+    "method": "Microwave",
+    "difficulty": "Easy",
+    "ingredients": ["1 scoop Whey Protein", "1 Banana", "1 tbsp Peanut Butter", "2 tbsp Milk"],
+    "instructions": [
+      "Mash the banana in a microwave-safe mug.",
+      "Add whey protein, peanut butter, and milk, mixing until smooth.",
+      "Microwave on high for 60-90 seconds. Let cool slightly and enjoy."
+    ],
+    "hostelHack": "Use a fork to mash the banana completely before adding whey to prevent dry pockets.",
+    "macros": { "calories": 360, "protein": 34, "carbs": 38, "fats": 9 }
+  }
+]`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
 
