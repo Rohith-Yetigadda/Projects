@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Zap, Bookmark } from "lucide-react";
+import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Bookmark } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -982,6 +982,192 @@ function StapleMealModal({
   );
 }
 
+// ─── Daily Staples & Recipes Manager Modal ─────────────────────────
+function StaplesManagerModal({
+  isOpen,
+  onClose,
+  staples,
+  loading,
+  onAddStaple,
+  onEditStaple,
+  onDeleteStaple,
+  onLogStaple,
+  loggingKey,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  staples: StapleMeal[];
+  loading?: boolean;
+  onAddStaple: () => void;
+  onEditStaple: (staple: StapleMeal) => void;
+  onDeleteStaple: (id: string) => void;
+  onLogStaple: (mealType: MealType, staple: StapleMeal) => void;
+  loggingKey: string | null;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+      <div 
+        className="bg-[#121418] border border-white/[0.08] rounded-3xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 shrink-0">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold tracking-wider uppercase text-amber-400 mb-1.5">
+              <Bookmark className="w-3 h-3 text-amber-400 fill-amber-400/20" />
+              <span>Permanent Custom Foods</span>
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              My Daily Staples
+            </h2>
+            <p className="text-xs text-white/40 mt-0.5">
+              Saved permanently across weekly menus &bull; 1-tap log to any meal
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onAddStaple}
+              className="px-3.5 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Food</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* List of staples */}
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1">
+          {loading && staples.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-white/40">
+              <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+              <p className="text-xs">Loading custom staples...</p>
+            </div>
+          ) : staples.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/[0.08] p-8 text-center space-y-3">
+              <p className="text-sm font-medium text-white/60">No daily staples saved yet.</p>
+              <p className="text-xs text-white/35 max-w-sm mx-auto leading-relaxed">
+                Add your daily protein shakes, custom oats bowls, or recurring snacks once. They stay saved forever, even when you upload a new mess menu.
+              </p>
+              <button
+                onClick={onAddStaple}
+                className="mt-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] transition-all"
+              >
+                + Create First Staple
+              </button>
+            </div>
+          ) : (
+            staples.map(staple => (
+              <div
+                key={staple.id}
+                className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 flex flex-col justify-between hover:border-white/[0.12] hover:bg-white/[0.03] transition-all group/card"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-white group-hover/card:text-amber-300 transition-colors truncate">
+                          {staple.name}
+                        </p>
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40">
+                          {staple.mealType === "any" ? "Any Meal" : staple.mealType}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/45 mt-1 leading-relaxed">
+                        {staple.recipe}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => onEditStaple(staple)}
+                        title="Edit staple & recipe"
+                        className="text-white/30 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteStaple(staple.id)}
+                        title="Delete staple"
+                        className="text-white/30 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Macro Strip */}
+                  <div className="flex items-center gap-2 mt-2.5 text-xs font-sans">
+                    <span className="font-bold text-white">
+                      {Math.round(staple.calories)} <span className="text-[10px] font-normal text-white/40">kcal</span>
+                    </span>
+                    <span className="text-orange-400 font-semibold bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 text-[11px]">
+                      P {staple.protein}g
+                    </span>
+                    <span className="text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20 text-[11px]">
+                      C {staple.carbs}g
+                    </span>
+                    <span className="text-blue-400 font-semibold bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20 text-[11px]">
+                      F {staple.fats}g
+                    </span>
+                  </div>
+                </div>
+
+                {/* 1-Tap Quick Log Actions */}
+                <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 mr-1">Log to:</span>
+                  {(["breakfast", "lunch", "snacks", "dinner"] as MealType[]).map(mKey => {
+                    const isPreferred = staple.mealType === mKey;
+                    const isLogging = loggingKey === `${mKey}:${staple.id}`;
+                    return (
+                      <button
+                        key={mKey}
+                        onClick={() => onLogStaple(mKey, staple)}
+                        disabled={!!loggingKey}
+                        title={`1-tap log to ${mKey}`}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                          isPreferred
+                            ? "bg-amber-400/15 border border-amber-400/30 text-amber-300 hover:bg-amber-400/25 shadow-sm"
+                            : "bg-white/[0.03] border border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:text-white"
+                        }`}
+                      >
+                        {isLogging ? (
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        ) : (
+                          <Plus className="w-2.5 h-2.5" />
+                        )}
+                        <span>{mKey === "breakfast" ? "B'fast" : mKey.charAt(0).toUpperCase() + mKey.slice(1)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="pt-2 border-t border-white/[0.06] flex justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-white/70 hover:text-white text-xs font-semibold transition-all"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
   const { currentUser } = useAuth();
@@ -1008,6 +1194,7 @@ export default function DailyLog() {
   // Staples / Custom Foods State
   const [staples, setStaples] = useState<StapleMeal[]>(cachedStaples || []);
   const [staplesLoading, setStaplesLoading] = useState(!cachedStaples);
+  const [isStaplesManagerOpen, setIsStaplesManagerOpen] = useState(false);
   const [isStapleModalOpen, setIsStapleModalOpen] = useState(false);
   const [editingStaple, setEditingStaple] = useState<StapleMeal | null>(null);
   const [loggingStapleKey, setLoggingStapleKey] = useState<string | null>(null);
@@ -1295,6 +1482,25 @@ export default function DailyLog() {
           onDelete={handleDeleteStaple}
         />
       )}
+      {isStaplesManagerOpen && (
+        <StaplesManagerModal
+          isOpen={isStaplesManagerOpen}
+          onClose={() => setIsStaplesManagerOpen(false)}
+          staples={staples}
+          loading={staplesLoading}
+          onAddStaple={() => {
+            setEditingStaple(null);
+            setIsStapleModalOpen(true);
+          }}
+          onEditStaple={staple => {
+            setEditingStaple(staple);
+            setIsStapleModalOpen(true);
+          }}
+          onDeleteStaple={handleDeleteStaple}
+          onLogStaple={logStaple}
+          loggingKey={loggingStapleKey}
+        />
+      )}
 
       {/* Custom Toast */}
       {toast && (
@@ -1324,11 +1530,30 @@ export default function DailyLog() {
           </p>
         </div>
         
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] px-5 py-3 text-right">
-          <p className="text-2xl md:text-3xl font-extrabold font-sans text-white tracking-tight">
-            {Math.round(totals.calories)}
-          </p>
-          <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider">kcal logged</p>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <button
+            onClick={() => setIsStaplesManagerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#121418] border border-white/[0.08] hover:border-amber-400/40 hover:bg-white/[0.04] text-white transition-all group active:scale-[0.98]"
+            title="Manage permanent custom staples & recipes"
+          >
+            <Bookmark className="w-4 h-4 text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform" />
+            <div className="text-left">
+              <p className="text-xs font-bold leading-tight flex items-center gap-1.5">
+                <span>My Staples</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-400/15 text-amber-300 font-semibold border border-amber-400/20">
+                  {staples.length}
+                </span>
+              </p>
+              <p className="text-[10px] text-white/40">Custom Recipes</p>
+            </div>
+          </button>
+
+          <div className="rounded-2xl bg-[#121418] border border-white/[0.06] px-4 py-2.5 text-right">
+            <p className="text-2xl font-extrabold font-sans text-white tracking-tight">
+              {Math.round(totals.calories)}
+            </p>
+            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">kcal logged</p>
+          </div>
         </div>
       </div>
 
@@ -1348,141 +1573,6 @@ export default function DailyLog() {
         ))}
       </div>
 
-      {/* My Daily Staples Section */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 md:p-6 space-y-4 group hover:border-white/[0.12] transition-all">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold tracking-wider uppercase text-amber-400 mb-1">
-              <Zap className="w-3 h-3 text-amber-400" />
-              <span>Permanent Custom Foods</span>
-            </div>
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">
-              My Daily Staples
-            </h2>
-            <p className="text-xs text-white/40">
-              Your recurring recipes saved permanently across all weekly menus &bull; 1-tap log anytime
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              setEditingStaple(null);
-              setIsStapleModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm self-start sm:self-auto shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Custom Food</span>
-          </button>
-        </div>
-
-        {staplesLoading ? (
-          <div className="flex items-center justify-center py-6 gap-2 text-xs text-white/40">
-            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-            <span>Loading custom staples...</span>
-          </div>
-        ) : staples.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/[0.08] p-6 text-center space-y-2">
-            <p className="text-xs text-white/50">No daily staples added yet.</p>
-            <p className="text-[11px] text-white/30 max-w-sm mx-auto">
-              Add your daily banana shake, protein oatmeal, or recurring snacks once. They stay saved forever even when new mess menus are uploaded.
-            </p>
-            <button
-              onClick={() => {
-                setEditingStaple(null);
-                setIsStapleModalOpen(true);
-              }}
-              className="mt-2 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] transition-all"
-            >
-              + Create First Staple
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            {staples.map(staple => (
-              <div
-                key={staple.id}
-                className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 flex flex-col justify-between hover:border-white/[0.12] hover:bg-white/[0.03] transition-all group/card"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-xs font-bold text-white group-hover/card:text-amber-300 transition-colors truncate">
-                          {staple.name}
-                        </p>
-                        <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40">
-                          {staple.mealType === "any" ? "Any Meal" : staple.mealType}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-white/45 line-clamp-2 mt-1 leading-relaxed">
-                        {staple.recipe}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setEditingStaple(staple);
-                        setIsStapleModalOpen(true);
-                      }}
-                      title="Edit staple & recipe"
-                      className="text-white/30 hover:text-white p-1 rounded-lg hover:bg-white/[0.05] transition-colors shrink-0"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Macro Strip */}
-                  <div className="flex items-center gap-2 mt-3 text-[11px] font-sans">
-                    <span className="font-bold text-white">
-                      {Math.round(staple.calories)} <span className="text-[9px] font-normal text-white/40">kcal</span>
-                    </span>
-                    <span className="text-orange-400 font-semibold bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20">
-                      P {staple.protein}g
-                    </span>
-                    <span className="text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                      C {staple.carbs}g
-                    </span>
-                    <span className="text-blue-400 font-semibold bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
-                      F {staple.fats}g
-                    </span>
-                  </div>
-                </div>
-
-                {/* 1-Tap Quick Log Actions */}
-                <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 mr-1">Log:</span>
-                  {(["breakfast", "lunch", "snacks", "dinner"] as MealType[]).map(mKey => {
-                    const isPreferred = staple.mealType === mKey;
-                    const isLogging = loggingStapleKey === `${mKey}:${staple.id}`;
-                    return (
-                      <button
-                        key={mKey}
-                        onClick={() => logStaple(mKey, staple)}
-                        disabled={!!loggingStapleKey}
-                        title={`1-tap log to ${mKey}`}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
-                          isPreferred
-                            ? "bg-amber-400/15 border border-amber-400/30 text-amber-300 hover:bg-amber-400/25 shadow-sm"
-                            : "bg-white/[0.03] border border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:text-white"
-                        }`}
-                      >
-                        {isLogging ? (
-                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                        ) : (
-                          <Plus className="w-2.5 h-2.5" />
-                        )}
-                        <span>{mKey === "breakfast" ? "B'fast" : mKey.charAt(0).toUpperCase() + mKey.slice(1)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Meal Sections */}
       {mealConfig.map(({ key, label, icon: Icon, color, bg, border }) => {
         const loggedItems = log[key]||[];
@@ -1490,6 +1580,7 @@ export default function DailyLog() {
         const alreadyLogged = new Set(loggedItems.map(i=>i.name));
         const quickChips = menuItems.filter(item=>!alreadyLogged.has(item));
         const mealKcal = loggedItems.reduce((s,i)=>s+i.calories,0);
+        const mealStaples = staples.filter(s => s.mealType === "any" || s.mealType === key);
 
         return (
           <div key={key} id={key} className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 md:p-6 space-y-5 scroll-mt-24 group hover:border-white/[0.12] transition-all">
@@ -1506,6 +1597,14 @@ export default function DailyLog() {
               </div>
               
               <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => setIsStaplesManagerOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-white/60 hover:bg-white/[0.08] hover:border-amber-400/30 hover:text-white text-xs font-semibold transition-all"
+                  title="View & manage daily staples"
+                >
+                  <Bookmark className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Staples</span>
+                </button>
                 <button 
                   onClick={()=>fileRefs[key].current?.click()} 
                   disabled={analyzing===key}
@@ -1595,37 +1694,32 @@ export default function DailyLog() {
               </div>
             )}
 
-            {/* Quick Staples Chips for this meal */}
-            {staples.filter(s => s.mealType === "any" || s.mealType === key).length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
-                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400/80 mr-1 shrink-0">
-                  <Zap className="w-3 h-3 text-amber-400 fill-amber-400/30" />
-                  <span>Staples:</span>
-                </div>
-                {staples
-                  .filter(s => s.mealType === "any" || s.mealType === key)
-                  .map(staple => {
-                    const isLogging = loggingStapleKey === `${key}:${staple.id}`;
-                    return (
-                      <button
-                        key={staple.id}
-                        onClick={() => logStaple(key, staple)}
-                        disabled={!!loggingStapleKey}
-                        title={staple.recipe}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
-                      >
-                        {isLogging ? <Loader2 className="w-3 h-3 animate-spin text-amber-300" /> : <Plus className="w-3 h-3 text-amber-400" />}
-                        <span>{staple.name}</span>
-                        <span className="text-[10px] text-amber-300/60 font-normal">({staple.protein}g P)</span>
-                      </button>
-                    );
-                  })}
-              </div>
-            )}
+            {/* Unified Quick Suggestions: Staples + Today's Mess Menu */}
+            {(mealStaples.length > 0 || quickChips.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {/* Daily Staples */}
+                {mealStaples.map(staple => {
+                  const isLogging = loggingStapleKey === `${key}:${staple.id}`;
+                  return (
+                    <button
+                      key={staple.id}
+                      onClick={() => logStaple(key, staple)}
+                      disabled={!!loggingStapleKey}
+                      title={`1-tap log: ${staple.recipe}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 text-xs font-semibold transition-all active:scale-[0.98] shadow-sm"
+                    >
+                      {isLogging ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-amber-300" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                      )}
+                      <span>{staple.name}</span>
+                      <span className="text-[10px] text-amber-300/60 font-normal">({staple.protein}g P)</span>
+                    </button>
+                  );
+                })}
 
-            {/* Quick Chips from Mess Menu */}
-            {quickChips.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
+                {/* Mess Menu Chips */}
                 {quickChips.map(item => {
                   const chipKey = key + ":" + item; 
                   const isLoading = estimating === chipKey;
@@ -1634,13 +1728,13 @@ export default function DailyLog() {
                       key={item} 
                       onClick={() => setPicker({ mealType: key, foodName: item })} 
                       disabled={!!estimating}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
                         isLoading 
                           ? "border-white/10 text-white/30" 
                           : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:border-white/20 hover:text-white"
                       }`}
                     >
-                      {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3 text-white/40" />}
                       <span>{item}</span>
                     </button>
                   );
