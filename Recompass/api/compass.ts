@@ -14,19 +14,74 @@ export const config = {
 
 const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
+let cachedWorkingModel: string | null = null;
+let lastDiscoveryTime = 0;
+let discoveredModelsCache: string[] = [];
+
+const DEFAULT_FALLBACK_CHAIN = [
+  "gemini-flash-latest",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+];
+
+async function getCandidateModels(key: string): Promise<string[]> {
+  const now = Date.now();
+  // Refresh model discovery every 6 hours
+  if (discoveredModelsCache.length > 0 && now - lastDiscoveryTime < 6 * 60 * 60 * 1000) {
+    return cachedWorkingModel 
+      ? [cachedWorkingModel, ...discoveredModelsCache.filter(m => m !== cachedWorkingModel)]
+      : discoveredModelsCache;
+  }
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    if (res.ok) {
+      const data: any = await res.json();
+      if (Array.isArray(data?.models)) {
+        const live = data.models
+          .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
+          .map((m: any) => m.name.replace(/^models\//, ""))
+          .filter((name: string) => name.includes("flash") && !name.includes("tts") && !name.includes("preview-tts"));
+
+        if (live.length > 0) {
+          discoveredModelsCache = Array.from(new Set(["gemini-flash-latest", ...live, ...DEFAULT_FALLBACK_CHAIN]));
+          lastDiscoveryTime = now;
+          return cachedWorkingModel 
+            ? [cachedWorkingModel, ...discoveredModelsCache.filter(m => m !== cachedWorkingModel)]
+            : discoveredModelsCache;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[compass] Live model discovery failed, using fallback chain:", err);
+  }
+
+  return cachedWorkingModel
+    ? [cachedWorkingModel, ...DEFAULT_FALLBACK_CHAIN.filter(m => m !== cachedWorkingModel)]
+    : DEFAULT_FALLBACK_CHAIN;
+}
+
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {
-  const models = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
   const config = isJson ? { responseMimeType: "application/json" } : {};
-  for (const m of models) {
+  const candidates = await getCandidateModels(apiKey!);
+
+  let lastErr: any = null;
+  for (const m of candidates) {
     try {
       const model = genAI.getGenerativeModel({ model: m, generationConfig: config });
-      return await model.generateContent({ contents });
+      const result = await model.generateContent({ contents });
+      cachedWorkingModel = m; // Remember successful model for 0ms retry penalty
+      return result;
     } catch (err: any) {
-      console.warn(`[compass] Model ${m} failed: ${err.message}. Trying next fallback...`);
+      lastErr = err;
+      console.warn(`[compass] Model ${m} unavailable or error (${err?.message || err}). Trying next candidate...`);
     }
   }
-  const fallbackModel = genAI.getGenerativeModel({ model: "gemini-3.8-flash", generationConfig: config });
-  return await fallbackModel.generateContent({ contents });
+
+  throw lastErr || new Error("All AI generative models unavailable");
 }
 
 export default async function handler(req: any, res: any) {
