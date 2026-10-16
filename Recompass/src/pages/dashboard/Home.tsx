@@ -54,7 +54,6 @@ function AppleRing({
   trackColor,
   shadowId,
   loading,
-  delayMs = 0,
 }: {
   cx: number;
   cy: number;
@@ -65,17 +64,19 @@ function AppleRing({
   trackColor: string;
   shadowId: string;
   loading: boolean;
-  delayMs?: number;
 }) {
   const circ = 2 * Math.PI * radius;
   const clampedRatio = Math.max(0, ratio);
   const clampedFirstLap = Math.min(clampedRatio, 1.0);
-  const firstLapOffset = circ * (1 - clampedFirstLap);
 
-  const isCompleteOrOverfill = clampedRatio >= 1.0;
-  const overfillRatio = clampedRatio > 1.0 ? Math.min(clampedRatio - 1.0, 0.999) : 0;
-  const overfillOffset = circ * (1 - overfillRatio);
-  const overfillDegrees = overfillRatio * 360;
+  const hasOverfill = clampedRatio > 1.0;
+  const overfillRatio = hasOverfill ? Math.min(clampedRatio - 1.0, 0.999) : 0;
+  const overfillAngle = overfillRatio * 2 * Math.PI;
+
+  // Endpoint for overfill arc (starts at 12 o'clock, sweeps clockwise by overfillAngle)
+  const endX = (cx + radius * Math.sin(overfillAngle)).toFixed(2);
+  const endY = (cy - radius * Math.cos(overfillAngle)).toFixed(2);
+  const largeArc = overfillAngle > Math.PI ? 1 : 0;
 
   return (
     <g>
@@ -100,54 +101,36 @@ function AppleRing({
         strokeLinecap="round"
         fill="none"
         strokeDasharray={circ}
-        strokeDashoffset={loading ? circ : firstLapOffset}
+        strokeDashoffset={loading ? circ : circ * (1 - clampedFirstLap)}
+        transform={`rotate(-90 ${cx} ${cy})`}
         style={{
           transition: "stroke-dashoffset 1.8s cubic-bezier(0.16, 1, 0.3, 1)",
-          transitionDelay: `${delayMs}ms`,
         }}
       />
 
-      {/* 3. Overfill Arc (> 100%) - Starts at 12 o'clock with flat butt cap so 12 o'clock is 100% invisible/seamless */}
-      {overfillRatio > 0 && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={radius}
+      {/* 3. Overfill Arc (> 100%) - Sweeps clockwise from 12 o'clock (cx, cy-radius) to (endX, endY) */}
+      {hasOverfill && !loading && (
+        <path
+          d={`M ${cx} ${cy - radius} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}`}
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="butt"
           fill="none"
-          strokeDasharray={circ}
-          strokeDashoffset={loading ? circ : overfillOffset}
-          style={{
-            transition: "stroke-dashoffset 1.8s cubic-bezier(0.16, 1, 0.3, 1)",
-            transitionDelay: `${delayMs + 80}ms`,
-          }}
         />
       )}
 
-      {/* 4. Leading Overlap Rounded Cap with Drop Shadow (For 100% completion & Overfill)
-             - At 100%: Cap sits at 12 o'clock with subtle drop shadow (exactly like reference Image 4)
-             - When > 100%: Cap smoothly rotates along the overfill to the leading tip, casting shadow only at the head
-             - 12 o'clock has ZERO shadow, ZERO arrows, ZERO markers */}
-      {isCompleteOrOverfill && (
-        <g
-          style={{
-            transformBox: "view-box",
-            transformOrigin: `${cx}px ${cy}px`,
-            transform: `rotate(${loading ? 0 : overfillDegrees}deg)`,
-            transition: "transform 1.8s cubic-bezier(0.16, 1, 0.3, 1)",
-            transitionDelay: `${delayMs + 80}ms`,
-          }}
-        >
-          <circle
-            cx={cx + radius}
-            cy={cy}
-            r={strokeWidth / 2}
-            fill={color}
-            filter={`url(#${shadowId})`}
-          />
-        </g>
+      {/* 4. Leading Rounded Cap with Drop Shadow:
+             - Exactly matching Apple Watch reference (Image 2) & 100% goal (Image 4)
+             - Rounds off the overfill arc at (endX, endY) and casts authentic drop shadow onto underlying track.
+             - When ratio === 1.0: Sits at 12 o'clock with soft shadow. */}
+      {clampedRatio >= 1.0 && !loading && (
+        <circle
+          cx={parseFloat(endX)}
+          cy={parseFloat(endY)}
+          r={strokeWidth / 2}
+          fill={color}
+          filter={`url(#${shadowId})`}
+        />
       )}
     </g>
   );
@@ -232,33 +215,37 @@ export default function Home() {
         : currentMealItems.slice(0, 3).join(", "))
     : null;
 
-  return (
-    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-20 md:pb-8">
+  const macroItems = [
+    { key: "calories", label: "Calories", color: "#FF5C38", current: Math.round(logged.calories), target: targets.calories, unit: " kcal" },
+    { key: "protein",  label: "Protein",  color: "#00E599", current: Math.round(logged.protein),  target: targets.protein,  unit: "g" },
+    { key: "carbs",    label: "Carbs",    color: "#38BDF8", current: Math.round(logged.carbs),    target: targets.carbs,    unit: "g" },
+    { key: "fats",     label: "Fats",     color: "#FBBF24", current: Math.round(logged.fats),     target: targets.fats,     unit: "g" },
+  ];
 
-      {/* Editorial Header */}
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#121418] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/60 mb-1 md:mb-1.5">
+  return (
+    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-20 md:pb-8 w-full min-w-0">
+
+      {/* Editorial Header (Balanced layout that never clips on small screens) */}
+      <header className="space-y-1.5 w-full">
+        <div className="flex items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#121418] border border-white/[0.08] text-[9px] md:text-[10px] font-bold tracking-widest uppercase text-white/60">
             <Sparkles className="w-2.5 h-2.5 text-white/50" />
             <span>Today's Overview</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-sans truncate">
-            {greeting}, {firstName}.
-          </h1>
-          <p className="text-xs sm:text-sm font-normal text-white/45 mt-0.5">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-        </div>
-
-        <div className="shrink-0">
-          <div className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white/60 whitespace-nowrap">
+          <div className="px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-medium text-white/60 shrink-0">
             {remaining.calories > 0 ? (
-              <>Remaining: <span className="text-white font-sans font-bold">{Math.round(remaining.calories)}</span> kcal</>
+              <>Remaining: <span className="text-white font-bold">{Math.round(remaining.calories)}</span> kcal</>
             ) : (
-              <span className="text-emerald-400 font-semibold text-[11px] sm:text-xs">Calorie target completed</span>
+              <span className="text-emerald-400 font-semibold">Calorie goal met</span>
             )}
           </div>
         </div>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-sans truncate">
+          {greeting}, {firstName}.
+        </h1>
+        <p className="text-xs sm:text-sm font-normal text-white/45">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        </p>
       </header>
 
       {/* Compass AI Guidance Widget (Desktop only: on mobile, integrated mess in meal cards replaces this) */}
@@ -310,8 +297,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* 1. Mobile Unified Compact Nutrition Card (<175px tall, keeps Quick Log directly above the fold) */}
-      <section className="block md:hidden rounded-3xl bg-[#121418] border border-white/[0.08] p-4 shadow-lg relative overflow-hidden">
+      {/* 1. Mobile Unified Nutrition Card (Fits seamlessly without cutoff on any device) */}
+      <section className="block md:hidden rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.08] p-3 sm:p-4 shadow-lg overflow-hidden w-full">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Nutrition Rings</span>
           {budgetDiff > 0 ? (
@@ -325,66 +312,51 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          {/* Concentric Rings Viewport with Clean Center Void (NO LEAKS, NO GLOW) */}
-          <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-            <svg viewBox="0 0 200 200" className="w-32 h-32 transform -rotate-90 overflow-visible">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-3.5">
+          {/* Concentric Rings Viewport */}
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
+            <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible">
               <defs>
-                <filter id="apple-ring-shadow-mobile" x="-60%" y="-60%" width="220%" height="220%">
-                  <feDropShadow dx="0" dy="-2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
+                <filter id="apple-ring-shadow-mobile" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
                 </filter>
               </defs>
-              <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-mobile" loading={loading} delayMs={0} />
-              <AppleRing cx={100} cy={100} radius={65} strokeWidth={14} ratio={proteinRatio} color="#00E599" trackColor="#023422" shadowId="apple-ring-shadow-mobile" loading={loading} delayMs={150} />
-              <AppleRing cx={100} cy={100} radius={48} strokeWidth={14} ratio={carbsRatio} color="#38BDF8" trackColor="#083244" shadowId="apple-ring-shadow-mobile" loading={loading} delayMs={300} />
-              <AppleRing cx={100} cy={100} radius={31} strokeWidth={14} ratio={fatsRatio} color="#FBBF24" trackColor="#382805" shadowId="apple-ring-shadow-mobile" loading={loading} delayMs={450} />
+              <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-mobile" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={65} strokeWidth={14} ratio={proteinRatio} color="#00E599" trackColor="#023422" shadowId="apple-ring-shadow-mobile" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={48} strokeWidth={14} ratio={carbsRatio} color="#38BDF8" trackColor="#083244" shadowId="apple-ring-shadow-mobile" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={31} strokeWidth={14} ratio={fatsRatio} color="#FBBF24" trackColor="#382805" shadowId="apple-ring-shadow-mobile" loading={loading} />
             </svg>
 
             {/* Clean Dark Center Void */}
-            <div className="absolute w-8 h-8 rounded-full bg-[#0d0f12] border border-white/[0.06] flex items-center justify-center pointer-events-none shadow-inner" />
+            <div className="absolute w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0d0f12] border border-white/[0.06] flex items-center justify-center pointer-events-none shadow-inner" />
           </div>
 
-          {/* Compact Macro Legend with tight spacing between macro and numbers */}
-          <div className="flex-1 space-y-1.5 min-w-0 max-w-[190px]">
-            {/* Calories */}
-            <div className="flex items-center gap-2 text-xs bg-white/[0.025] px-2.5 py-1 rounded-xl">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-[#FF5C38]" />
-              <span className="text-white/70 font-semibold text-[11px] w-14 shrink-0">Calories</span>
-              <div className="flex items-baseline gap-0.5 min-w-0">
-                <span className="font-bold font-mono text-[11px] text-[#FF5C38]">{Math.round(logged.calories)}</span>
-                <span className="text-[9px] text-white/35 font-mono">/{targets.calories}</span>
-              </div>
-            </div>
+          {/* Daily Intake: Same clean design as desktop, scaled for mobile */}
+          <div className="flex-1 space-y-1.5 min-w-0">
+            {macroItems.map(item => {
+              const pct = Math.round((item.current / item.target) * 100);
+              const isOver = item.current >= item.target;
+              return (
+                <div key={item.key} className="flex items-center justify-between p-1.5 sm:p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-white/80 font-medium text-[11px] truncate">{item.label}</span>
+                  </div>
 
-            {/* Protein */}
-            <div className="flex items-center gap-2 text-xs bg-white/[0.025] px-2.5 py-1 rounded-xl">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-[#00E599]" />
-              <span className="text-white/70 font-semibold text-[11px] w-14 shrink-0">Protein</span>
-              <div className="flex items-baseline gap-0.5 min-w-0">
-                <span className="font-bold font-mono text-[11px] text-[#00E599]">{Math.round(logged.protein)}g</span>
-                <span className="text-[9px] text-white/35 font-mono">/{targets.protein}g</span>
-              </div>
-            </div>
-
-            {/* Carbs */}
-            <div className="flex items-center gap-2 text-xs bg-white/[0.025] px-2.5 py-1 rounded-xl">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-[#38BDF8]" />
-              <span className="text-white/70 font-semibold text-[11px] w-14 shrink-0">Carbs</span>
-              <div className="flex items-baseline gap-0.5 min-w-0">
-                <span className="font-bold font-mono text-[11px] text-[#38BDF8]">{Math.round(logged.carbs)}g</span>
-                <span className="text-[9px] text-white/35 font-mono">/{targets.carbs}g</span>
-              </div>
-            </div>
-
-            {/* Fats */}
-            <div className="flex items-center gap-2 text-xs bg-white/[0.025] px-2.5 py-1 rounded-xl">
-              <span className="w-2 h-2 rounded-full shrink-0 bg-[#FBBF24]" />
-              <span className="text-white/70 font-semibold text-[11px] w-14 shrink-0">Fats</span>
-              <div className="flex items-baseline gap-0.5 min-w-0">
-                <span className="font-bold font-mono text-[11px] text-[#FBBF24]">{Math.round(logged.fats)}g</span>
-                <span className="text-[9px] text-white/35 font-mono">/{targets.fats}g</span>
-              </div>
-            </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <div>
+                      <span className="font-bold text-white">{item.current}</span>
+                      <span className="text-white/40 text-[9px]">/{item.target}{item.unit}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                      isOver ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[0.04] text-white/50"
+                    }`}>
+                      {pct}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -399,16 +371,16 @@ export default function Home() {
           </div>
 
           <div className="relative w-48 h-48 my-3 flex items-center justify-center">
-            <svg viewBox="0 0 200 200" className="w-48 h-48 transform -rotate-90 overflow-visible">
+            <svg viewBox="0 0 200 200" className="w-48 h-48 overflow-visible">
               <defs>
-                <filter id="apple-ring-shadow-desktop" x="-60%" y="-60%" width="220%" height="220%">
-                  <feDropShadow dx="0" dy="-2" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
+                <filter id="apple-ring-shadow-desktop" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
                 </filter>
               </defs>
-              <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-desktop" loading={loading} delayMs={0} />
-              <AppleRing cx={100} cy={100} radius={65} strokeWidth={14} ratio={proteinRatio} color="#00E599" trackColor="#023422" shadowId="apple-ring-shadow-desktop" loading={loading} delayMs={150} />
-              <AppleRing cx={100} cy={100} radius={48} strokeWidth={14} ratio={carbsRatio} color="#38BDF8" trackColor="#083244" shadowId="apple-ring-shadow-desktop" loading={loading} delayMs={300} />
-              <AppleRing cx={100} cy={100} radius={31} strokeWidth={14} ratio={fatsRatio} color="#FBBF24" trackColor="#382805" shadowId="apple-ring-shadow-desktop" loading={loading} delayMs={450} />
+              <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-desktop" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={65} strokeWidth={14} ratio={proteinRatio} color="#00E599" trackColor="#023422" shadowId="apple-ring-shadow-desktop" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={48} strokeWidth={14} ratio={carbsRatio} color="#38BDF8" trackColor="#083244" shadowId="apple-ring-shadow-desktop" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={31} strokeWidth={14} ratio={fatsRatio} color="#FBBF24" trackColor="#382805" shadowId="apple-ring-shadow-desktop" loading={loading} />
             </svg>
 
             {/* Pure Clean Black Void Center (Like Apple Watch Reference) */}
@@ -423,8 +395,7 @@ export default function Home() {
           </div>
         </div>
 
-
-        {/* Macro Metrics on the right (7 cols) - NO DUPLICATE PROGRESS BARS! */}
+        {/* Macro Metrics on the right (7 cols) - Clean, Un-Noisy Daily Intake */}
         <div className="md:col-span-7 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">Daily Intake</span>
@@ -435,75 +406,42 @@ export default function Home() {
             )}
           </div>
 
-          {/* 4 Stat Cards in 2x2 Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Energy */}
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-3.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FF5C38]" />
-                <span className="text-xs font-semibold text-white/70">Calories</span>
-              </div>
-              <p className="text-xl font-extrabold font-mono text-[#FF5C38] leading-tight">
-                {Math.round(logged.calories)}
-                <span className="text-xs text-white/40 font-normal"> / {targets.calories}</span>
-              </p>
-              <span className="text-[10px] text-white/40 font-medium mt-1 block">
-                {Math.round((logged.calories / targets.calories) * 100)}% of target
-              </span>
-            </div>
+          {/* 4 Sleek Metric Rows (Zero Noise) */}
+          <div className="space-y-2">
+            {macroItems.map(item => {
+              const pct = Math.round((item.current / item.target) * 100);
+              const isOver = item.current >= item.target;
+              return (
+                <div key={item.key} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm font-semibold text-white/80">{item.label}</span>
+                  </div>
 
-            {/* Protein */}
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-3.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#00E599]" />
-                <span className="text-xs font-semibold text-white/70">Protein</span>
-              </div>
-              <p className="text-xl font-extrabold font-mono text-[#00E599] leading-tight">
-                {Math.round(logged.protein)}g
-                <span className="text-xs text-white/40 font-normal"> / {targets.protein}g</span>
-              </p>
-              <span className="text-[10px] text-white/40 font-medium mt-1 block">
-                {Math.round((logged.protein / targets.protein) * 100)}% reached
-              </span>
-            </div>
-
-            {/* Carbs */}
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-3.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#38BDF8]" />
-                <span className="text-xs font-semibold text-white/70">Carbohydrates</span>
-              </div>
-              <p className="text-xl font-extrabold font-mono text-[#38BDF8] leading-tight">
-                {Math.round(logged.carbs)}g
-                <span className="text-xs text-white/40 font-normal"> / {targets.carbs}g</span>
-              </p>
-              <span className="text-[10px] text-white/40 font-medium mt-1 block">
-                {Math.round((logged.carbs / targets.carbs) * 100)}% reached
-              </span>
-            </div>
-
-            {/* Fats */}
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-3.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FBBF24]" />
-                <span className="text-xs font-semibold text-white/70">Fats</span>
-              </div>
-              <p className="text-xl font-extrabold font-mono text-[#FBBF24] leading-tight">
-                {Math.round(logged.fats)}g
-                <span className="text-xs text-white/40 font-normal"> / {targets.fats}g</span>
-              </p>
-              <span className="text-[10px] text-white/40 font-medium mt-1 block">
-                {Math.round((logged.fats / targets.fats) * 100)}% reached
-              </span>
-            </div>
+                  <div className="flex items-center gap-3 shrink-0 font-mono">
+                    <div>
+                      <span className="text-sm font-bold text-white">{item.current}</span>
+                      <span className="text-xs text-white/40"> / {item.target}{item.unit}</span>
+                    </div>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg min-w-[48px] text-center ${
+                      isOver ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" : "bg-white/[0.04] text-white/60 border border-white/[0.06]"
+                    }`}>
+                      {pct}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Distribution */}
           <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-white/40">
             <span>Calorie source distribution</span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 font-medium">
               <span className="text-[#00E599] font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
+              <span className="text-white/20">&middot;</span>
               <span className="text-[#38BDF8] font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
+              <span className="text-white/20">&middot;</span>
               <span className="text-[#FBBF24] font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
             </div>
           </div>
