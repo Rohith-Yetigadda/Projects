@@ -13,7 +13,6 @@ import {
   Search,
   Sparkles,
   AlertTriangle,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   Check
@@ -28,6 +27,62 @@ export type PantryItem = {
   lowStockThreshold?: number;
   updatedAt?: string;
 };
+
+export type StockStatus = "in_stock" | "low_stock" | "depleted";
+
+/**
+ * Universal, unit-aware stock status evaluation.
+ * Never hardcodes per item name; evaluates mathematically by unit context.
+ */
+export function getStockStatus(item: PantryItem): StockStatus {
+  const qty = Number(item.quantity) || 0;
+  if (qty <= 0) return "depleted";
+
+  const unit = (item.unit || "").toLowerCase().trim();
+
+  // 1. Packaged bulk/containers (jar, bottle, pack, box, tub, can)
+  // 1 whole container (e.g. 1 jar of Peanut Butter, 1 bottle of oil, 1 pack of bread) is fully in stock.
+  // Only low if quantity < 1 (i.e. empty / depleted)
+  if (["jar", "bottle", "pack", "packs", "box", "boxes", "tub", "can", "cans"].includes(unit)) {
+    return "in_stock";
+  }
+
+  // 2. Measured weight/volume: (g, kg, ml, l)
+  if (unit === "g") {
+    return qty <= 50 ? "low_stock" : "in_stock";
+  }
+  if (unit === "kg" || unit === "l") {
+    return qty < 0.2 ? "low_stock" : "in_stock";
+  }
+  if (unit === "ml") {
+    return qty <= 100 ? "low_stock" : "in_stock";
+  }
+
+  // 3. Portions / Scoops: (scoop, scoops, serving, servings)
+  if (["scoop", "scoops", "serving", "servings"].includes(unit)) {
+    return qty <= 2 ? "low_stock" : "in_stock";
+  }
+
+  // 4. Counted individual pieces: (pcs, eggs, bananas, etc.)
+  // Only low when down to the final single piece
+  if (qty <= 1) {
+    return "low_stock";
+  }
+
+  return "in_stock";
+}
+
+/**
+ * Smart, unit-aware stepper increment.
+ * e.g. 50g for grams, 100ml for liquids, 1 for discrete items (scoop, pcs, jar, pack).
+ */
+export function getSmartStep(unit: string): number {
+  const u = (unit || "").toLowerCase().trim();
+  if (u === "g") return 50;
+  if (u === "ml") return 100;
+  if (u === "kg" || u === "l") return 0.25;
+  return 1;
+}
 
 const CATEGORIES = [
   "All",
@@ -57,18 +112,21 @@ const getCategoryColor = (cat: string) => {
 };
 
 const STARTER_STASH: Omit<PantryItem, "id">[] = [
-  { name: "Eggs", category: "Protein", quantity: 6, unit: "pcs", lowStockThreshold: 2 },
-  { name: "Peanut Butter", category: "Snacks", quantity: 1, unit: "jar", lowStockThreshold: 1 },
-  { name: "Rolled Oats", category: "Grains", quantity: 500, unit: "g", lowStockThreshold: 100 },
-  { name: "Whey Protein", category: "Supplements", quantity: 15, unit: "scoops", lowStockThreshold: 5 },
-  { name: "Milk", category: "Dairy", quantity: 2, unit: "packs", lowStockThreshold: 1 },
-  { name: "Bananas", category: "Produce", quantity: 4, unit: "pcs", lowStockThreshold: 2 },
+  { name: "Eggs", category: "Protein", quantity: 6, unit: "pcs" },
+  { name: "Peanut Butter", category: "Snacks", quantity: 1, unit: "jar" },
+  { name: "Rolled Oats", category: "Grains", quantity: 500, unit: "g" },
+  { name: "Whey Protein", category: "Supplements", quantity: 15, unit: "scoops" },
+  { name: "Milk", category: "Dairy", quantity: 2, unit: "packs" },
+  { name: "Bananas", category: "Produce", quantity: 4, unit: "pcs" },
 ];
 
 export default function Pantry() {
   const { currentUser } = useAuth();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Direct quantity editing state
+  const [editingQuantities, setEditingQuantities] = useState<{ [id: string]: string }>({});
   
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +139,6 @@ export default function Pantry() {
   const [newName, setNewName] = useState("");
   const [newQuantity, setNewQuantity] = useState("1");
   const [newUnit, setNewUnit] = useState("pcs");
-  const [newCategory, setNewCategory] = useState("Auto");
 
   // Notification Toast / Message
   const [notification, setNotification] = useState<string | null>(null);
@@ -142,57 +199,120 @@ export default function Pantry() {
     return "Other";
   };
 
+  // Smart Parser for user inputs (e.g. "6 eggs", "500g oats", "peanut butter")
+  const parseItemInput = (raw: string, defaultUnit: string, fallbackQty: number) => {
+    const trimmed = raw.trim();
+    const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|pcs|pc|pack|packs|jar|jars|bottle|bottles|box|boxes|tub|tubs|can|cans|scoop|scoops|serving|servings)?\s*(.+)$/i);
+    
+    if (match) {
+      const parsedQty = parseFloat(match[1]);
+      let parsedUnit = (match[2] || "").toLowerCase();
+      const parsedName = match[3].trim();
+      
+      if (parsedUnit === "pc") parsedUnit = "pcs";
+      if (parsedUnit === "jars") parsedUnit = "jar";
+      if (parsedUnit === "boxes") parsedUnit = "box";
+      if (parsedUnit === "tubs") parsedUnit = "tub";
+      if (parsedUnit === "cans") parsedUnit = "can";
+      if (parsedUnit === "bottles") parsedUnit = "bottle";
+
+      return {
+        name: parsedName || trimmed,
+        quantity: parsedQty || fallbackQty,
+        unit: parsedUnit || defaultUnit
+      };
+    }
+
+    // Natural default unit detection if no unit was given
+    const lower = trimmed.toLowerCase();
+    let autoUnit = defaultUnit;
+    if (lower.includes("peanut butter") || lower.includes("jam") || lower.includes("nutella")) {
+      autoUnit = "jar";
+    } else if (lower.includes("oats") || lower.includes("rice") || lower.includes("flour") || lower.includes("atta")) {
+      autoUnit = "g";
+    } else if (lower.includes("whey") || lower.includes("protein powder")) {
+      autoUnit = "scoops";
+    } else if (lower.includes("milk") || lower.includes("bread")) {
+      autoUnit = "packs";
+    } else if (lower.includes("oil")) {
+      autoUnit = "bottles";
+    }
+
+    return {
+      name: trimmed,
+      quantity: fallbackQty,
+      unit: autoUnit
+    };
+  };
+
   // Add Item Handler
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
-    const parsedQty = Math.max(0, parseFloat(newQuantity) || 1);
-    const category = newCategory === "Auto" ? detectCategory(newName) : newCategory;
+    const fallbackQty = Math.max(0, parseFloat(newQuantity) || 1);
+    const parsed = parseItemInput(newName, newUnit, fallbackQty);
+    const category = detectCategory(parsed.name);
 
     const existingIndex = items.findIndex(
-      i => i.name.toLowerCase() === newName.trim().toLowerCase()
+      i => i.name.toLowerCase() === parsed.name.toLowerCase()
     );
 
     let updated: PantryItem[];
     if (existingIndex >= 0) {
-      // Increase existing item count
       updated = items.map((item, idx) => 
         idx === existingIndex 
-          ? { ...item, quantity: item.quantity + parsedQty, updatedAt: new Date().toISOString() }
+          ? { ...item, quantity: item.quantity + parsed.quantity, updatedAt: new Date().toISOString() }
           : item
       );
-      showNotification(`Added +${parsedQty} ${newUnit} to existing ${items[existingIndex].name}`);
+      showNotification(`Added +${parsed.quantity} ${parsed.unit} to existing ${items[existingIndex].name}`);
     } else {
       const newItem: PantryItem = {
         id: Date.now().toString(),
-        name: newName.trim(),
+        name: parsed.name,
         category,
-        quantity: parsedQty,
-        unit: newUnit,
-        lowStockThreshold: parsedQty <= 2 ? 1 : Math.max(1, Math.floor(parsedQty * 0.2)),
+        quantity: parsed.quantity,
+        unit: parsed.unit,
         updatedAt: new Date().toISOString()
       };
       updated = [newItem, ...items];
-      showNotification(`Added ${newItem.name} (${parsedQty} ${newUnit}) to pantry`);
+      showNotification(`Added ${newItem.name} (${parsed.quantity} ${parsed.unit}) to pantry`);
     }
 
     savePantry(updated);
     setNewName("");
     setNewQuantity("1");
-    setNewCategory("Auto");
   };
 
-  // Adjust Quantity
+  // Adjust Quantity via Steppers
   const handleAdjustQuantity = (id: string, delta: number) => {
     const updated = items.map(item => {
       if (item.id === id) {
-        const nextQty = Math.max(0, item.quantity + delta);
+        const nextQty = Math.max(0, Math.round((item.quantity + delta) * 100) / 100);
         return { ...item, quantity: nextQty, updatedAt: new Date().toISOString() };
       }
       return item;
     });
     savePantry(updated);
+  };
+
+  // Direct Input Quantity Change (while user is typing)
+  const handleQuantityInputChange = (id: string, value: string) => {
+    setEditingQuantities(prev => ({ ...prev, [id]: value }));
+  };
+
+  // Direct Input Quantity Save (on blur or enter)
+  const handleQuantityInputBlur = (id: string) => {
+    const val = editingQuantities[id];
+    if (val === undefined) return;
+    const parsed = Math.max(0, parseFloat(val) || 0);
+    const updated = items.map(item => item.id === id ? { ...item, quantity: parsed, updatedAt: new Date().toISOString() } : item);
+    savePantry(updated);
+    setEditingQuantities(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   // Delete Item
@@ -209,7 +329,6 @@ export default function Pantry() {
       const snap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
       const currentGroceries = snap.exists() ? (snap.data().items || []) : [];
       
-      // Check if already in groceries
       const exists = currentGroceries.some(
         (g: any) => g.name.toLowerCase() === item.name.toLowerCase() && !g.purchased
       );
@@ -241,7 +360,7 @@ export default function Pantry() {
   // Restock All Low Stock to Groceries
   const handleRestockAllLow = async () => {
     if (!currentUser) return;
-    const lowStockItems = items.filter(i => i.quantity <= (i.lowStockThreshold || 1));
+    const lowStockItems = items.filter(i => getStockStatus(i) !== "in_stock");
     if (lowStockItems.length === 0) return;
 
     try {
@@ -292,16 +411,15 @@ export default function Pantry() {
     );
   }
 
-  // Summary Metrics
-  const totalItems = items.length;
-  const lowStockCount = items.filter(i => i.quantity <= (i.lowStockThreshold || 1)).length;
-  const proteinStaplesCount = items.filter(i => i.category === "Protein" || i.category === "Supplements").length;
+  // Summary Metrics (Clean & Accurate)
+  const lowStockCount = items.filter(i => getStockStatus(i) !== "in_stock").length;
+  const proteinCount = items.filter(i => i.category === "Protein" || i.category === "Supplements").length;
 
   // Filtered & Sorted Items
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
-    const matchesLowStock = filterLowStockOnly ? item.quantity <= (item.lowStockThreshold || 1) : true;
+    const matchesLowStock = filterLowStockOnly ? getStockStatus(item) !== "in_stock" : true;
     return matchesSearch && matchesCategory && matchesLowStock;
   });
 
@@ -318,7 +436,7 @@ export default function Pantry() {
   });
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-28 md:pb-8">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-28 md:pb-8">
       
       {/* Toast Notification */}
       {notification && (
@@ -339,278 +457,206 @@ export default function Pantry() {
             Dorm Pantry
           </h1>
           <p className="text-sm font-normal text-white/45 mt-1.5">
-            Keep track of what's stocked in your room to plan meals and prevent over-buying.
+            Track room stock and protein staples in real time.
           </p>
         </div>
 
-        {/* Header Actions */}
+        {/* Clean Header Action Pills */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             to="/app/cook"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 text-orange-300 text-xs font-bold uppercase tracking-wider hover:bg-orange-500/30 transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm"
           >
             <ChefHat className="w-3.5 h-3.5 text-orange-400" />
-            <span>Cook with Compass</span>
+            <span>Cook AI</span>
           </Link>
           <Link
             to="/app/groceries"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
-            <span>Groceries</span>
+            <span>Shopping List</span>
           </Link>
         </div>
       </div>
 
-      {/* Top Bento Metrics (3 cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      {/* Compact Minimal Metric Ribbon & Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-0.5">
         
-        {/* Card 1: Total Stash */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[10px] font-bold tracking-widest uppercase">Stocked Items</span>
-            <div className="w-7 h-7 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-              <Package className="w-3.5 h-3.5 text-white/70" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-extrabold text-white tracking-tightest font-sans">
-              {totalItems}
-            </div>
-            <p className="text-[11px] text-white/40 mt-1">Available in dorm stash</p>
-          </div>
+        {/* Metric Badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-semibold text-white/70">
+            <strong className="text-white font-sans">{items.length}</strong> items in stash
+          </span>
+          <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-xs font-semibold text-orange-400">
+            <strong className="text-orange-300 font-sans">{proteinCount}</strong> protein staples
+          </span>
+          {lowStockCount > 0 ? (
+            <button
+              onClick={handleRestockAllLow}
+              className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
+            >
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <span>{lowStockCount} {lowStockCount === 1 ? "item" : "items"} low • Restock to Groceries</span>
+            </button>
+          ) : (
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
+              All staples stocked
+            </span>
+          )}
         </div>
 
-        {/* Card 2: Low Stock Warning */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[10px] font-bold tracking-widest uppercase">Low Stock Alert</span>
-            <div className="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-extrabold tracking-tightest font-sans ${lowStockCount > 0 ? "text-amber-400" : "text-white"}`}>
-                {lowStockCount}
-              </span>
-              {lowStockCount > 0 && (
-                <button
-                  onClick={handleRestockAllLow}
-                  className="text-[10px] font-bold text-amber-300 hover:text-amber-200 underline uppercase tracking-wider"
-                >
-                  Restock All
-                </button>
-              )}
-            </div>
-            <p className="text-[11px] text-white/40 mt-1">
-              {lowStockCount === 0 ? "All items sufficiently stocked" : "Items needing restock"}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3: High-Protein Staples */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-white/40 mb-3">
-            <span className="text-[10px] font-bold tracking-widest uppercase">Protein Staples</span>
-            <div className="w-7 h-7 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-extrabold text-orange-400 tracking-tightest font-sans">
-              {proteinStaplesCount}
-            </div>
-            <p className="text-[11px] text-white/40 mt-1">Protein & supplement staples</p>
-          </div>
+        {/* Compact Search Bar */}
+        <div className="relative min-w-[200px]">
+          <Search className="w-3.5 h-3.5 text-white/35 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Filter stash..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-52 h-8 pl-8 pr-3 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+          />
         </div>
 
       </div>
 
-      {/* Quick Add Bento Dock */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 shadow-2xl">
-        <div className="text-xs font-bold text-white tracking-tight uppercase mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Plus className="w-3.5 h-3.5 text-orange-400" />
-            Quick Add To Stash
-          </span>
-          <span className="text-[10px] font-semibold text-white/30 lowercase">
-            auto-categorizes smart foods
-          </span>
-        </div>
+      {/* Category Pills Strip */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+        {CATEGORIES.map(category => (
+          <button
+            key={category}
+            onClick={() => setActiveCategory(category)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all ${
+              activeCategory === category
+                ? "bg-white text-black font-bold shadow-sm"
+                : "bg-white/[0.02] text-white/45 hover:text-white border border-white/[0.05]"
+            }`}
+          >
+            {category}
+          </button>
+        ))}
+        {lowStockCount > 0 && (
+          <button
+            onClick={() => setFilterLowStockOnly(!filterLowStockOnly)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 border transition-all flex items-center gap-1 ${
+              filterLowStockOnly
+                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white"
+            }`}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            <span>Low Stock ({lowStockCount})</span>
+          </button>
+        )}
+      </div>
 
-        <form onSubmit={handleAddItem} className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-          {/* Item Name */}
-          <div className="sm:col-span-5 relative">
-            <input
-              type="text"
-              placeholder="Item name (e.g. Eggs, Whey, Greek Yogurt, Oats)..."
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
-            />
+      {/* Main Pantry Table Bento Container with Integrated Quick-Add Row */}
+      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
+        
+        {/* Streamlined Quick Add Row (Identical Clean UX to Groceries.tsx) */}
+        <form onSubmit={handleAddItem} className="flex items-center px-4 md:px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
+            <Plus className="w-4 h-4 text-white/60" />
           </div>
+          
+          {/* Main Item Name Input */}
+          <input
+            type="text"
+            placeholder="Add to stash (e.g. 6 Eggs, Peanut Butter, 500g Oats, Greek Yogurt)..."
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="flex-1 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30 min-w-0"
+          />
 
-          {/* Quantity */}
-          <div className="sm:col-span-2">
+          {/* Compact Inline Qty Box */}
+          <div className="hidden sm:flex items-center gap-1 shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-1">
+            <span className="text-[10px] text-white/35 font-semibold uppercase">Qty</span>
             <input
               type="number"
               step="any"
               min="0"
-              placeholder="Qty"
               value={newQuantity}
               onChange={(e) => setNewQuantity(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs font-semibold text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+              className="w-10 bg-transparent border-none text-center text-xs font-bold text-white focus:outline-none"
             />
           </div>
 
-          {/* Unit Selector */}
-          <div className="sm:col-span-2">
+          {/* Tight Custom Unit Dropdown (Chevron tightly hugs label, NO wide empty gap) */}
+          <div className="relative shrink-0 flex items-center">
             <select
               value={newUnit}
               onChange={(e) => setNewUnit(e.target.value)}
-              className="w-full h-11 px-3 rounded-2xl bg-[#171a20] border border-white/[0.08] text-xs font-medium text-white focus:outline-none focus:border-white/20 transition-all cursor-pointer"
+              className="appearance-none bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-white/80 text-xs font-semibold rounded-xl pl-2.5 pr-6 py-1.5 focus:outline-none cursor-pointer transition-colors"
             >
-              <option value="pcs">pcs</option>
-              <option value="scoops">scoops</option>
-              <option value="servings">servings</option>
-              <option value="packs">packs</option>
-              <option value="jar">jar</option>
-              <option value="g">g</option>
-              <option value="kg">kg</option>
-              <option value="ml">ml</option>
-              <option value="bottles">bottles</option>
+              <option value="pcs" className="bg-[#171a20]">pcs</option>
+              <option value="jar" className="bg-[#171a20]">jar</option>
+              <option value="packs" className="bg-[#171a20]">packs</option>
+              <option value="g" className="bg-[#171a20]">g</option>
+              <option value="scoops" className="bg-[#171a20]">scoops</option>
+              <option value="bottles" className="bg-[#171a20]">bottles</option>
+              <option value="servings" className="bg-[#171a20]">servings</option>
             </select>
-          </div>
-
-          {/* Category Selector */}
-          <div className="sm:col-span-2">
-            <select
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full h-11 px-3 rounded-2xl bg-[#171a20] border border-white/[0.08] text-xs font-medium text-white focus:outline-none focus:border-white/20 transition-all cursor-pointer"
-            >
-              <option value="Auto">Auto Detect</option>
-              {CATEGORIES.filter(c => c !== "All").map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <ChevronDown className="w-3 h-3 text-white/40 absolute right-2 pointer-events-none" />
           </div>
 
           {/* Submit Button */}
-          <div className="sm:col-span-1">
-            <button
-              type="submit"
-              disabled={!newName.trim()}
-              className="w-full h-11 rounded-2xl bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all flex items-center justify-center shadow-sm"
-              title="Add item"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!newName.trim()}
+            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
+          >
+            Add
+          </button>
         </form>
-      </div>
 
-      {/* Filter, Search & Category Chips */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* Table Column Sorting Header */}
+        <div className="grid grid-cols-[1fr_110px_160px_65px] md:grid-cols-[1fr_150px_170px_80px] items-center px-5 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
+          <button 
+            onClick={() => {
+              if (sortBy === "name") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+              else { setSortBy("name"); setSortOrder("asc"); }
+            }}
+            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+          >
+            <span>Item</span>
+            {sortBy === "name" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
           
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-3.5 h-3.5 text-white/35 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search pantry items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
-            />
-          </div>
+          <button 
+            onClick={() => {
+              if (sortBy === "category") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+              else { setSortBy("category"); setSortOrder("asc"); }
+            }}
+            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+          >
+            <span>Category</span>
+            {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
 
-          {/* Low Stock Toggle & Sorters */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFilterLowStockOnly(!filterLowStockOnly)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${
-                filterLowStockOnly
-                  ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
-                  : "bg-white/[0.02] border-white/[0.08] text-white/50 hover:text-white"
-              }`}
-            >
-              <AlertTriangle className="w-3 h-3" />
-              <span>Low Stock Only</span>
-            </button>
-
-            {/* Sort Toggle */}
-            <button
-              onClick={() => {
-                if (sortBy === "name") setSortBy("quantity");
-                else if (sortBy === "quantity") setSortBy("category");
-                else setSortBy("name");
-              }}
-              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.02] border border-white/[0.08] text-white/60 hover:text-white transition-all flex items-center gap-1"
-            >
-              <span>Sort: {sortBy}</span>
-            </button>
-            <button
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-              className="w-8 h-8 rounded-full bg-white/[0.02] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white transition-all"
-              title="Toggle sort direction"
-            >
-              {sortOrder === "asc" ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {CATEGORIES.map(category => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all ${
-                activeCategory === category
-                  ? "bg-white text-black font-bold shadow-sm"
-                  : "bg-white/[0.03] text-white/50 hover:text-white border border-white/[0.06]"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Pantry List / Table Container */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
-        
-        {/* Table Header */}
-        <div className="grid grid-cols-[1fr_130px_150px_90px] md:grid-cols-[1fr_180px_170px_110px] items-center px-5 py-3.5 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
-          <div>Item Name</div>
-          <div>Category</div>
           <div className="text-center">In Stash</div>
-          <div className="text-right">Actions</div>
+          <div className="text-right pr-2">Actions</div>
         </div>
 
-        {/* Items Rows */}
+        {/* Table Body */}
         <div className="flex flex-col divide-y divide-white/[0.04]">
           {sortedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-              <div className="w-14 h-14 rounded-3xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-3">
-                <Package className="w-7 h-7 text-white/30" />
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-3">
+                <Package className="w-6 h-6 text-white/30" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-1">
+              <h3 className="text-xs font-bold text-white mb-1">
                 {items.length === 0 ? "Your dorm pantry is empty" : "No matching items found"}
               </h3>
-              <p className="text-xs text-white/40 max-w-sm mb-5">
+              <p className="text-[11px] text-white/40 max-w-sm mb-4">
                 {items.length === 0
                   ? "Track staples like eggs, oats, and protein powder to get AI hostel recipes."
-                  : "Try clearing your filters or search terms."}
+                  : "Try clearing your filter or search."}
               </p>
 
               {items.length === 0 && (
                 <button
                   onClick={handleLoadStarterStash}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-orange-600" />
                   <span>Load Starter Dorm Stash</span>
@@ -619,66 +665,86 @@ export default function Pantry() {
             </div>
           ) : (
             sortedItems.map(item => {
-              const isLow = item.quantity <= (item.lowStockThreshold || 1);
+              const status = getStockStatus(item);
+              const isLow = status === "low_stock";
+              const isDepleted = status === "depleted";
+              const step = getSmartStep(item.unit);
+
               return (
                 <div
                   key={item.id}
-                  className={`grid grid-cols-[1fr_130px_150px_90px] md:grid-cols-[1fr_180px_170px_110px] items-center px-5 py-3.5 transition-colors hover:bg-white/[0.02] ${
-                    isLow ? "bg-amber-500/[0.02]" : ""
+                  className={`grid grid-cols-[1fr_110px_160px_65px] md:grid-cols-[1fr_150px_170px_80px] items-center px-5 min-h-[50px] transition-colors hover:bg-white/[0.02] ${
+                    isDepleted ? "bg-rose-500/[0.02] opacity-60" : isLow ? "bg-amber-500/[0.02]" : ""
                   }`}
                 >
-                  {/* Name & Low Warning */}
-                  <div className="min-w-0 pr-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs md:text-sm font-semibold text-white truncate font-sans">
-                        {item.name}
+                  {/* Name Col */}
+                  <div className="min-w-0 pr-3 flex items-center gap-2">
+                    <span className="text-xs md:text-sm font-semibold text-white truncate font-sans">
+                      {item.name}
+                    </span>
+                    {isLow && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[9px] font-bold text-amber-400 uppercase tracking-wider shrink-0">
+                        Low Stock
                       </span>
-                      {isLow && (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[9px] font-bold text-amber-400 uppercase tracking-wider shrink-0">
-                          {item.quantity === 0 ? "Depleted" : "Low Stock"}
-                        </span>
-                      )}
-                    </div>
+                    )}
+                    {isDepleted && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-[9px] font-bold text-rose-400 uppercase tracking-wider shrink-0">
+                        Depleted
+                      </span>
+                    )}
                   </div>
 
-                  {/* Category Badge */}
+                  {/* Category Col */}
                   <div>
                     <span className={`px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border ${getCategoryColor(item.category)}`}>
                       {item.category}
                     </span>
                   </div>
 
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center justify-center gap-2">
+                  {/* Quantity Stepper & Direct Editable Input */}
+                  <div className="flex items-center justify-center gap-1.5">
                     <button
-                      onClick={() => handleAdjustQuantity(item.id, -1)}
-                      className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all"
-                      title="Decrease quantity"
+                      onClick={() => handleAdjustQuantity(item.id, -step)}
+                      className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0"
+                      title={`Decrease by ${step} ${item.unit}`}
                     >
                       <Minus className="w-3 h-3" />
                     </button>
 
-                    <div className="min-w-[56px] text-center">
-                      <span className={`text-xs md:text-sm font-bold tracking-tight font-sans ${isLow ? "text-amber-400" : "text-white"}`}>
-                        {item.quantity}
-                      </span>
-                      <span className="text-[10px] text-white/40 ml-1 font-medium">
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        step={step}
+                        min="0"
+                        value={editingQuantities[item.id] !== undefined ? editingQuantities[item.id] : item.quantity}
+                        onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                        onBlur={() => handleQuantityInputBlur(item.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className={`h-7 px-1 text-center font-bold text-xs md:text-sm bg-white/[0.04] border border-white/[0.08] focus:border-white/40 focus:bg-white/[0.08] rounded-lg outline-none transition-all ${
+                          (item.unit === "g" || item.unit === "ml") ? "w-16" : "w-11"
+                        } ${isDepleted ? "text-rose-400" : isLow ? "text-amber-400" : "text-white"}`}
+                        title="Click to directly type quantity"
+                      />
+                      <span className="text-[10px] text-white/40 ml-1.5 font-medium min-w-[24px] text-left">
                         {item.unit}
                       </span>
                     </div>
 
                     <button
-                      onClick={() => handleAdjustQuantity(item.id, 1)}
-                      className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all"
-                      title="Increase quantity"
+                      onClick={() => handleAdjustQuantity(item.id, step)}
+                      className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0"
+                      title={`Increase by ${step} ${item.unit}`}
                     >
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
 
-                  {/* Quick Action Icons */}
-                  <div className="flex items-center justify-end gap-1.5">
-                    {/* Add to Groceries */}
+                  {/* Action Col */}
+                  <div className="flex items-center justify-end gap-1.5 pr-2">
                     <button
                       onClick={() => handleAddToGroceries(item)}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"
@@ -687,7 +753,6 @@ export default function Pantry() {
                       <ShoppingCart className="w-3.5 h-3.5" />
                     </button>
 
-                    {/* Delete */}
                     <button
                       onClick={() => handleDeleteItem(item.id)}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
@@ -704,30 +769,6 @@ export default function Pantry() {
         </div>
 
       </div>
-
-      {/* Dorm Chef Helper Banner */}
-      {items.length > 0 && (
-        <div className="rounded-3xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-500/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center shrink-0">
-              <ChefHat className="w-5 h-5 text-orange-400" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Ready to make something?</h4>
-              <p className="text-xs text-white/50 mt-0.5">
-                Generate 3 high-protein hostel recipes using ingredients you currently have in this stash.
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/app/cook"
-            className="px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 shadow-md"
-          >
-            <span>Cook with Compass</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
 
     </div>
   );
