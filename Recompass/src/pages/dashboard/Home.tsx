@@ -78,8 +78,24 @@ function AppleRing({
   const endY = (cy - radius * Math.cos(overfillAngle)).toFixed(2);
   const largeArc = overfillAngle > Math.PI ? 1 : 0;
 
+  const clipId = `ring-track-clip-${shadowId}-${radius}`;
+
   return (
     <g>
+      <defs>
+        {/* Clip path strictly masking shadow inside this ring's channel */}
+        <clipPath id={clipId}>
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            stroke="#ffffff"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+        </clipPath>
+      </defs>
+
       {/* 1. Background Groove Track */}
       <circle
         cx={cx}
@@ -88,7 +104,7 @@ function AppleRing({
         stroke={trackColor}
         strokeWidth={strokeWidth}
         fill="none"
-        opacity={0.3}
+        opacity={0.35}
       />
 
       {/* 2. Base Lap (0 - 100%) */}
@@ -108,7 +124,26 @@ function AppleRing({
         }}
       />
 
-      {/* 3. Overfill Arc (> 100%) - Sweeps clockwise from 12 o'clock (cx, cy-radius) to (endX, endY) */}
+      {/* 3. Authentic Apple Overfill Shadow:
+             - Placed UNDER the overfill cap/arc so it only peeks out BEHIND the cap onto the base ring.
+             - Clipped strictly to this ring's stroke channel so ZERO shadow bleeds outside the ring or into adjacent rings.
+             - 12 o'clock has ZERO shadow.
+             - When ratio === 1.0: sits at 12 o'clock under the 100% goal cap. */}
+      {clampedRatio >= 1.0 && !loading && (
+        <g clipPath={`url(#${clipId})`}>
+          <circle
+            cx={parseFloat(endX)}
+            cy={parseFloat(endY)}
+            r={strokeWidth / 2 + 3}
+            fill="#000000"
+            filter={`url(#${shadowId})`}
+          />
+        </g>
+      )}
+
+      {/* 4. Overfill Arc (> 100%):
+             - Sweeps clockwise from 12 o'clock (cx, cy-radius) to (endX, endY).
+             - Starts with strokeLinecap="butt" flush with the base ring at 12 o'clock (100% seamless, zero starting cap). */}
       {hasOverfill && !loading && (
         <path
           d={`M ${cx} ${cy - radius} A ${radius} ${radius} 0 ${largeArc} 1 ${endX} ${endY}`}
@@ -119,17 +154,16 @@ function AppleRing({
         />
       )}
 
-      {/* 4. Leading Rounded Cap with Drop Shadow:
-             - Exactly matching Apple Watch reference (Image 2) & 100% goal (Image 4)
-             - Rounds off the overfill arc at (endX, endY) and casts authentic drop shadow onto underlying track.
-             - When ratio === 1.0: Sits at 12 o'clock with soft shadow. */}
+      {/* 5. Leading Round Cap (Solid on top of shadow):
+             - Seamlessly rounds off the overfill arc at (endX, endY).
+             - Has NO filter on itself, so it never renders as a floating button/marble/dot!
+             - When ratio === 1.0: Sits at 12 o'clock casting shadow on starting point (100% goal met). */}
       {clampedRatio >= 1.0 && !loading && (
         <circle
           cx={parseFloat(endX)}
           cy={parseFloat(endY)}
           r={strokeWidth / 2}
           fill={color}
-          filter={`url(#${shadowId})`}
         />
       )}
     </g>
@@ -216,23 +250,23 @@ export default function Home() {
     : null;
 
   const macroItems = [
-    { key: "calories", label: "Calories", color: "#FF5C38", current: Math.round(logged.calories), target: targets.calories, unit: " kcal" },
-    { key: "protein",  label: "Protein",  color: "#00E599", current: Math.round(logged.protein),  target: targets.protein,  unit: "g" },
-    { key: "carbs",    label: "Carbs",    color: "#38BDF8", current: Math.round(logged.carbs),    target: targets.carbs,    unit: "g" },
-    { key: "fats",     label: "Fats",     color: "#FBBF24", current: Math.round(logged.fats),     target: targets.fats,     unit: "g" },
+    { key: "calories", label: "Calories", color: "#FF5C38", current: Math.round(logged.calories), target: targets.calories, unit: " kcal", unitShort: "" },
+    { key: "protein",  label: "Protein",  color: "#00E599", current: Math.round(logged.protein),  target: targets.protein,  unit: "g", unitShort: "g" },
+    { key: "carbs",    label: "Carbs",    color: "#38BDF8", current: Math.round(logged.carbs),    target: targets.carbs,    unit: "g", unitShort: "g" },
+    { key: "fats",     label: "Fats",     color: "#FBBF24", current: Math.round(logged.fats),     target: targets.fats,     unit: "g", unitShort: "g" },
   ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-20 md:pb-8 w-full min-w-0">
 
       {/* Editorial Header (Balanced layout that never clips on small screens) */}
-      <header className="space-y-1.5 w-full">
-        <div className="flex items-center justify-between gap-2">
+      <header className="space-y-1.5 w-full min-w-0">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#121418] border border-white/[0.08] text-[9px] md:text-[10px] font-bold tracking-widest uppercase text-white/60">
             <Sparkles className="w-2.5 h-2.5 text-white/50" />
             <span>Today's Overview</span>
           </div>
-          <div className="px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-medium text-white/60 shrink-0">
+          <div className="px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] sm:text-[11px] font-medium text-white/60">
             {remaining.calories > 0 ? (
               <>Remaining: <span className="text-white font-bold">{Math.round(remaining.calories)}</span> kcal</>
             ) : (
@@ -297,9 +331,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* 1. Mobile Unified Nutrition Card (Fits seamlessly without cutoff on any device) */}
-      <section className="block md:hidden rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.08] p-3 sm:p-4 shadow-lg overflow-hidden w-full">
-        <div className="flex items-center justify-between mb-3">
+      {/* 1. Mobile Unified Nutrition Card (Zero Cutoff Across Any Phone Display) */}
+      <section className="block md:hidden rounded-2xl bg-[#121418] border border-white/[0.08] p-3.5 shadow-lg w-full min-w-0">
+        <div className="flex items-center justify-between mb-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Nutrition Rings</span>
           {budgetDiff > 0 ? (
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-rose-500/15 text-rose-300 border border-rose-500/25">
@@ -312,13 +346,19 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2.5 sm:gap-3.5">
-          {/* Concentric Rings Viewport */}
-          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
+        <div className="flex items-center gap-2.5 sm:gap-3.5">
+          {/* Concentric Rings Viewport: Sized 96px (w-24 h-24) to guarantee zero mobile clipping */}
+          <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
             <svg viewBox="0 0 200 200" className="w-full h-full overflow-visible">
               <defs>
-                <filter id="apple-ring-shadow-mobile" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
+                <filter id="apple-ring-shadow-mobile" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                  <feOffset dx="0" dy="1.5" result="offsetblur" />
+                  <feFlood floodColor="#000000" floodOpacity="0.95" />
+                  <feComposite in2="offsetblur" operator="in" />
+                  <feMerge>
+                    <feMergeNode />
+                  </feMerge>
                 </filter>
               </defs>
               <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-mobile" loading={loading} />
@@ -328,25 +368,25 @@ export default function Home() {
             </svg>
 
             {/* Clean Dark Center Void */}
-            <div className="absolute w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0d0f12] border border-white/[0.06] flex items-center justify-center pointer-events-none shadow-inner" />
+            <div className="absolute w-6 h-6 rounded-full bg-[#0d0f12] border border-white/[0.06] flex items-center justify-center pointer-events-none shadow-inner" />
           </div>
 
-          {/* Daily Intake: Same clean design as desktop, scaled for mobile */}
-          <div className="flex-1 space-y-1.5 min-w-0">
+          {/* Daily Intake: Same clean design as desktop, scaled for mobile with reduced spacing */}
+          <div className="flex-1 space-y-1 min-w-0">
             {macroItems.map(item => {
               const pct = Math.round((item.current / item.target) * 100);
               const isOver = item.current >= item.target;
               return (
-                <div key={item.key} className="flex items-center justify-between p-1.5 sm:p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <div key={item.key} className="flex items-center justify-between py-1 px-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="text-white/80 font-medium text-[11px] truncate">{item.label}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px] sm:text-[11px]">
                     <div>
                       <span className="font-bold text-white">{item.current}</span>
-                      <span className="text-white/40 text-[9px]">/{item.target}{item.unit}</span>
+                      <span className="text-white/40 text-[9px]">/{item.target}{item.unitShort}</span>
                     </div>
                     <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                       isOver ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[0.04] text-white/50"
@@ -373,8 +413,14 @@ export default function Home() {
           <div className="relative w-48 h-48 my-3 flex items-center justify-center">
             <svg viewBox="0 0 200 200" className="w-48 h-48 overflow-visible">
               <defs>
-                <filter id="apple-ring-shadow-desktop" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.85" />
+                <filter id="apple-ring-shadow-desktop" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" />
+                  <feOffset dx="0" dy="1.5" result="offsetblur" />
+                  <feFlood floodColor="#000000" floodOpacity="0.95" />
+                  <feComposite in2="offsetblur" operator="in" />
+                  <feMerge>
+                    <feMergeNode />
+                  </feMerge>
                 </filter>
               </defs>
               <AppleRing cx={100} cy={100} radius={82} strokeWidth={14} ratio={caloriesRatio} color="#FF5C38" trackColor="#3a140d" shadowId="apple-ring-shadow-desktop" loading={loading} />
