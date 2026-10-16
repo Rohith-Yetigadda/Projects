@@ -55,25 +55,38 @@ export function AppleActivityRing({
         style={{ transform: "translateZ(0)" }}
       >
         <defs>
-          {rings.map((_, idx) => {
+          {rings.map((ring, idx) => {
             const shadowFilterId = `ring-shadow-${compId}-${idx}`;
+            const gradId = `ring-grad-${compId}-${idx}`;
             return (
-              <filter
-                key={shadowFilterId}
-                id={shadowFilterId}
-                x="-100%"
-                y="-100%"
-                width="300%"
-                height="300%"
-              >
-                <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
-                <feOffset dx="0" dy="0" result="offset" />
-                <feFlood floodColor="#000000" floodOpacity="0.95" result="color" />
-                <feComposite in="color" in2="offset" operator="in" result="shadow" />
-                <feMerge>
-                  <feMergeNode in="shadow" />
-                </feMerge>
-              </filter>
+              <React.Fragment key={idx}>
+                <linearGradient
+                  id={gradId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor={ring.gradientStart || "#FF2D55"} />
+                  <stop offset="100%" stopColor={ring.gradientEnd || ring.gradientStart || "#FF2D55"} />
+                </linearGradient>
+
+                <filter
+                  id={shadowFilterId}
+                  x="-100%"
+                  y="-100%"
+                  width="300%"
+                  height="300%"
+                >
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3.2" result="blur" />
+                  <feOffset dx="0" dy="0" result="offset" />
+                  <feFlood floodColor="#000000" floodOpacity="0.95" result="color" />
+                  <feComposite in="color" in2="offset" operator="in" result="shadow" />
+                  <feMerge>
+                    <feMergeNode in="shadow" />
+                  </feMerge>
+                </filter>
+              </React.Fragment>
             );
           })}
         </defs>
@@ -93,8 +106,8 @@ export function AppleActivityRing({
 
           const clipId = `ring-annular-clip-${compId}-${idx}`;
           const shadowFilterId = `url(#ring-shadow-${compId}-${idx})`;
+          const gradUrl = `url(#ring-grad-${compId}-${idx})`;
           const ringColor = ring.gradientStart || "#FF2D55";
-          const endColor = ring.gradientEnd || ringColor;
 
           // Annular track boundaries (ensures shadow strictly hugs the track without bleeding)
           const outerR = radius + strokeWidth / 2;
@@ -117,9 +130,13 @@ export function AppleActivityRing({
           const shadowX = center + radius * Math.sin(arcBackAngle);
           const shadowY = center - radius * Math.cos(arcBackAngle);
 
-          // Overfill Arc SVG Path from 12 o'clock clockwise to (tipX, tipY)
-          const largeArcFlag = overfillAngle > Math.PI ? 1 : 0;
-          const overfillArcPath = `M ${center} ${center - radius} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${tipX.toFixed(2)} ${tipY.toFixed(2)}`;
+          // Overlap Cushion: Backtrack the start of the overfill path slightly (-0.08 rad)
+          // to completely cover the 12 o'clock seam, eliminating any pinch or gap
+          const backtrackAngle = -0.08;
+          const startX = center + radius * Math.sin(backtrackAngle);
+          const startY = center - radius * Math.cos(backtrackAngle);
+          const largeArcFlag = overfillAngle - backtrackAngle > Math.PI ? 1 : 0;
+          const overfillArcPath = `M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${tipX.toFixed(2)} ${tipY.toFixed(2)}`;
 
           // 12 o'clock position for authentic Apple Watch arrow glyphs
           const arrowY = center - radius;
@@ -143,13 +160,14 @@ export function AppleActivityRing({
               />
 
               {/* 2. Base Lap (0% to 100%) */}
+              {/* Conditional linecap: when overfilled, drop the round cap so the base is a completely solid, uniform ring under the second lap */}
               <circle
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={ringColor}
+                stroke={gradUrl}
                 strokeWidth={strokeWidth}
-                strokeLinecap="round"
+                strokeLinecap={hasOverfill ? "butt" : "round"}
                 fill="none"
                 strokeDasharray={circumference}
                 strokeDashoffset={
@@ -186,12 +204,11 @@ export function AppleActivityRing({
 
               {/* 4. Overfill Lap (> 100%) */}
               {/* Rendered directly on top of the shadow with strokeLinecap="round". */}
-              {/* The advancing round cap terminates at (tipX, tipY), casting the shadow behind it. */}
-              {/* ZERO separate dot stickers! Smooth continuous Apple Watch ribbon geometry. */}
+              {/* Starts from startX/startY (-0.08 rad) to mask 12 o'clock, ending at tipX/tipY */}
               {hasOverfill && !loading && (
                 <path
                   d={overfillArcPath}
-                  stroke={endColor}
+                  stroke={gradUrl}
                   strokeWidth={strokeWidth}
                   strokeLinecap="round"
                   fill="none"
