@@ -10,6 +10,7 @@ import { cleanFoodName } from "./DailyLog";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
+  getMacroStatusCue,
   type RingData
 } from "@/components/ui/AppleActivityRing";
 
@@ -373,27 +374,26 @@ export default function Home() {
             />
           </div>
 
-          {/* Daily Intake: Sleek Rows with Tabular Typography */}
-          <div className="flex-1 space-y-1 min-w-0">
+          {/* Daily Intake: Sleek Rows with Tabular Typography & Intelligent Cues */}
+          <div className="flex-1 space-y-1.5 min-w-0">
             {macroItems.map(item => {
-              const pct = Math.round((item.current / (item.target || 1)) * 100);
-              const isOver = item.current >= item.target;
+              const cue = getMacroStatusCue(item.key, item.current, item.target);
               return (
-                <div key={item.key} className="flex items-center justify-between py-1 px-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <div key={item.key} className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="text-white/80 font-medium text-[11px] truncate">{item.label}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px] sm:text-[11px] tabular-nums">
+                  <div className="flex items-center gap-2 shrink-0 font-mono text-[10px] sm:text-[11px] tabular-nums">
                     <div>
                       <span className="font-bold text-white">{item.current}</span>
                       <span className="text-white/40 text-[9px]">/{item.target}{item.unitShort}</span>
                     </div>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                      isOver ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[0.04] text-white/50"
-                    }`}>
-                      {pct}%
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${cue.colorClasses}`}>
+                      <span className="font-sans">{cue.arrow}</span>
+                      <span>{cue.pct}%</span>
+                      <span className="text-[8px] font-sans font-medium uppercase tracking-wider opacity-90 ml-0.5">{cue.shortCue}</span>
                     </span>
                   </div>
                 </div>
@@ -441,11 +441,10 @@ export default function Home() {
             )}
           </div>
 
-          {/* 4 Sleek Metric Rows */}
+          {/* 4 Sleek Metric Rows with Intelligent Status Cues */}
           <div className="space-y-2">
             {macroItems.map(item => {
-              const pct = Math.round((item.current / (item.target || 1)) * 100);
-              const isOver = item.current >= item.target;
+              const cue = getMacroStatusCue(item.key, item.current, item.target);
               return (
                 <div key={item.key} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
@@ -458,10 +457,10 @@ export default function Home() {
                       <span className="text-sm font-bold text-white">{item.current}</span>
                       <span className="text-xs text-white/40"> / {item.target}{item.unit}</span>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg min-w-[48px] text-center ${
-                      isOver ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" : "bg-white/[0.04] text-white/60 border border-white/[0.06]"
-                    }`}>
-                      {pct}%
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg min-w-[80px] flex items-center justify-center gap-1.5 ${cue.colorClasses}`}>
+                      <span className="text-sm font-sans">{cue.arrow}</span>
+                      <span>{cue.pct}%</span>
+                      <span className="font-sans font-semibold text-[10px] uppercase tracking-wider opacity-90 ml-0.5">{cue.label}</span>
                     </span>
                   </div>
                 </div>

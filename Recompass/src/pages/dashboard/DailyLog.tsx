@@ -9,6 +9,7 @@ import { getLocalDateStr } from "@/lib/dateUtils";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
+  getMacroStatusCue,
   type RingData
 } from "@/components/ui/AppleActivityRing";
 
@@ -1715,22 +1716,26 @@ export default function DailyLog() {
             {/* Micro Macro Bars */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
-                { label: "Protein", current: totals.protein, target: targets.protein, color: "text-orange-400", bar: "bg-orange-400" },
-                { label: "Carbs",   current: totals.carbs,   target: targets.carbs,   color: "text-emerald-400", bar: "bg-emerald-400" },
-                { label: "Fats",    current: totals.fats,    target: targets.fats,    color: "text-blue-400",    bar: "bg-blue-400" },
+                { key: "protein", label: "Protein", current: totals.protein, target: targets.protein, color: "text-orange-400", bar: "bg-orange-400" },
+                { key: "carbs",   label: "Carbs",   current: totals.carbs,   target: targets.carbs,   color: "text-emerald-400", bar: "bg-emerald-400" },
+                { key: "fats",    label: "Fats",    current: totals.fats,    target: targets.fats,    color: "text-blue-400",    bar: "bg-blue-400" },
               ].map(m => {
-                const pct = Math.min(100, Math.round((m.current / Math.max(1, m.target)) * 100));
+                const cue = getMacroStatusCue(m.key, m.current, m.target);
+                const barWidth = Math.min(100, cue.pct);
                 return (
                   <div key={m.label} className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2.5 space-y-1.5">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-white/40 uppercase tracking-wider font-bold text-[9px]">{m.label}</span>
-                      <span className="text-[9px] font-mono text-white/40">{pct}%</span>
+                      <span className={`text-[9px] font-mono font-bold flex items-center gap-0.5 px-1.5 py-0.2 rounded-md ${cue.colorClasses}`}>
+                        <span>{cue.arrow}</span>
+                        <span>{cue.pct}%</span>
+                      </span>
                     </div>
                     <p className={`text-sm sm:text-base font-extrabold font-sans tabular-nums ${m.color}`}>
                       {Math.round(m.current)}<span className="text-[10px] font-normal text-white/40">/{m.target}g</span>
                     </p>
                     <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${barWidth}%` }} />
                     </div>
                   </div>
                 );
