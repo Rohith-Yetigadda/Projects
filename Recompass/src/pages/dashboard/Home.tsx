@@ -125,7 +125,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <div className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white/60">
             {remaining.calories > 0 ? (
-              <>Remaining: <span className="text-white font-mono font-semibold">{Math.round(remaining.calories)}</span> kcal</>
+              <>Remaining: <span className="text-white font-sans font-bold">{Math.round(remaining.calories)}</span> kcal</>
             ) : (
               <span className="text-emerald-400 font-semibold">Calorie target completed</span>
             )}
@@ -187,7 +187,7 @@ export default function Home() {
         <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-white/[0.12] transition-all">
           <div className="w-full flex items-center justify-between mb-4">
             <span className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">Energy Intake</span>
-            <span className="text-[11px] font-mono text-white/40">{Math.round(caloriePercent)}%</span>
+            <span className="text-xs font-sans font-bold text-white/40">{Math.round(caloriePercent)}%</span>
           </div>
 
           <div className="relative flex items-center justify-center my-3">
@@ -214,10 +214,10 @@ export default function Home() {
             </svg>
             
             <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-3xl md:text-4xl font-bold font-mono text-white tracking-tight tabular-nums">
+              <span className="text-4xl md:text-5xl font-extrabold font-sans text-white tracking-tightest">
                 {Math.round(logged.calories)}
               </span>
-              <span className="text-[11px] font-medium text-white/40 uppercase tracking-wider mt-0.5">
+              <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mt-0.5">
                 / {targets.calories} kcal
               </span>
             </div>
@@ -225,7 +225,7 @@ export default function Home() {
 
           <div className="w-full pt-4 mt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
             <span className="text-white/40 font-medium">Budget Remaining</span>
-            <span className="text-white font-mono font-semibold">
+            <span className="text-white font-sans font-bold">
               {Math.max(0, Math.round(targets.calories - logged.calories))} kcal
             </span>
           </div>
@@ -252,8 +252,8 @@ export default function Home() {
                       <span className={`text-xs font-bold ${m.textColor}`}>{m.label}</span>
                     </div>
                     <div className="text-xs">
-                      <span className="text-white font-mono font-bold">{Math.round(m.current)}{m.unit}</span>
-                      <span className="text-white/40 font-mono"> / {m.target}{m.unit}</span>
+                      <span className="text-white font-sans font-bold">{Math.round(m.current)}{m.unit}</span>
+                      <span className="text-white/40 font-sans font-medium"> / {m.target}{m.unit}</span>
                     </div>
                   </div>
                   <div className="h-2 w-full bg-white/[0.06] rounded-full overflow-hidden">
@@ -270,9 +270,9 @@ export default function Home() {
           <div className="pt-6 mt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-white/40">
             <span>Calorie source distribution</span>
             <div className="flex items-center gap-3">
-              <span className="text-orange-400 font-mono">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
-              <span className="text-emerald-400 font-mono">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
-              <span className="text-blue-400 font-mono">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
+              <span className="text-orange-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
+              <span className="text-emerald-400 font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
+              <span className="text-blue-400 font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
             </div>
           </div>
         </section>

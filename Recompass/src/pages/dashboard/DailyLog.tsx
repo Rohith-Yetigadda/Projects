@@ -466,7 +466,7 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
               ) : (
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(i)}>
                   <p className="text-xs font-bold text-white truncate">{item.name}</p>
-                  <p className="text-[11px] text-white/40 font-mono truncate mt-0.5">
+                  <p className="text-[11px] text-white/40 font-sans truncate mt-0.5">
                     {item.quantity ? `${item.quantity} · ` : ""}{item.calories} kcal · P {item.protein}g · C {item.carbs}g · F {item.fats}g
                   </p>
                 </div>
@@ -601,7 +601,7 @@ function EditLogItemModal({
                 type="number"
                 value={calories}
                 onChange={e => setCalories(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-mono font-bold text-white focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-white focus:outline-none"
               />
             </div>
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
@@ -610,7 +610,7 @@ function EditLogItemModal({
                 type="number"
                 value={protein}
                 onChange={e => setProtein(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-mono font-bold text-orange-400 focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-orange-400 focus:outline-none"
               />
             </div>
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
@@ -619,7 +619,7 @@ function EditLogItemModal({
                 type="number"
                 value={carbs}
                 onChange={e => setCarbs(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-mono font-bold text-emerald-400 focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-emerald-400 focus:outline-none"
               />
             </div>
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
@@ -628,7 +628,7 @@ function EditLogItemModal({
                 type="number"
                 value={fats}
                 onChange={e => setFats(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-mono font-bold text-blue-400 focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-blue-400 focus:outline-none"
               />
             </div>
           </div>
@@ -839,7 +839,7 @@ export default function DailyLog() {
         </div>
         
         <div className="rounded-3xl bg-[#121418] border border-white/[0.06] px-5 py-3 text-right">
-          <p className="text-2xl md:text-3xl font-bold font-mono text-white tabular-nums tracking-tight">
+          <p className="text-2xl md:text-3xl font-extrabold font-sans text-white tracking-tight">
             {Math.round(totals.calories)}
           </p>
           <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider">kcal logged</p>
@@ -854,7 +854,7 @@ export default function DailyLog() {
           { label: "Fats",    value: totals.fats,    color: "text-blue-400" },
         ].map(m => (
           <div key={m.label} className="rounded-3xl bg-[#121418] border border-white/[0.06] p-4 text-center group hover:border-white/[0.12] transition-all">
-            <p className={`text-xl md:text-2xl font-bold font-mono ${m.color} tabular-nums`}>
+            <p className={`text-xl md:text-2xl font-extrabold font-sans ${m.color}`}>
               {Math.round(m.value)}<span className="text-xs font-normal text-white/40 ml-0.5">g</span>
             </p>
             <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider mt-1">{m.label}</p>
@@ -880,7 +880,7 @@ export default function DailyLog() {
               <div>
                 <p className="text-sm font-bold text-white tracking-tight">{label}</p>
                 {mealKcal > 0 && (
-                  <p className="text-[11px] font-mono text-white/40">{Math.round(mealKcal)} kcal</p>
+                  <p className="text-[11px] font-sans font-medium text-white/40">{Math.round(mealKcal)} kcal</p>
                 )}
               </div>
               
@@ -927,7 +927,7 @@ export default function DailyLog() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-white/40 font-mono mt-0.5">
+                      <p className="text-[11px] text-white/40 font-sans mt-0.5">
                         {item.calories} kcal &middot; P {item.protein}g &middot; C {item.carbs}g &middot; F {item.fats}g
                       </p>
                     </div>

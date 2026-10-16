@@ -139,7 +139,7 @@ export default function Progress() {
 
         <div className="flex items-center gap-2">
           <div className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white/60">
-            Target: <span className="text-white font-mono font-semibold">{targetCalories}</span> kcal
+            Target: <span className="text-white font-sans font-bold">{targetCalories}</span> kcal
           </div>
         </div>
       </div>
@@ -156,13 +156,13 @@ export default function Progress() {
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-white tabular-nums">
+              <span className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight text-white">
                 {stats.avgCals}
               </span>
               <span className="text-xs text-white/40 font-sans font-medium">kcal / day</span>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold ${
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-sans font-bold ${
                 Math.abs(calDiff) <= 100 
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" 
                   : calDiff > 100 
@@ -186,13 +186,13 @@ export default function Progress() {
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-orange-400 tabular-nums">
+              <span className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight text-orange-400">
                 {stats.avgPro}
               </span>
               <span className="text-xs text-white/40 font-sans font-medium">g / day</span>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30">
                 {Math.round((stats.avgPro / targetProtein) * 100)}% target
               </span>
               <span className="text-[11px] text-white/40 font-medium">Target: {targetProtein}g</span>
@@ -210,7 +210,7 @@ export default function Progress() {
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-white tabular-nums">
+              <span className="text-3xl md:text-4xl font-extrabold font-sans tracking-tight text-white">
                 {stats.activeDays}
               </span>
               <span className="text-xs text-white/40 font-sans font-medium">/ 7 days logged</span>

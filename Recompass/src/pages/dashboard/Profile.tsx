@@ -150,7 +150,7 @@ export default function Profile() {
                 type="number" 
                 value={data.age} 
                 onChange={e=>setData({...data, age: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="20" 
               />
             </div>
@@ -160,7 +160,7 @@ export default function Profile() {
                 type="number" 
                 value={data.weight} 
                 onChange={e=>setData({...data, weight: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="70" 
               />
             </div>
@@ -170,7 +170,7 @@ export default function Profile() {
                 type="number" 
                 value={data.height} 
                 onChange={e=>setData({...data, height: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="175" 
               />
             </div>
@@ -256,19 +256,19 @@ export default function Profile() {
               <div className="grid grid-cols-4 gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                 <div>
                   <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest mb-1">Calories</p>
-                  <p className="font-mono font-bold text-white text-xl md:text-2xl tabular-nums">{autoCalories}</p>
+                  <p className="font-sans font-bold text-white text-xl md:text-2xl">{autoCalories}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-orange-400/70 font-semibold uppercase tracking-widest mb-1">Protein</p>
-                  <p className="font-mono font-bold text-orange-400 text-xl md:text-2xl tabular-nums">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-orange-400 text-xl md:text-2xl">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
                 </div>
                 <div>
                   <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-widest mb-1">Carbs</p>
-                  <p className="font-mono font-bold text-emerald-400 text-xl md:text-2xl tabular-nums">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-emerald-400 text-xl md:text-2xl">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
                 </div>
                 <div>
                   <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-1">Fats</p>
-                  <p className="font-mono font-bold text-blue-400 text-xl md:text-2xl tabular-nums">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-blue-400 text-xl md:text-2xl">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
                 </div>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function Profile() {
                     type="number" 
                     value={data.customCalories} 
                     onChange={e=>setData({...data, customCalories: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-white font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-white font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="2000"
                   />
                 </div>
@@ -297,7 +297,7 @@ export default function Profile() {
                     type="number" 
                     value={data.customProtein} 
                     onChange={e=>setData({...data, customProtein: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-orange-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-orange-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="120"
                   />
                 </div>
@@ -307,7 +307,7 @@ export default function Profile() {
                     type="number" 
                     value={data.customCarbs} 
                     onChange={e=>setData({...data, customCarbs: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-emerald-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-emerald-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="200"
                   />
                 </div>
@@ -317,7 +317,7 @@ export default function Profile() {
                     type="number" 
                     value={data.customFats} 
                     onChange={e=>setData({...data, customFats: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-blue-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-blue-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="60"
                   />
                 </div>
