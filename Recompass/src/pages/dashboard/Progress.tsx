@@ -328,9 +328,9 @@ export default function Progress() {
                 </span>
               </p>
               <p className="text-[11px] text-white/45 font-sans mt-0.5">
-                P: <strong className="text-orange-400">{chartData[selectedDayIdx].protein}g</strong> &middot; 
-                C: <strong className="text-emerald-400">{chartData[selectedDayIdx].carbs}g</strong> &middot; 
-                F: <strong className="text-blue-400">{chartData[selectedDayIdx].fats}g</strong>
+                P: <strong className="text-emerald-400">{chartData[selectedDayIdx].protein}g</strong> &middot; 
+                C: <strong className="text-sky-400">{chartData[selectedDayIdx].carbs}g</strong> &middot; 
+                F: <strong className="text-amber-400">{chartData[selectedDayIdx].fats}g</strong>
               </p>
             </div>
             <button

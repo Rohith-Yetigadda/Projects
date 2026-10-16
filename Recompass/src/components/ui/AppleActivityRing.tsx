@@ -251,26 +251,26 @@ export function AppleActivityRing({
   );
 }
 
-// ─── Standard Apple Fitness Macro Palettes ───────────────
+// ─── Refined Studio Health Macro Palettes (Harmonious Dark Theme) ───────
 export const APPLE_FITNESS_MACRO_PALETTES = {
   calories: {
-    gradientStart: "#FA114F",
-    gradientEnd: "#FF2D55",
-    trackColor: "#FA114F",
+    gradientStart: "#F43F5E", // Refined Coral Rose
+    gradientEnd: "#BE123C",   // Deep Crimson
+    trackColor: "#F43F5E",
   },
   protein: {
-    gradientStart: "#A1FF00",
-    gradientEnd: "#00E599",
-    trackColor: "#A1FF00",
+    gradientStart: "#10B981", // Recompass Signature Emerald
+    gradientEnd: "#047857",   // Deep Forest Emerald
+    trackColor: "#10B981",
   },
   carbs: {
-    gradientStart: "#00F0FF",
-    gradientEnd: "#007AFF",
-    trackColor: "#00F0FF",
+    gradientStart: "#38BDF8", // Refined Ocean Azure
+    gradientEnd: "#0369A1",   // Deep Sapphire
+    trackColor: "#38BDF8",
   },
   fats: {
-    gradientStart: "#FFD600",
-    gradientEnd: "#FF9500",
-    trackColor: "#FFD600",
+    gradientStart: "#F59E0B", // Warm Honey Amber
+    gradientEnd: "#B45309",   // Deep Burnished Amber
+    trackColor: "#F59E0B",
   },
 };

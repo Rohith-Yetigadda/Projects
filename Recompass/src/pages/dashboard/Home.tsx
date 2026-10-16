@@ -154,10 +154,10 @@ export default function Home() {
   ], [logged, targets]);
 
   const macroItems = [
-    { key: "calories", label: "Calories", color: "#FA114F", current: Math.round(logged.calories), target: targets.calories, unit: " kcal", unitShort: "" },
-    { key: "protein",  label: "Protein",  color: "#A1FF00", current: Math.round(logged.protein),  target: targets.protein,  unit: "g", unitShort: "g" },
-    { key: "carbs",    label: "Carbs",    color: "#00F0FF", current: Math.round(logged.carbs),    target: targets.carbs,    unit: "g", unitShort: "g" },
-    { key: "fats",     label: "Fats",     color: "#FFD600", current: Math.round(logged.fats),     target: targets.fats,     unit: "g", unitShort: "g" },
+    { key: "calories", label: "Calories", color: APPLE_FITNESS_MACRO_PALETTES.calories.gradientStart, current: Math.round(logged.calories), target: targets.calories, unit: " kcal", unitShort: "" },
+    { key: "protein",  label: "Protein",  color: APPLE_FITNESS_MACRO_PALETTES.protein.gradientStart,  current: Math.round(logged.protein),  target: targets.protein,  unit: "g", unitShort: "g" },
+    { key: "carbs",    label: "Carbs",    color: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientStart,    current: Math.round(logged.carbs),    target: targets.carbs,    unit: "g", unitShort: "g" },
+    { key: "fats",     label: "Fats",     color: APPLE_FITNESS_MACRO_PALETTES.fats.gradientStart,     current: Math.round(logged.fats),     target: targets.fats,     unit: "g", unitShort: "g" },
   ];
 
   // Dynamic Compass AI Guidance Ingestion
@@ -472,11 +472,11 @@ export default function Home() {
           <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-white/40">
             <span>Calorie source distribution</span>
             <div className="flex items-center gap-3 font-medium tabular-nums">
-              <span className="text-[#A1FF00] font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
+              <span className="text-emerald-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-[#00F0FF] font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
+              <span className="text-sky-400 font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-[#FFD600] font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
+              <span className="text-amber-400 font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
             </div>
           </div>
         </div>
