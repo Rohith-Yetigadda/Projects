@@ -189,7 +189,7 @@ CRITICAL INSTRUCTIONS:
         break;
 
       case "parse_and_classify_food":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
         prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${payload.input}".
 
@@ -197,7 +197,7 @@ AVAILABLE CATEGORIES (You must pick EXACTLY one):
 - "Protein" (e.g. chicken, fish, mutton, eggs, egg whites, paneer, tofu, soya chunks, tuna, turkey, beef)
 - "Dairy" (e.g. milk, cheese, curd, dahi, yogurt, butter, ghee, cream)
 - "Produce" (e.g. bananas, apples, spinach, vegetables, fruits, onions, tomatoes, potatoes, garlic, ginger, cilantro, lemon)
-- "Grains" (e.g. rice, oats, wheat, flour/atta, bread, roti, chapati, dal, lentils, pasta, noodles, quinoa)
+- "Grains" (e.g. rice, oats, fruit and nut oats, rolled oats, muesli, oatmeal, wheat, flour/atta, bread, roti, chapati, dal, lentils, pasta, noodles, quinoa)
 - "Snacks" (e.g. peanut butter, almonds, nuts, chips, biscuits, cookies, popcorn, chocolates)
 - "Supplements" (e.g. whey protein, casein, creatine, multivitamins, fish oil, bcaa, pre-workout, electrolytes)
 - "Spices" (e.g. chilli powder, red chilli, turmeric, haldi, jeera, cumin, garam masala, salt, black pepper, oregano, paprika, chaat masala, curry powder)
@@ -205,13 +205,13 @@ AVAILABLE CATEGORIES (You must pick EXACTLY one):
 - "Other" (any food or consumable that strictly does not fit the above)
 
 RULES:
-1. "name": Clean, properly capitalized food title (e.g. "Chilli Powder", "Eggs", "Rolled Oats", "Peanut Butter"). Strip leading numbers.
-2. "category": Must match one of the exact categories above. (e.g. "Chilli Powder" is Spices, "Turmeric" is Spices, "Eggs" is Protein).
+1. "name": Clean, properly capitalized food title (e.g. "Chilli Powder", "Fruit & Nuts Oats", "Eggs", "Rolled Oats", "Peanut Butter"). Strip leading numbers.
+2. "category": Must match one of the exact categories above. If the item is oats, muesli, or breakfast cereal with fruits or nuts (e.g. "Fruit & Nuts Oats"), its primary base is Grains.
 3. "quantity": Numeric quantity from the input if specified, or fallback to ${payload.fallbackQty || 1}.
 4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops"). If not mentioned, infer the natural standard unit (e.g. spices -> "g" or "packs", peanut butter -> "jar", eggs -> "pcs", oats -> "g", whey -> "scoops", oil -> "bottles").
 
 OUTPUT STRICTLY AS JSON (no markdown formatting):
-{"name":"Chilli Powder","category":"Spices","quantity":80,"unit":"g"}`;
+{"name":"Fruit & Nuts Oats","category":"Grains","quantity":${payload.fallbackQty || 1},"unit":"g"}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
 

@@ -14,27 +14,14 @@ import {
   Package,
   ArrowRight
 } from "lucide-react";
-import { classifyFoodWithAI, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
+import { classifyFoodWithAI } from "@/lib/geminiClassifier";
+import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
 
 type GroceryItem = {
   id: string;
   name: string;
   category: string;
   purchased: boolean;
-};
-
-const getCategoryColor = (cat: string) => {
-  switch (cat) {
-    case "Protein": return "text-orange-400 bg-orange-400/10 border-orange-400/20";
-    case "Produce": return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
-    case "Dairy": return "text-amber-400 bg-amber-400/10 border-amber-400/20";
-    case "Snacks": return "text-rose-400 bg-rose-400/10 border-rose-400/20";
-    case "Supplements": return "text-purple-400 bg-purple-400/10 border-purple-400/20";
-    case "Grains": return "text-yellow-200 bg-yellow-200/10 border-yellow-200/20";
-    case "Spices": return "text-orange-300 bg-orange-300/10 border-orange-300/20";
-    case "Oils": return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20";
-    default: return "text-white/60 bg-white/5 border-white/10";
-  }
 };
 
 export default function Groceries() {
@@ -436,28 +423,12 @@ export default function Groceries() {
                   {item.name}
                 </div>
                 
-                {/* Category Badge Col (Interactive Dynamic Centered Badge) */}
+                {/* Category Badge Col (Interactive Dynamic Centered Badge Popover) */}
                 <div className="flex items-center justify-start">
-                  <div className="relative inline-flex items-center">
-                    <div
-                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border transition-all pointer-events-none select-none ${getCategoryColor(item.category)}`}
-                    >
-                      <span className="text-center">{item.category}</span>
-                      <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />
-                    </div>
-                    <select
-                      value={item.category}
-                      onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-center"
-                      title="Click to change category"
-                    >
-                      {FOOD_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CategoryDropdown
+                    category={item.category}
+                    onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                  />
                 </div>
                 
                 {/* Actions Col */}
