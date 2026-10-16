@@ -146,30 +146,52 @@ export default function CompassChat() {
       }
 
       const pData = `Goal: ${userProfile?.goal}\nWeight: ${userProfile?.weight}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto")}`;
-      const lData = logData ? `Logged today: ${JSON.stringify(logData.totals)}` : "Nothing logged yet.";
+      
+      const formatMealItems = (items: any[]) => {
+        if (!items || items.length === 0) return "None";
+        return items.map((i: any) => `${i.name} (${i.quantity || "1 serving"} - ${i.calories} kcal, P:${i.protein}g, C:${i.carbs}g, F:${i.fats}g)`).join(", ");
+      };
+
+      const lData = logData ? `
+Breakfast: ${formatMealItems(logData.breakfast)}
+Lunch: ${formatMealItems(logData.lunch)}
+Dinner: ${formatMealItems(logData.dinner)}
+Snacks: ${formatMealItems(logData.snacks)}
+Totals Today: ${JSON.stringify(logData.totals || { calories: 0, protein: 0, carbs: 0, fats: 0 })}
+` : "Nothing logged yet today.";
       
       setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, and what the mess is serving today.
 
 PROFILE:
 ${pData}
 
-TODAY'S LOG:
+TODAY'S LOGGED FOOD:
 ${lData}
 
 TODAY'S MENU:
 ${menuStr}
 
 AGENTIC CAPABILITIES (CRITICAL):
-You have the power to make changes in the app. If the user asks you to log a meal, update their weight, change their goal, or add items to their groceries, you MUST output a JSON command block at the end of your message.
+You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, or manage groceries, you MUST output a JSON command block at the end of your message.
 Format:
 \`\`\`command
 {
-  "action": "LOG_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "ADD_GROCERIES",
+  "action": "LOG_MEAL" | "UPDATE_MEAL" | "REMOVE_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "UPDATE_PROFILE" | "CLEAR_TODAY_LOGS" | "ADD_GROCERIES" | "REMOVE_GROCERIES" | "CHECK_GROCERIES",
   "data": { ... }
 }
 \`\`\`
 
 EXAMPLES:
+- User: "I had more chicken in that biryani I logged for breakfast, it had 4 chicken pieces with 40g protein and 750 cals, update it."
+  Response: "I've updated your breakfast Chicken Biryani with the extra chicken pieces and recalculated macros." + \`\`\`command
+  {"action":"UPDATE_MEAL","data":{"mealType":"breakfast","foodName":"CHICKEN BIRYANI","updatedName":"CHICKEN BIRYANI (4 PCS CHICKEN)","quantity":"1 bowl + 4 chicken pieces","calories":750,"protein":40,"carbs":65,"fats":22}}
+  \`\`\`
+
+- User: "Delete the biryani from my breakfast"
+  Response: "I've removed Chicken Biryani from your breakfast log." + \`\`\`command
+  {"action":"REMOVE_MEAL","data":{"mealType":"breakfast","foodName":"CHICKEN BIRYANI"}}
+  \`\`\`
+
 - User: "I just ate 2 chapatis for lunch."
   Response: "Got it, I've logged 2 chapatis for lunch." + \`\`\`command
   {"action":"LOG_MEAL","data":{"foodName":"CHAPATI","quantity":"2 pieces","mealType":"lunch","calories":240,"protein":7,"carbs":44,"fats":4}}
@@ -185,18 +207,15 @@ EXAMPLES:
   {"action":"UPDATE_GOAL","data":{"goal":"muscle_gain"}}
   \`\`\`
 
-- User: "I am now 22 years old and 180cm tall."
-  Response: "I've updated your profile details." + \`\`\`command
-  {"action":"UPDATE_PROFILE","data":{"age":22,"height":180}}
-  \`\`\`
-
 - User: "Clear everything I ate today"
   Response: "I've wiped today's food logs." + \`\`\`command
   {"action":"CLEAR_TODAY_LOGS","data":{}}
   \`\`\`
 
 Valid actions: 
-- "LOG_MEAL" (mealType must be "breakfast", "lunch", "dinner", or "snacks". foodName MUST be concise and UPPERCASE without breakdowns or parentheses, e.g. "CHICKEN BIRYANI". quantity is an optional string e.g. "1 box".)
+- "LOG_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": UPPERCASE string, "quantity": string, "calories": number, "protein": number, "carbs": number, "fats": number })
+- "UPDATE_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": string to search and replace, "updatedName"?: string, "quantity"?: string, "calories": number, "protein": number, "carbs": number, "fats": number })
+- "REMOVE_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": string to match and delete })
 - "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
 - "UPDATE_WEIGHT" (data: { "weight": number })
 - "UPDATE_PROFILE" (data: { "age"?: number, "height"?: number, "name"?: string })
@@ -207,7 +226,7 @@ Valid actions:
 - "CLEAR_GROCERIES" (data: {})
 - "CHECK_GROCERIES" (data: { "items": string[] })
 
-Instructions: Be concise. Estimate macros accurately. If the user asks you to take ANY action in the app (add/remove/clear/update/log/check/uncheck), ALWAYS output the \`\`\`command block to execute it. Do not tell the user to do it manually. You have absolute, full permission to manage their groceries, logs, targets, and profile.`);
+Instructions: Be concise. Estimate macros accurately. If the user tells you about food they ate, or asks to modify/correct a logged item, ALWAYS calculate the accurate macros and emit the command block. You have complete permission to manage their meals, groceries, and targets.`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -368,6 +387,82 @@ Instructions: Be concise. Estimate macros accurately. If the user asks you to ta
             
             await setDoc(logRef, { ...d, date: today });
             sysMessages.push(`✅ *Successfully logged ${entry.quantity} of ${entry.name} to ${mealType}.*`);
+          }
+
+          if (cmd.action === "UPDATE_MEAL") {
+            const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            const logRef = doc(db, "users", currentUser.uid, "logs", today);
+            const logSnap = await getDoc(logRef);
+            if (logSnap.exists()) {
+              const d = logSnap.data();
+              const mealType = cmd.data.mealType || "lunch";
+              const targetName = (cmd.data.foodName || "").toLowerCase().trim();
+              const currentItems = d[mealType] || [];
+              
+              let matched = false;
+              const updatedName = (cmd.data.updatedName || cmd.data.foodName || "MEAL").toUpperCase();
+              const updated = currentItems.map((item: any) => {
+                const lowerItemName = (item.name || "").toLowerCase();
+                if (!matched && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (cmd.data.id && item.id === cmd.data.id))) {
+                  matched = true;
+                  return {
+                    ...item,
+                    name: updatedName,
+                    quantity: cmd.data.quantity || item.quantity,
+                    calories: Math.max(0, Math.round(Number(cmd.data.calories) || item.calories)),
+                    protein: Math.max(0, Math.round((Number(cmd.data.protein) ?? item.protein) * 10) / 10),
+                    carbs: Math.max(0, Math.round((Number(cmd.data.carbs) ?? item.carbs) * 10) / 10),
+                    fats: Math.max(0, Math.round((Number(cmd.data.fats) ?? item.fats) * 10) / 10),
+                    updatedAt: new Date().toISOString()
+                  };
+                }
+                return item;
+              });
+
+              d[mealType] = updated;
+              const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+              d.totals = all.reduce((a: any, i: any) => ({
+                calories: a.calories + i.calories,
+                protein: a.protein + i.protein,
+                carbs: a.carbs + i.carbs,
+                fats: a.fats + i.fats
+              }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+              await setDoc(logRef, { ...d, date: today });
+              sysMessages.push(`🔄 *Updated "${updatedName}" in ${mealType}: ${cmd.data.calories} kcal, ${cmd.data.protein}g protein, ${cmd.data.carbs}g carbs, ${cmd.data.fats}g fats.*`);
+            }
+          }
+
+          if (cmd.action === "REMOVE_MEAL") {
+            const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            const logRef = doc(db, "users", currentUser.uid, "logs", today);
+            const logSnap = await getDoc(logRef);
+            if (logSnap.exists()) {
+              const d = logSnap.data();
+              const mealType = cmd.data.mealType || "lunch";
+              const targetName = (cmd.data.foodName || "").toLowerCase().trim();
+              
+              let removed = false;
+              d[mealType] = (d[mealType] || []).filter((item: any) => {
+                const lowerItemName = (item.name || "").toLowerCase();
+                if (!removed && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (cmd.data.id && item.id === cmd.data.id))) {
+                  removed = true;
+                  return false;
+                }
+                return true;
+              });
+
+              const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+              d.totals = all.reduce((a: any, i: any) => ({
+                calories: a.calories + i.calories,
+                protein: a.protein + i.protein,
+                carbs: a.carbs + i.carbs,
+                fats: a.fats + i.fats
+              }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+              await setDoc(logRef, { ...d, date: today });
+              sysMessages.push(`🗑️ *Removed "${cmd.data.foodName}" from ${mealType}.*`);
+            }
           }
           
           if (cmd.action === "UPDATE_GOAL") {

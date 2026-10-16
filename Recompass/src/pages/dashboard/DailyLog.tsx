@@ -113,7 +113,6 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   rice:             { calories: 130, protein: 3, carbs: 28, fats: 0.5 }, // per ladle (100g)
   "jeera rice":     { calories: 140, protein: 3, carbs: 28, fats: 2 }, // per ladle
   pulao:            { calories: 180, protein: 4, carbs: 30, fats: 5 }, // per ladle
-  biryani:          { calories: 200, protein: 5, carbs: 32, fats: 6 }, // veg, per ladle
 
   // Dals & Legumes (per ladle ~ 150g)
   "dal fry":        { calories: 120, protein: 7, carbs: 15, fats: 4 },
@@ -233,11 +232,12 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   };
 }
 
-async function estimateMacros(foodName: string, quantity: string) {
-  // If user provided a complex sentence or detailed description, bypass hardcoded tables
-  const isDescription = foodName.length > 25 || /\d+\s*(g|gm|gms|gram|grams|ml|kg)\b/i.test(foodName) || foodName.split(" ").length > 3;
+async function estimateMacros(foodName: string, quantity: string, isCustom = false) {
+  // If user provided a custom item, or a complex dish with modifiers/meat, ALWAYS use Gemini Flash
+  const hasModifiers = /\b(chicken|mutton|fish|prawn|egg|paneer|tofu|soya|whey|protein|fried|butter|masala|special|biryani|roll|sandwich|burger|pizza|shake|bowl|box|plate)\b/i.test(foodName);
+  const isDescription = foodName.length > 20 || /\d+\s*(g|gm|gms|gram|grams|ml|kg)\b/i.test(foodName) || foodName.split(" ").length > 2;
   
-  if (!isDescription) {
+  if (!isCustom && !hasModifiers && !isDescription) {
     const known = getKnownMacros(foodName, quantity || "1 serving");
     if (known) return { ...known, name: foodName.toUpperCase() };
   }
@@ -422,6 +422,163 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
   );
 }
 
+// ─── Edit Logged Item Modal ─────────────────────────────────────────
+function EditLogItemModal({
+  item,
+  mealType,
+  onSave,
+  onDelete,
+  onCancel,
+}: {
+  item: MacroEntry;
+  mealType: MealType;
+  onSave: (updated: MacroEntry) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(item.name);
+  const [quantity, setQuantity] = useState(item.quantity);
+  const [calories, setCalories] = useState(item.calories.toString());
+  const [protein, setProtein] = useState(item.protein.toString());
+  const [carbs, setCarbs] = useState(item.carbs.toString());
+  const [fats, setFats] = useState(item.fats.toString());
+  const [recalculating, setRecalculating] = useState(false);
+
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    try {
+      const query = quantity.trim() ? `${quantity.trim()} ${name.trim()}` : name.trim();
+      const macros = await estimateMacros(query, "", true);
+      setCalories(macros.calories.toString());
+      setProtein(macros.protein.toString());
+      setCarbs(macros.carbs.toString());
+      setFats(macros.fats.toString());
+      if ((macros as any).name) setName((macros as any).name);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleSave = () => {
+    onSave({
+      ...item,
+      name: name.trim().toUpperCase(),
+      quantity: quantity.trim(),
+      calories: Math.max(0, parseInt(calories) || 0),
+      protein: Math.max(0, parseFloat(protein) || 0),
+      carbs: Math.max(0, parseFloat(carbs) || 0),
+      fats: Math.max(0, parseFloat(fats) || 0),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-white/40">Edit Logged Item</p>
+            <p className="text-lg font-bold text-white mt-0.5 capitalize">{mealType}</p>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold uppercase text-white/40 block mb-1">Item Description / Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold uppercase text-white/40 block mb-1">Portion / Serving</label>
+            <input
+              type="text"
+              value={quantity}
+              onChange={e => setQuantity(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              placeholder="e.g. 1 bowl, 4 chicken pieces"
+            />
+          </div>
+
+          {/* AI Recalculate button */}
+          <button
+            type="button"
+            onClick={handleRecalculate}
+            disabled={recalculating}
+            className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+          >
+            {recalculating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            Recalculate Macros with AI
+          </button>
+
+          {/* Macro inputs */}
+          <div className="grid grid-cols-4 gap-2 pt-1">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-white/40 block mb-1 text-center">Kcal</label>
+              <input
+                type="number"
+                value={calories}
+                onChange={e => setCalories(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-orange-400/60 block mb-1 text-center">Pro (g)</label>
+              <input
+                type="number"
+                value={protein}
+                onChange={e => setProtein(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-orange-400 focus:outline-none focus:border-orange-500/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-emerald-400/60 block mb-1 text-center">Carb (g)</label>
+              <input
+                type="number"
+                value={carbs}
+                onChange={e => setCarbs(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-blue-400/60 block mb-1 text-center">Fat (g)</label>
+              <input
+                type="number"
+                value={fats}
+                onChange={e => setFats(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-blue-400 focus:outline-none focus:border-blue-500/50"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button
+            onClick={onDelete}
+            className="px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-colors"
+          >
+            Delete
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors shadow-lg"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
   const { currentUser } = useAuth();
@@ -433,6 +590,7 @@ export default function DailyLog() {
   const [estimating, setEstimating] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<MealType | null>(null);
   const [photoItems, setPhotoItems] = useState<{ mealType: MealType; items: any[] } | null>(null);
+  const [editingEntry, setEditingEntry] = useState<{ mealType: MealType; item: MacroEntry } | null>(null);
   const [customInput, setCustomInput] = useState<{ [k in MealType]?: string }>({});
   const [toast, setToast] = useState<string | null>(null);
 
@@ -484,10 +642,20 @@ export default function DailyLog() {
     await setDoc(doc(db,"users",currentUser.uid,"logs",today),{...newLog,totals,date:today});
   };
 
-  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string) => {
+  const updateItem = async (mealType: MealType, updated: MacroEntry) => {
+    const newLog = {
+      ...log,
+      [mealType]: (log[mealType] || []).map(i => i.id === updated.id ? updated : i)
+    };
+    setLog(newLog);
+    await persist(newLog);
+    setEditingEntry(null);
+  };
+
+  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom = false) => {
     const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
     try {
-      const macros = await estimateMacros(foodName, quantity);
+      const macros = await estimateMacros(foodName, quantity, isCustom);
       const cleanName = (macros as any).name || foodName;
       const { name: _, ...macroValues } = macros as any;
       const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity, loggedAt: new Date().toISOString(), ...macroValues };
@@ -542,8 +710,20 @@ export default function DailyLog() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
-      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty)} onCancel={()=>setPicker(null)} />}
+      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
+      {editingEntry && (
+        <EditLogItemModal
+          item={editingEntry.item}
+          mealType={editingEntry.mealType}
+          onSave={updated => updateItem(editingEntry.mealType, updated)}
+          onDelete={() => {
+            removeItem(editingEntry.mealType, editingEntry.item.id);
+            setEditingEntry(null);
+          }}
+          onCancel={() => setEditingEntry(null)}
+        />
+      )}
 
       {/* Custom Toast */}
       {toast && (
@@ -606,15 +786,33 @@ export default function DailyLog() {
             {loggedItems.length>0&&(
               <div className="space-y-2">
                 {loggedItems.map(item=>(
-                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-                    <div className="flex-1">
+                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 group">
+                    <div
+                      onClick={() => setEditingEntry({ mealType: key, item })}
+                      className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
+                        <p className="text-sm font-semibold text-white group-hover:text-amber-300 transition-colors">{item.name}</p>
                         {item.quantity&&<span className="text-xs text-white/30 font-medium bg-white/5 px-2 py-0.5 rounded-full">{item.quantity}</span>}
                       </div>
                       <p className="text-xs text-white/40 mt-0.5">{item.calories} kcal &middot; P {item.protein}g &middot; C {item.carbs}g &middot; F {item.fats}g</p>
                     </div>
-                    <button onClick={()=>removeItem(key,item.id)} className="text-white/20 hover:text-red-400 transition-colors p-1"><Trash2 className="w-3.5 h-3.5"/></button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={()=>setEditingEntry({ mealType: key, item })}
+                        title="Edit item or macros"
+                        className="text-white/20 hover:text-amber-400 transition-colors p-1"
+                      >
+                        <Pencil className="w-3.5 h-3.5"/>
+                      </button>
+                      <button
+                        onClick={()=>removeItem(key,item.id)}
+                        title="Delete item"
+                        className="text-white/20 hover:text-red-400 transition-colors p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5"/>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -648,7 +846,7 @@ export default function DailyLog() {
                     const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
 
                     if (isDirectAI) {
-                      logWithQuantity(key, text, "");
+                      logWithQuantity(key, text, "", true);
                     } else {
                       setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
                     }
@@ -665,7 +863,7 @@ export default function DailyLog() {
                   const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
 
                   if (isDirectAI) {
-                    logWithQuantity(key, text, "");
+                    logWithQuantity(key, text, "", true);
                   } else {
                     setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
                   }
