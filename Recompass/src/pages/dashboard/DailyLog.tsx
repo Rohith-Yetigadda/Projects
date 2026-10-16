@@ -61,67 +61,21 @@ const mealConfig: { key: MealType; label: string; icon: any; color: string; bg: 
   { key: "snacks",    label: "Snacks",    icon: Sparkles, color: "text-purple-400",  bg: "bg-purple-400/10",  border: "border-purple-400/20"  },
 ];
 
-// ─── Food Name Sanitizer (Strips -1pc, 2 nos, etc.) ─────────────────
+// ─── Food Name Sanitizer (Strips -1pc, 2 nos, (LIMITED), etc.) ─────────────────
 export function cleanFoodName(raw: string): string {
   if (!raw) return "";
   return raw
-    .replace(/[-–—]\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)?$/i, "")
-    .replace(/\(\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)?\s*\)/i, "")
-    .replace(/\s+\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)$/i, "")
+    .replace(/\s*\((?:limited|unlimited|special|extra)\)/gi, "")
+    .replace(/^(\d+(?:\.\d+)?)\s*(?:pc|pcs|nos?|pieces?|slices?|cups?|glasses?|bowls?|ladles?)\s*(?:of\s+)?/i, "")
+    .replace(/[-–—]\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm|katori)?$/i, "")
+    .replace(/\(\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm|katori)?\s*\)/i, "")
+    .replace(/\s+\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm|katori)?$/i, "")
     .replace(/^[-,:.]+|[-,:.]+$/g, "")
     .trim();
 }
 
-// ─── Dynamic Portion Presets Caching & Inference ────────────────────
-const PORTION_PRESETS_CACHE = new Map<string, { category: string; defaultUnit: string; presets: string[] }>();
-
-export function getQuickPortionPresets(foodName: string): { category: string; defaultUnit: string; presets: string[] } {
-  const n = cleanFoodName(foodName).toLowerCase();
-  
-  if (PORTION_PRESETS_CACHE.has(n)) {
-    return PORTION_PRESETS_CACHE.get(n)!;
-  }
-
-  // Intuitive defaults based on food type
-  if (/\b(bananas?|apples?|oranges?|eggs?|boiled eggs?|egg whites?|chapatis?|rotis?|phulkas?|dosas?|idlis?|vadas?|parathas?|puris?|breads?|toasts?|biscuits?|cookies?|samosas?)\b/.test(n)) {
-    const res = { category: "piece", defaultUnit: "piece", presets: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-  if (/\b(milks?|teas?|coffees?|buttermilk|chaas|lassis?|juices?|smoothies?|shakes?|water|rasam|soups?)\b/.test(n)) {
-    const res = { category: "glass", defaultUnit: "ml", presets: ["100ml", "150ml", "200ml", "250ml", "1 glass (~250ml)", "300ml"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-  if (/\b(dals?|sambars?|curries?|gravy|sabzi|sabjis?|chole|rajma|paneer|chicken curry)\b/.test(n)) {
-    const res = { category: "ladle", defaultUnit: "ladle", presets: ["1 small ladle", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~200ml)"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-  if (/\b(rices?|pulaos?|biryanis?|khichdis?|pohas?|upmas?|oats|porridge|noodles?|maggi|pasta|salads?|curds?|dahi)\b/.test(n)) {
-    const res = { category: "bowl", defaultUnit: "bowl", presets: ["half bowl", "1 bowl (~150g)", "2 bowls", "1 plate", "100g", "200g"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-  if (/\b(watermelons?|melons?|papayas?|pineapples?|mangoes?)\b/.test(n)) {
-    const res = { category: "slice", defaultUnit: "serving", presets: ["1 small bowl (~5 cubes)", "1 regular bowl (~8 cubes)", "large bowl (~12 cubes)"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-  if (/\b(whey|protein powder|peanut butter|ghee|butter|honey|jams?|oil|sugar)\b/.test(n)) {
-    const res = { category: "scoop", defaultUnit: "serving", presets: ["1 scoop (30g)", "half scoop", "1 tbsp (15g)", "2 tbsp", "1 tsp"] };
-    PORTION_PRESETS_CACHE.set(n, res);
-    return res;
-  }
-
-  // Fallback generic presets
-  const res = { category: "portion", defaultUnit: "serving", presets: ["1 serving", "small portion", "regular portion", "large portion", "1 piece", "1 bowl"] };
-  PORTION_PRESETS_CACHE.set(n, res);
-  return res;
-}
-
-// Clean and validate macro values
-function sanitizeMacros(raw: { calories: number; protein: number; carbs: number; fats: number }) {
+// ─── Clean and validate macro values ──────────────────────────────────────────
+export function sanitizeMacros(raw: { calories?: number; protein?: number; carbs?: number; fats?: number }) {
   const calories = Math.max(0, Math.round(Number(raw.calories) || 0));
   const protein  = Math.max(0, Math.round((Number(raw.protein) || 0) * 10) / 10);
   const carbs    = Math.max(0, Math.round((Number(raw.carbs) || 0) * 10) / 10);
@@ -137,130 +91,40 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   };
 }
 
-// ─── Resilient Indian & Student Staple Macro Reference ─────────────
-const COMMON_FOOD_BASE_MACROS: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
-  // Parathas & Breads
-  "aloo paratha": { calories: 260, protein: 5.5, carbs: 38, fats: 10 },
-  "paneer paratha": { calories: 310, protein: 11, carbs: 36, fats: 14 },
-  "gobi paratha": { calories: 230, protein: 5, carbs: 34, fats: 8 },
-  "plain paratha": { calories: 210, protein: 4, carbs: 32, fats: 8 },
-  "chapati": { calories: 95, protein: 3.1, carbs: 18, fats: 0.9 },
-  "chapathi": { calories: 95, protein: 3.1, carbs: 18, fats: 0.9 },
-  "roti": { calories: 95, protein: 3.1, carbs: 18, fats: 0.9 },
-  "phulka": { calories: 85, protein: 2.8, carbs: 16, fats: 0.5 },
-  "puri": { calories: 125, protein: 2.2, carbs: 15, fats: 6.5 },
-  "naan": { calories: 260, protein: 7.5, carbs: 45, fats: 5 },
-  "pav bhaji": { calories: 380, protein: 9, carbs: 54, fats: 14 },
-  "bread": { calories: 75, protein: 2.5, carbs: 14, fats: 1 },
-  "bread jam": { calories: 120, protein: 2.5, carbs: 25, fats: 1 },
-  "toast": { calories: 75, protein: 2.5, carbs: 14, fats: 1 },
-
-  // Rice & Grains
-  "white rice": { calories: 180, protein: 3.8, carbs: 39, fats: 0.5 },
-  "steam rice": { calories: 180, protein: 3.8, carbs: 39, fats: 0.5 },
-  "rice": { calories: 180, protein: 3.8, carbs: 39, fats: 0.5 },
-  "jeera rice": { calories: 210, protein: 4, carbs: 41, fats: 3.5 },
-  "fried rice": { calories: 260, protein: 5, carbs: 46, fats: 6.5 },
-  "pulao": { calories: 220, protein: 4.5, carbs: 42, fats: 4 },
-  "biryani": { calories: 340, protein: 14, carbs: 48, fats: 10 },
-  "chicken biryani": { calories: 390, protein: 24, carbs: 48, fats: 12 },
-  "khichdi": { calories: 190, protein: 6, carbs: 34, fats: 3 },
-  "poha": { calories: 210, protein: 4, carbs: 42, fats: 3 },
-  "upma": { calories: 195, protein: 4.5, carbs: 36, fats: 3.5 },
-  "idli": { calories: 65, protein: 2, carbs: 14, fats: 0.2 },
-  "dosa": { calories: 165, protein: 3.5, carbs: 28, fats: 4 },
-  "masala dosa": { calories: 280, protein: 5.5, carbs: 42, fats: 9 },
-
-  // Dals & Curries
-  "dal makhni": { calories: 250, protein: 9, carbs: 26, fats: 12 },
-  "dal makhani": { calories: 250, protein: 9, carbs: 26, fats: 12 },
-  "dal": { calories: 140, protein: 7.5, carbs: 20, fats: 3.5 },
-  "dal fry": { calories: 155, protein: 7.5, carbs: 21, fats: 4.5 },
-  "dal tadka": { calories: 165, protein: 7.5, carbs: 21, fats: 5.5 },
-  "sambar": { calories: 95, protein: 3.5, carbs: 16, fats: 1.8 },
-  "rasam": { calories: 60, protein: 1.8, carbs: 10, fats: 1.2 },
-  "chole": { calories: 230, protein: 10, carbs: 34, fats: 6 },
-  "rajma": { calories: 220, protein: 9.5, carbs: 32, fats: 5.5 },
-  "chana": { calories: 210, protein: 9.5, carbs: 32, fats: 4.5 },
-  "suran chana": { calories: 220, protein: 7.5, carbs: 35, fats: 5 },
-  "suran chana dry": { calories: 210, protein: 7, carbs: 34, fats: 4.5 },
-  "malai methi mutter": { calories: 270, protein: 6.5, carbs: 18, fats: 19 },
-  "mixed veg": { calories: 140, protein: 3.5, carbs: 18, fats: 6 },
-  "paneer": { calories: 280, protein: 16, carbs: 8, fats: 20 },
-  "matar paneer": { calories: 260, protein: 12, carbs: 16, fats: 16 },
-  "palak paneer": { calories: 250, protein: 13, carbs: 12, fats: 17 },
-  "paneer butter masala": { calories: 330, protein: 13, carbs: 15, fats: 24 },
-  "chicken curry": { calories: 280, protein: 26, carbs: 7, fats: 16 },
-  "egg curry": { calories: 220, protein: 14, carbs: 6, fats: 15 },
-
-  // Dairy & Sides
-  "curd": { calories: 98, protein: 5.5, carbs: 7, fats: 4.5 },
-  "dahi": { calories: 98, protein: 5.5, carbs: 7, fats: 4.5 },
-  "milk": { calories: 150, protein: 7.8, carbs: 12, fats: 8 },
-  "hot milk": { calories: 150, protein: 7.8, carbs: 12, fats: 8 },
-  "buttermilk": { calories: 50, protein: 3, carbs: 5, fats: 1.5 },
-  "chaas": { calories: 50, protein: 3, carbs: 5, fats: 1.5 },
-  "tea": { calories: 65, protein: 1.5, carbs: 9, fats: 2 },
-  "coffee": { calories: 75, protein: 2, carbs: 10, fats: 2.5 },
-  "pickle": { calories: 25, protein: 0.3, carbs: 2, fats: 1.8 },
-  "cucumber salad": { calories: 25, protein: 1, carbs: 4, fats: 0.2 },
-  "salad": { calories: 30, protein: 1.2, carbs: 5, fats: 0.2 },
-
-  // Eggs & Meat
-  "boiled egg": { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 },
-  "egg": { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 },
-  "egg white": { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 },
-  "omelette": { calories: 155, protein: 11, carbs: 1.5, fats: 11.5 },
-  "egg bhurji": { calories: 175, protein: 12, carbs: 2.5, fats: 13 },
-
-  // Fruits & Snacks
-  "banana": { calories: 105, protein: 1.3, carbs: 27, fats: 0.3 },
-  "apple": { calories: 95, protein: 0.5, carbs: 25, fats: 0.3 },
-  "orange": { calories: 62, protein: 1.2, carbs: 15, fats: 0.2 },
-  "papaya": { calories: 60, protein: 0.9, carbs: 15, fats: 0.2 },
-  "watermelon": { calories: 45, protein: 0.9, carbs: 11, fats: 0.2 },
-  "biscuit": { calories: 50, protein: 0.8, carbs: 8, fats: 1.8 },
-  "cookie": { calories: 65, protein: 1, carbs: 9, fats: 2.8 },
-  "samosa": { calories: 250, protein: 4, carbs: 32, fats: 12 },
-  "oats": { calories: 190, protein: 6.5, carbs: 32, fats: 3.5 },
-  "peanut butter": { calories: 95, protein: 4, carbs: 3.5, fats: 8 },
-};
-
+// ─── Universal Quantity Multiplier Math ───────────────────────────────────────
 export function parseQuantityMultiplier(quantity: string, foodName = ""): number {
   const q = quantity.toLowerCase().trim();
   const f = cleanFoodName(foodName).toLowerCase().trim();
-  const isLiquidDish = /\b(dal|sambar|rasam|curry|gravy|soup|chole|rajma)\b/.test(f);
+  const isLiquidDish = /\b(dal|sambar|rasam|curry|gravy|soup|chole|rajma|milk|tea|coffee|shake|smoothie|juice)\b/.test(f);
 
-  // 1. Explicit ml (e.g. 100ml, 150ml, 200ml, 250ml, '1 glass (~250ml)', '1 ladle (~150ml)', '1 bowl (~200ml)')
+  // 1. Explicit ml
   const mlMatch = q.match(/(\d+(?:\.\d+)?)\s*ml/);
   if (mlMatch) {
     const ml = parseFloat(mlMatch[1]);
     if (isLiquidDish) {
-      return Math.max(0.2, Math.round((ml / 150) * 100) / 100); // 150ml ladle base
+      return Math.max(0.1, Math.round((ml / 150) * 100) / 100); // 150ml ladle base
     }
-    return Math.max(0.2, Math.round((ml / 200) * 100) / 100); // 200ml glass base
+    return Math.max(0.1, Math.round((ml / 200) * 100) / 100); // 200ml glass base
   }
 
-  // 2. Explicit grams (e.g. 150g, 100g, 200g)
+  // 2. Explicit grams
   const gMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|grams)\b/);
   if (gMatch) {
     const g = parseFloat(gMatch[1]);
-    const baseG = /\b(rice|biryani|pulao|khichdi|oats|poha|upma|salad|curd|dahi)\b/.test(f) ? 150 : 100;
-    return Math.max(0.2, Math.round((g / baseG) * 100) / 100);
+    return Math.max(0.1, Math.round((g / 100) * 100) / 100); // 100g base
   }
 
   // 3. Small / Half / Large qualifiers
-  if (/small\s+ladle/i.test(q)) return 0.65;
-  if (/small\s+bowl/i.test(q)) return 0.65;
-  if (/half\s+bowl/i.test(q) || /half\s+ladle/i.test(q) || /half\s+glass/i.test(q) || /half\s+piece/i.test(q) || /half\s+scoop/i.test(q)) return 0.5;
-  if (/large\s+bowl/i.test(q) || /big\s+bowl/i.test(q)) return 1.5;
+  if (/small\s+(?:ladle|bowl|cup|portion|piece|katori)/i.test(q)) return 0.65;
+  if (/half\s+(?:bowl|ladle|glass|piece|scoop|cup|plate|portion|katori)/i.test(q)) return 0.5;
+  if (/large\s+(?:bowl|ladle|glass|piece|scoop|cup|plate|portion|katori)/i.test(q) || /big\s+/i.test(q)) return 1.5;
   if (/plate/i.test(q)) return 1.5;
   if (/1\s*tsp/i.test(q)) return 0.33;
   if (/1\s*tbsp/i.test(q)) return 0.67;
   if (/2\s*tbsp/i.test(q)) return 1.33;
 
   // 4. Numeric count of pieces, ladles, bowls, glasses, scoops
-  const countMatch = q.match(/^(\d+(?:\.\d+)?)\s*(?:nos?|pcs?|pieces?|ladles?|bowls?|glasses?|cups?|slices?|scoops?|rotis?|chapatis?|eggs?|servings?)?\b/);
+  const countMatch = q.match(/^(\d+(?:\.\d+)?)\s*(?:nos?|pcs?|pieces?|ladles?|bowls?|glasses?|cups?|slices?|scoops?|rotis?|chapatis?|eggs?|servings?|katoris?)?\b/);
   if (countMatch) {
     const count = parseFloat(countMatch[1]);
     if (count > 0 && count <= 50) return count;
@@ -275,57 +139,126 @@ export function parseQuantityMultiplier(quantity: string, foodName = ""): number
   return 1.0;
 }
 
-function fallbackEstimate(foodName: string, quantity: string) {
-  const n = cleanFoodName(foodName).toLowerCase();
-  const multiplier = parseQuantityMultiplier(quantity, foodName);
+// ─── Pure Gemini AI Food Portion Profiles & Multi-tier Caching ────────────────
+export interface FoodPortionProfile {
+  cleanName: string;
+  category: string;
+  defaultQuantity: string;
+  presets: string[];
+  estimatedMacros?: { calories: number; protein: number; carbs: number; fats: number };
+}
 
-  // Sort keys longest first so specific dishes match before general ones (e.g. "dal makhni" before "dal")
-  const sortedKeys = Object.keys(COMMON_FOOD_BASE_MACROS).sort((a, b) => b.length - a.length);
+const PORTION_MEMORY_CACHE = new Map<string, FoodPortionProfile>();
 
-  for (const key of sortedKeys) {
-    if (n === key || n.includes(key) || key.includes(n)) {
-      const base = COMMON_FOOD_BASE_MACROS[key];
-      return {
-        calories: Math.max(10, Math.round(base.calories * multiplier)),
-        protein: Math.max(0, Math.round(base.protein * multiplier * 10) / 10),
-        carbs: Math.max(0, Math.round(base.carbs * multiplier * 10) / 10),
-        fats: Math.max(0, Math.round(base.fats * multiplier * 10) / 10),
-        name: cleanFoodName(foodName).toUpperCase()
-      };
+export function getCachedPortionProfile(foodName: string): FoodPortionProfile | null {
+  const key = cleanFoodName(foodName).toLowerCase();
+  if (!key) return null;
+  if (PORTION_MEMORY_CACHE.has(key)) {
+    return PORTION_MEMORY_CACHE.get(key)!;
+  }
+  try {
+    const local = localStorage.getItem("recompass_portion_v2_" + key);
+    if (local) {
+      const parsed: FoodPortionProfile = JSON.parse(local);
+      PORTION_MEMORY_CACHE.set(key, parsed);
+      return parsed;
     }
+  } catch {}
+  return null;
+}
+
+export async function getFoodPortionProfile(foodName: string): Promise<FoodPortionProfile> {
+  const cleaned = cleanFoodName(foodName);
+  const key = cleaned.toLowerCase();
+  
+  const cached = getCachedPortionProfile(key);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch("/api/compass", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "classify_food_portion", payload: { foodName: cleaned } }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && !data.error && Array.isArray(data.presets) && data.presets.length > 0) {
+        const profile: FoodPortionProfile = {
+          cleanName: data.cleanName || cleaned,
+          category: data.category || "portion",
+          defaultQuantity: data.defaultQuantity || data.presets[0] || "1 serving",
+          presets: data.presets,
+          estimatedMacros: data.estimatedMacros ? sanitizeMacros(data.estimatedMacros) : undefined,
+        };
+        PORTION_MEMORY_CACHE.set(key, profile);
+        try { localStorage.setItem("recompass_portion_v2_" + key, JSON.stringify(profile)); } catch {}
+        
+        // Pre-cache default portion macros if returned
+        if (profile.estimatedMacros) {
+          const defaultKey = `recompass_macros_v4_${(profile.defaultQuantity + " " + profile.cleanName).toLowerCase().trim()}`;
+          try {
+            localStorage.setItem(defaultKey, JSON.stringify({ ...profile.estimatedMacros, name: profile.cleanName.toUpperCase() }));
+          } catch {}
+        }
+
+        return profile;
+      }
+    }
+  } catch (err) {
+    console.warn("[getFoodPortionProfile] AI portion classification failed:", err);
   }
 
-  // Safe default for any uncatalogued mess dishes
+  // Pure dynamic fallback if offline/error: zero hardcoded dish names
+  const fallbackProfile: FoodPortionProfile = {
+    cleanName: cleaned,
+    category: "portion",
+    defaultQuantity: "1 serving",
+    presets: ["1 serving", "half portion", "2 servings", "100g", "200g"],
+    estimatedMacros: { calories: 160, protein: 5.5, carbs: 22, fats: 5.5 },
+  };
+  PORTION_MEMORY_CACHE.set(key, fallbackProfile);
+  return fallbackProfile;
+}
+
+export function getQuickPortionPresets(foodName: string): { category: string; defaultUnit: string; presets: string[] } {
+  const cached = getCachedPortionProfile(foodName);
+  if (cached) {
+    return {
+      category: cached.category,
+      defaultUnit: cached.defaultQuantity,
+      presets: cached.presets,
+    };
+  }
   return {
-    calories: Math.max(10, Math.round(180 * multiplier)),
-    protein: Math.max(0, Math.round(6 * multiplier * 10) / 10),
-    carbs: Math.max(0, Math.round(24 * multiplier * 10) / 10),
-    fats: Math.max(0, Math.round(6 * multiplier * 10) / 10),
-    name: cleanFoodName(foodName).toUpperCase()
+    category: "portion",
+    defaultUnit: "1 serving",
+    presets: ["1 serving", "half portion", "2 servings", "100g", "200g"],
   };
 }
 
-// ─── Pure Gemini Macro Estimation with Bulletproof Local Fallback ────
+// ─── Pure Gemini AI Macro Estimation with Multi-tier Cache ────────────────────
 async function estimateMacros(foodName: string, quantity: string, isCustom = false) {
   const cleanedName = cleanFoodName(foodName);
   const queryStr = (quantity ? `${quantity} ${cleanedName}` : cleanedName).trim();
-  const cacheKey = "recompass_macros_v3_" + queryStr.toLowerCase();
-  
+  const cacheKey = "recompass_macros_v4_" + queryStr.toLowerCase();
+
+  // Multi-tier cache check (memory + sessionStorage + localStorage)
   try {
-    const cached = sessionStorage.getItem(cacheKey);
+    const cached = localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
     if (cached) {
       return JSON.parse(cached);
     }
   } catch {}
 
-  // 1. Try Gemini Live Macro Estimation
+  // 1. Live Gemini AI Macro Estimation
   try {
     const res = await fetch("/api/compass", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "estimate_macros", payload: { foodName: queryStr } }),
     });
-    
+
     if (res.ok) {
       const data = await res.json();
       if (data && !data.error && (data.calories !== undefined || data.kcal !== undefined || data.macronutrients || data.energy_kcal !== undefined)) {
@@ -340,11 +273,17 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
           carbs:    rawCarb,
           fats:     rawFat,
         });
+
         const result = {
           ...sanitized,
           name: data.name || cleanedName.toUpperCase()
         };
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(result)); } catch {}
+
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(result));
+          sessionStorage.setItem(cacheKey, JSON.stringify(result));
+        } catch {}
+
         return result;
       }
       if (data?.error === "INVALID_FOOD" && isCustom) {
@@ -353,20 +292,32 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     }
   } catch (err: any) {
     if (err?.message === "INVALID_FOOD") throw err;
-    console.warn("[estimateMacros] API call bypassed or timed out, applying intelligent fallback:", err);
+    console.warn("[estimateMacros] AI estimation API error or network issue:", err);
   }
 
-  // 2. If it's a custom input that looks purely like non-food gibberish
+  // 2. Custom gibberish rejection
   if (isCustom && cleanedName.length > 0 && !/[a-zA-Z]{2,}/.test(cleanedName)) {
     throw new Error("INVALID_FOOD");
   }
 
-  // 3. Fallback: Guaranteed instant accurate calculation for mess menu items and common foods
-  const fallback = fallbackEstimate(cleanedName, quantity);
+  // 3. Resilient AI-derived baseline scaling (Zero hardcoded food dictionaries)
+  const portionProfile = getCachedPortionProfile(cleanedName);
+  const baseMacros = portionProfile?.estimatedMacros || { calories: 160, protein: 5.5, carbs: 22, fats: 5.5 };
+  const multiplier = parseQuantityMultiplier(quantity, cleanedName);
+
+  const calculated = {
+    calories: Math.max(10, Math.round(baseMacros.calories * multiplier)),
+    protein: Math.max(0, Math.round(baseMacros.protein * multiplier * 10) / 10),
+    carbs: Math.max(0, Math.round(baseMacros.carbs * multiplier * 10) / 10),
+    fats: Math.max(0, Math.round(baseMacros.fats * multiplier * 10) / 10),
+    name: cleanedName.toUpperCase()
+  };
+
   try {
-    sessionStorage.setItem(cacheKey, JSON.stringify(fallback));
+    sessionStorage.setItem(cacheKey, JSON.stringify(calculated));
   } catch {}
-  return fallback;
+
+  return calculated;
 }
 
 async function analyzePlate(base64: string, mimeType: string): Promise<{ items: any[]; error?: string }> {
@@ -389,30 +340,86 @@ async function analyzePlate(base64: string, mimeType: string): Promise<{ items: 
   }
 }
 
-// ─── Dynamic Quantity Picker with Live Gemini Preview ───────────────
+// ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
 function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string) => void; onCancel: () => void }) {
   const cleaned = cleanFoodName(foodName);
-  const portionInfo = getQuickPortionPresets(cleaned);
-  const presets = portionInfo.presets;
+  const [profile, setProfile] = useState<FoodPortionProfile | null>(() => getCachedPortionProfile(cleaned));
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(!profile);
+
+  const presets = profile?.presets || ["1 serving", "half portion", "2 servings", "100g", "200g"];
   const [custom, setCustom] = useState("");
-  const initialQty = presets[1] || presets[0] || "1 serving";
+  const initialQty = profile?.defaultQuantity || presets[1] || presets[0] || "1 serving";
   const [selected, setSelected] = useState<string>(initialQty);
-  // Instant baseline calculation so the modal NEVER displays outdated or empty values:
-  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number }>(() =>
-    fallbackEstimate(cleaned, initialQty)
-  );
+
+  // Instant baseline calculation so the modal NEVER displays blank or outdated values:
+  const baseMacros = profile?.estimatedMacros || { calories: 160, protein: 5.5, carbs: 22, fats: 5.5 };
+  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number }>(() => {
+    const queryStr = `${initialQty} ${cleaned}`.trim();
+    const cacheKey = "recompass_macros_v4_" + queryStr.toLowerCase();
+    try {
+      const cached = localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    const mult = parseQuantityMultiplier(initialQty, cleaned);
+    return {
+      calories: Math.max(10, Math.round(baseMacros.calories * mult)),
+      protein: Math.max(0, Math.round(baseMacros.protein * mult * 10) / 10),
+      carbs: Math.max(0, Math.round(baseMacros.carbs * mult * 10) / 10),
+      fats: Math.max(0, Math.round(baseMacros.fats * mult * 10) / 10),
+    };
+  });
   const [estimating, setEstimating] = useState(false);
 
-  // Live macro estimation preview: instant local calculation + debounced AI refinement
+  // Asynchronously fetch tailored AI portion presets if not cached
+  useEffect(() => {
+    let isCurrent = true;
+    if (!profile) {
+      setIsLoadingProfile(true);
+      getFoodPortionProfile(cleaned)
+        .then(p => {
+          if (!isCurrent) return;
+          setProfile(p);
+          setIsLoadingProfile(false);
+          if (!custom) {
+            const def = p.defaultQuantity || p.presets[1] || p.presets[0];
+            setSelected(def);
+          }
+        })
+        .catch(() => {
+          if (isCurrent) setIsLoadingProfile(false);
+        });
+    }
+    return () => { isCurrent = false; };
+  }, [cleaned, profile, custom]);
+
+  // Live macro calculation preview: 0ms instant multiplier scaling + debounced AI verification
   useEffect(() => {
     const activeQty = custom.trim() || selected;
     if (!activeQty) return;
 
-    // 1. Instantly calculate locally in 0ms so clicking pills scales macros immediately
-    const instant = fallbackEstimate(cleaned, activeQty);
+    // 1. Check instant cache first (0ms)
+    const queryStr = `${activeQty} ${cleaned}`.trim();
+    const cacheKey = "recompass_macros_v4_" + queryStr.toLowerCase();
+    try {
+      const cached = localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setLiveMacros(JSON.parse(cached));
+        return;
+      }
+    } catch {}
+
+    // 2. 0ms instant visual update using AI baseline & mathematical multiplier
+    const currentBase = profile?.estimatedMacros || baseMacros;
+    const mult = parseQuantityMultiplier(activeQty, cleaned);
+    const instant = {
+      calories: Math.max(10, Math.round(currentBase.calories * mult)),
+      protein: Math.max(0, Math.round(currentBase.protein * mult * 10) / 10),
+      carbs: Math.max(0, Math.round(currentBase.carbs * mult * 10) / 10),
+      fats: Math.max(0, Math.round(currentBase.fats * mult * 10) / 10),
+    };
     setLiveMacros(instant);
 
-    // 2. Concurrently refine via Gemini AI
+    // 3. Debounced AI verification & precision refinement
     let isCurrent = true;
     const timer = setTimeout(async () => {
       setEstimating(true);
@@ -420,17 +427,17 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
         const macros = await estimateMacros(cleaned, activeQty);
         if (isCurrent && macros) setLiveMacros(macros);
       } catch {
-        // Fallback is already displayed
+        // Instant values already displayed
       } finally {
         if (isCurrent) setEstimating(false);
       }
-    }, 150);
+    }, 120);
 
     return () => {
       isCurrent = false;
       clearTimeout(timer);
     };
-  }, [cleaned, selected, custom]);
+  }, [cleaned, selected, custom, profile, baseMacros]);
 
   const confirm = () => {
     const qty = custom.trim() || selected;
@@ -442,9 +449,18 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
       <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Select Portion</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Select Portion</p>
+              {isLoadingProfile && (
+                <span className="flex items-center gap-1 text-[9px] text-emerald-400/80 font-mono animate-pulse">
+                  <Sparkles className="w-2.5 h-2.5" /> AI Sizing
+                </span>
+              )}
+            </div>
             <p className="text-base font-bold text-white mt-0.5 capitalize">{cleaned}</p>
-            <p className="text-[11px] text-white/40 capitalize">{portionInfo.category} portioning</p>
+            <p className="text-[11px] text-white/40 capitalize">
+              {profile ? `${profile.category} portioning` : "AI adaptive portioning"}
+            </p>
           </div>
           <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors">
             <X className="w-4 h-4" />
@@ -1444,6 +1460,29 @@ export default function DailyLog() {
     loadStaples();
   }, [loadLog, loadMenu, loadStaples]);
 
+  // Intelligent background pre-warm of portion presets for today's menu items
+  useEffect(() => {
+    if (!menu) return;
+    const allDishes = Array.from(
+      new Set(
+        [
+          ...(menu.breakfast || []),
+          ...(menu.lunch || []),
+          ...(menu.dinner || []),
+        ]
+          .map(cleanFoodName)
+          .filter(Boolean)
+      )
+    );
+
+    // Warm up portion presets in background so clicking any pill is 0ms
+    allDishes.slice(0, 15).forEach((dish) => {
+      if (!getCachedPortionProfile(dish)) {
+        getFoodPortionProfile(dish).catch(() => {});
+      }
+    });
+  }, [menu]);
+
   const persistStaples = async (newStaples: StapleMeal[]) => {
     setCachedData("user_staples", newStaples);
     if (!currentUser) return;
@@ -1984,12 +2023,13 @@ export default function DailyLog() {
 
                 {/* Mess Menu Chips */}
                 {quickChips.map(item => {
-                  const chipKey = key + ":" + item; 
+                  const cleanedItem = cleanFoodName(item);
+                  const chipKey = key + ":" + cleanedItem; 
                   const isLoading = estimating === chipKey;
                   return (
                     <button 
                       key={item} 
-                      onClick={() => setPicker({ mealType: key, foodName: item })} 
+                      onClick={() => setPicker({ mealType: key, foodName: cleanedItem })} 
                       disabled={!!estimating}
                       className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
                         isLoading 
@@ -1998,7 +2038,7 @@ export default function DailyLog() {
                       }`}
                     >
                       {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3 text-white/40" />}
-                      <span>{item}</span>
+                      <span>{cleanedItem}</span>
                     </button>
                   );
                 })}
