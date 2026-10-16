@@ -327,7 +327,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Dorm Living & AI Cooking Bento */}
+      {/* Pantry & AI Cooking Bento */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           to="/app/pantry"
@@ -339,10 +339,10 @@ export default function Home() {
             </div>
             <div>
               <span className="text-xs font-bold text-white block group-hover:text-white transition-colors">
-                Dorm Stash & Pantry
+                Pantry & Inventory
               </span>
               <span className="text-[11px] text-white/40 font-medium">
-                Track room stock, protein & supplements
+                Track pantry stock, protein & supplements
               </span>
             </div>
           </div>
@@ -359,7 +359,7 @@ export default function Home() {
             </div>
             <div>
               <span className="text-xs font-bold text-white block group-hover:text-white transition-colors">
-                Cook with AI Stash
+                Cook with AI
               </span>
               <span className="text-[11px] text-white/40 font-medium">
                 Generate high-protein hostel room meals

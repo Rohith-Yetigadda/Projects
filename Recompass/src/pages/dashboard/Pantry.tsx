@@ -370,7 +370,7 @@ export default function Pantry() {
       updatedAt: new Date().toISOString()
     }));
     savePantry([...initialized, ...items]);
-    showNotification("Loaded Starter Dorm Stash!");
+    showNotification("Loaded Starter Pantry!");
   };
 
   if (loading) {
@@ -421,13 +421,13 @@ export default function Pantry() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
             <Package className="w-3 h-3 text-orange-400" />
-            <span>Room & Dorm Inventory</span>
+            <span>Food & Ingredient Inventory</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
-            Dorm Pantry
+            Pantry
           </h1>
           <p className="text-sm font-normal text-white/45 mt-1.5">
-            Track room stock and protein staples in real time.
+            Track your food inventory, protein staples, and ingredients.
           </p>
         </div>
 
@@ -456,7 +456,7 @@ export default function Pantry() {
         {/* Metric Badges */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-semibold text-white/70">
-            <strong className="text-white font-sans">{items.length}</strong> items in stash
+            <strong className="text-white font-sans">{items.length}</strong> items in pantry
           </span>
           <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-xs font-semibold text-orange-400">
             <strong className="text-orange-300 font-sans">{proteinCount}</strong> protein staples
@@ -481,7 +481,7 @@ export default function Pantry() {
           <Search className="w-3.5 h-3.5 text-white/35 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Filter stash..."
+            placeholder="Filter pantry..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full sm:w-52 h-8 pl-8 pr-3 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
@@ -614,7 +614,7 @@ export default function Pantry() {
             {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
 
-          <div className="text-center">In Stash</div>
+          <div className="text-center">In Stock</div>
           <div className="text-right pr-2">Actions</div>
         </div>
 
@@ -626,7 +626,7 @@ export default function Pantry() {
                 <Package className="w-6 h-6 text-white/30" />
               </div>
               <h3 className="text-xs font-bold text-white mb-1">
-                {items.length === 0 ? "Your dorm pantry is empty" : "No matching items found"}
+                {items.length === 0 ? "Your pantry is empty" : "No matching items found"}
               </h3>
               <p className="text-[11px] text-white/40 max-w-sm mb-4">
                 {items.length === 0
@@ -640,7 +640,7 @@ export default function Pantry() {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Load Starter Dorm Stash</span>
+                  <span>Load Starter Pantry</span>
                 </button>
               )}
             </div>

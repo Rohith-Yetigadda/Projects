@@ -103,7 +103,7 @@ export default function Cook() {
   // Generate Recipes
   const handleGenerateRecipes = async () => {
     if (selectedIngredients.length === 0) {
-      setErrorMsg("Please select at least 1 ingredient from your stash.");
+      setErrorMsg("Please select at least 1 ingredient from your pantry.");
       return;
     }
 
@@ -214,10 +214,10 @@ export default function Cook() {
             <span>Student AI Chef</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
-            Cook with Stash
+            Cook with Pantry
           </h1>
           <p className="text-sm font-normal text-white/45 mt-1.5">
-            Pick ingredients from your room pantry to generate high-protein hostel meals in seconds.
+            Pick ingredients from your pantry to generate high-protein hostel meals in seconds.
           </p>
         </div>
 
@@ -247,19 +247,19 @@ export default function Cook() {
 
           {loadingPantry ? (
             <div className="py-6 flex items-center justify-center text-white/30 text-xs">
-              Loading your dorm pantry...
+              Loading your pantry...
             </div>
           ) : pantryItems.length === 0 ? (
             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
               <div>
-                <p className="text-xs font-semibold text-white/80">Your dorm stash is empty</p>
+                <p className="text-xs font-semibold text-white/80">Your pantry is empty</p>
                 <p className="text-[11px] text-white/40 mt-0.5">Add items in your Pantry or type custom ingredients below.</p>
               </div>
               <Link
                 to="/app/pantry"
                 className="px-4 py-1.5 rounded-full bg-white text-black font-bold text-[11px] uppercase tracking-wider hover:bg-white/90 transition-all shrink-0"
               >
-                Stock Stash
+                Stock Pantry
               </Link>
             </div>
           ) : (

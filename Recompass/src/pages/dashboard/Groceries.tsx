@@ -197,7 +197,7 @@ export default function Groceries() {
       // Remove purchased from groceries
       const remainingGroceries = items.filter(i => !i.purchased);
       await saveItems(remainingGroceries);
-      showNotification(`Transferred ${purchasedItems.length} purchased item(s) to Dorm Pantry!`);
+      showNotification(`Transferred ${purchasedItems.length} purchased item(s) to Pantry!`);
     } catch (err) {
       console.error("Error transferring to pantry:", err);
       showNotification("Failed to transfer to pantry.");
@@ -239,7 +239,7 @@ export default function Groceries() {
       });
 
       saveItems(items.filter(i => i.id !== item.id));
-      showNotification(`Transferred "${item.name}" to Dorm Pantry!`);
+      showNotification(`Transferred "${item.name}" to Pantry!`);
     } catch (err) {
       console.error("Error transferring single item to pantry:", err);
     }
@@ -309,7 +309,7 @@ export default function Groceries() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
           >
             <Package className="w-3.5 h-3.5 text-orange-400" />
-            <span>Dorm Pantry</span>
+            <span>Pantry</span>
           </Link>
 
           {purchasedCount > 0 && (
@@ -335,7 +335,7 @@ export default function Groceries() {
                 {purchasedCount} {purchasedCount === 1 ? "item" : "items"} purchased
               </p>
               <p className="text-xs text-white/50 mt-0.5">
-                Transfer purchased groceries straight into your dorm stash.
+                Transfer purchased groceries straight into your pantry.
               </p>
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function Groceries() {
                     <button
                       onClick={() => transferSingleToPantry(item)}
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
-                      title="Move directly to Pantry stash"
+                      title="Move directly to Pantry"
                     >
                       <Package className="w-3.5 h-3.5" />
                     </button>

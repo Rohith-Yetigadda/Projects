@@ -150,7 +150,7 @@ export default function CompassChat() {
       const pantryItems = pantrySnap.exists() ? (pantrySnap.data().items || []) : [];
       const pantryStr = pantryItems.length > 0
         ? pantryItems.map((p: any) => `${p.name}: ${p.quantity} ${p.unit} (${p.category})`).join(", ")
-        : "No items currently logged in dorm pantry.";
+        : "No items currently logged in pantry.";
 
       const pData = `Goal: ${userProfile?.goal}\nWeight: ${userProfile?.weight}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto")}`;
       
@@ -167,7 +167,7 @@ Snacks: ${formatMealItems(logData.snacks)}
 Totals Today: ${JSON.stringify(logData.totals || { calories: 0, protein: 0, carbs: 0, fats: 0 })}
 ` : "Nothing logged yet today.";
       
-      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, what the mess is serving today, and what they currently have stocked in their dorm pantry.
+      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, what the mess is serving today, and what they currently have stocked in their pantry.
 
 PROFILE:
 ${pData}
@@ -178,11 +178,11 @@ ${lData}
 TODAY'S MENU:
 ${menuStr}
 
-DORM PANTRY STOCK:
+PANTRY STOCK:
 ${pantryStr}
 
 AGENTIC CAPABILITIES (CRITICAL):
-You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, manage groceries, or update their dorm pantry, you MUST output a JSON command block at the end of your message.
+You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, manage groceries, or update their pantry, you MUST output a JSON command block at the end of your message.
 Format:
 \`\`\`command
 {
@@ -213,7 +213,7 @@ EXAMPLES:
   \`\`\`
 
 - User: "I bought 6 eggs, add them to my pantry"
-  Response: "I've added 6 eggs to your dorm pantry stash." + \`\`\`command
+  Response: "I've added 6 eggs to your pantry." + \`\`\`command
   {"action":"ADD_PANTRY","data":{"name":"Eggs","quantity":6,"unit":"pcs","category":"Protein"}}
   \`\`\`
 
@@ -668,7 +668,7 @@ If the user shares an image:
                 lastUpdated: new Date().toISOString()
               }, { merge: true });
               
-              sysMessages.push(`📦 *Added ${quantity} ${unit} of "${name}" to your Dorm Pantry.*`);
+              sysMessages.push(`📦 *Added ${quantity} ${unit} of "${name}" to your Pantry.*`);
             }
           }
 
@@ -698,7 +698,7 @@ If the user shares an image:
                     lastUpdated: new Date().toISOString()
                   }, { merge: true });
                   
-                  sysMessages.push(`📦 *Used ${quantity} ${currentItems[existingIdx].unit || 'pcs'} of "${name}" from Dorm Pantry (Remaining: ${newQty}).*`);
+                  sysMessages.push(`📦 *Used ${quantity} ${currentItems[existingIdx].unit || 'pcs'} of "${name}" from Pantry (Remaining: ${newQty}).*`);
                 }
               }
             }

@@ -208,7 +208,7 @@ RULES:
 1. "name": Clean, properly capitalized food title (e.g. "Chilli Powder", "Eggs", "Rolled Oats", "Peanut Butter"). Strip leading numbers.
 2. "category": Must match one of the exact categories above. (e.g. "Chilli Powder" is Spices, "Turmeric" is Spices, "Eggs" is Protein).
 3. "quantity": Numeric quantity from the input if specified, or fallback to ${payload.fallbackQty || 1}.
-4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops"). If not mentioned, infer the natural dorm unit (e.g. spices -> "g" or "packs", peanut butter -> "jar", eggs -> "pcs", oats -> "g", whey -> "scoops", oil -> "bottles").
+4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops"). If not mentioned, infer the natural standard unit (e.g. spices -> "g" or "packs", peanut butter -> "jar", eggs -> "pcs", oats -> "g", whey -> "scoops", oil -> "bottles").
 
 OUTPUT STRICTLY AS JSON (no markdown formatting):
 {"name":"Chilli Powder","category":"Spices","quantity":80,"unit":"g"}`;
