@@ -2,12 +2,65 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, serverTimestamp, where, writeBatch, Timestamp, deleteDoc } from "firebase/firestore";
-import { Send, Compass, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare, Trash2 } from "lucide-react";
+import {
+  Send, Compass, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare, Trash2,
+  UtensilsCrossed, Package, ShoppingCart, Target, ChefHat, Bookmark, Sparkles
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { clearCachedData } from "@/lib/dataCache";
 
-type Message = { id?: string; role: "user" | "model"; text: string; image?: string; createdAt?: any };
+export type AgentAction = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  store: "nutrition" | "pantry" | "groceries" | "profile" | "menu" | "staples";
+  status: "success" | "error";
+  details?: Record<string, any>;
+};
+
+type Message = {
+  id?: string;
+  role: "user" | "model";
+  text: string;
+  image?: string;
+  actions?: AgentAction[];
+  createdAt?: any;
+};
+
 type ChatSession = { id: string; title: string; updatedAt: any };
+
+function AgentActionCard({ action }: { action: AgentAction }) {
+  const iconConfig = {
+    nutrition: { icon: UtensilsCrossed, color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+    pantry:    { icon: Package,         color: "text-blue-400",    bg: "bg-blue-400/10",    border: "border-blue-400/20"    },
+    groceries: { icon: ShoppingCart,    color: "text-amber-400",   bg: "bg-amber-400/10",   border: "border-amber-400/20"   },
+    profile:   { icon: Target,          color: "text-purple-400",  bg: "bg-purple-400/10",  border: "border-purple-400/20"  },
+    menu:      { icon: ChefHat,         color: "text-rose-400",    bg: "bg-rose-400/10",    border: "border-rose-400/20"    },
+    staples:   { icon: Bookmark,        color: "text-amber-300",   bg: "bg-amber-300/10",   border: "border-amber-300/20"   },
+  }[action.store] || { icon: Sparkles, color: "text-white/70", bg: "bg-white/[0.05]", border: "border-white/[0.08]" };
+
+  const Icon = iconConfig.icon;
+
+  return (
+    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-3 flex items-start gap-3 shadow-md mt-2.5 transition-all hover:bg-white/[0.05] animate-in fade-in zoom-in-95 duration-200">
+      <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border ${iconConfig.bg} ${iconConfig.border}`}>
+        <Icon className={`w-4 h-4 ${iconConfig.color}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-bold text-white tracking-tight">{action.title}</p>
+          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Verified
+          </span>
+        </div>
+        <p className="text-[11px] text-white/60 font-sans mt-0.5 leading-relaxed">{action.description}</p>
+      </div>
+    </div>
+  );
+}
 
 const compressImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
   return new Promise((resolve) => {
@@ -115,7 +168,14 @@ export default function CompassChat() {
         const loadedMsgs: Message[] = [];
         snap.docs.forEach(d => {
           const data = d.data();
-          loadedMsgs.push({ id: d.id, role: data.role, text: data.text || "", image: data.image || undefined, createdAt: data.createdAt });
+          loadedMsgs.push({
+            id: d.id,
+            role: data.role,
+            text: data.text || "",
+            image: data.image || undefined,
+            actions: data.actions || undefined,
+            createdAt: data.createdAt
+          });
         });
         setMessages(loadedMsgs);
       } catch (e) {
@@ -127,32 +187,50 @@ export default function CompassChat() {
     loadMessages();
   }, [currentUser, currentSessionId]);
 
-  // 3. Load Context
+  // 3. Load Context for Omniscient AI Agent
   useEffect(() => {
     if (!currentUser) return;
     const loadCtx = async () => {
       const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
+      // Daily Logs
       const logSnap = await getDoc(doc(db, "users", currentUser.uid, "logs", today));
       const logData = logSnap.exists() ? logSnap.data() : null;
 
+      // Weekly Menu
       const menuSnap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt","desc"), limit(1)));
       let menuStr = "No menu uploaded.";
+      let fullWeeklyMenu: any[] = [];
       if (!menuSnap.empty) {
-        const ext = menuSnap.docs[0].data().extractedData;
-        const todayMenu = ext?.find((d:any) => d.day === dayName) || ext?.[0];
+        fullWeeklyMenu = menuSnap.docs[0].data().extractedData || [];
+        const todayMenu = fullWeeklyMenu.find((d:any) => d.day === dayName) || fullWeeklyMenu[0];
         if (todayMenu) menuStr = JSON.stringify(todayMenu);
       }
 
-      // Load Pantry
+      // Pantry
       const pantrySnap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
       const pantryItems = pantrySnap.exists() ? (pantrySnap.data().items || []) : [];
       const pantryStr = pantryItems.length > 0
         ? pantryItems.map((p: any) => `${p.name}: ${p.quantity} ${p.unit} (${p.category})`).join(", ")
         : "No items currently logged in pantry.";
 
-      const pData = `Goal: ${userProfile?.goal}\nWeight: ${userProfile?.weight}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto")}`;
+      // Groceries
+      const grocSnap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
+      const grocItems = grocSnap.exists() ? (grocSnap.data().items || []) : [];
+      const grocStr = grocItems.length > 0
+        ? grocItems.map((g: any) => `${g.name} (${g.category})${g.purchased ? " [Purchased]" : ""}`).join(", ")
+        : "No grocery items currently on list.";
+
+      // Custom Reusable Staples
+      const staplesSnap = await getDocs(collection(db, "users", currentUser.uid, "staples"));
+      const staplesList: any[] = [];
+      staplesSnap.docs.forEach(d => staplesList.push({ id: d.id, ...d.data() }));
+      const staplesStr = staplesList.length > 0
+        ? staplesList.map((s: any) => `${s.name} (${s.mealType}): ${s.calories} kcal, P:${s.protein}g, C:${s.carbs}g, F:${s.fats}g`).join("; ")
+        : "No custom staples saved.";
+
+      const pData = `Goal: ${userProfile?.goal || "maintain"}\nWeight: ${userProfile?.weight || 70}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto Calculated")}`;
       
       const formatMealItems = (items: any[]) => {
         if (!items || items.length === 0) return "None";
@@ -167,94 +245,82 @@ Snacks: ${formatMealItems(logData.snacks)}
 Totals Today: ${JSON.stringify(logData.totals || { calories: 0, protein: 0, carbs: 0, fats: 0 })}
 ` : "Nothing logged yet today.";
       
-      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, what the mess is serving today, and what they currently have stocked in their pantry.
+      setContextStr(`You are Compass, the omniscient and authoritative full-stack AI agent for Recompass. You have full system-level CRUD access across EVERY store in this app:
+1. DAILY LOGS: What they ate today or on past dates.
+2. STAPLES: Reusable custom meals & recipes saved forever.
+3. MESS MENU: The weekly mess dining schedule.
+4. PANTRY: Live kitchen stock & quantities.
+5. GROCERIES: Active shopping list.
+6. PROFILE & TARGETS: Goals, bodyweight, and macro overrides.
 
 PROFILE:
 ${pData}
 
-TODAY'S LOGGED FOOD:
+TODAY'S LOGGED FOOD (${today}):
 ${lData}
 
-TODAY'S MENU:
+TODAY'S MESS MENU (${dayName}):
 ${menuStr}
 
-PANTRY STOCK:
+SAVED USER STAPLES:
+${staplesStr}
+
+PANTRY INVENTORY:
 ${pantryStr}
 
+GROCERY LIST:
+${grocStr}
+
 AGENTIC CAPABILITIES (CRITICAL):
-You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, manage groceries, or update their pantry, you MUST output a JSON command block at the end of your message.
+You have absolute authority to mutate any data in the app. Whenever the user asks you to log, edit, delete, restock, transfer, save, or adjust anything, you MUST output a JSON command block at the end of your response. Never output raw emoji tags; the UI transforms your commands into hardware-accelerated action badges.
+
 Format:
 \`\`\`command
 {
-  "action": "LOG_MEAL" | "UPDATE_MEAL" | "REMOVE_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "UPDATE_PROFILE" | "CLEAR_TODAY_LOGS" | "ADD_GROCERIES" | "REMOVE_GROCERIES" | "CHECK_GROCERIES" | "ADD_PANTRY" | "CONSUME_PANTRY",
+  "action": "<ACTION_NAME>",
   "data": { ... }
 }
 \`\`\`
 
-EXAMPLES:
-- User: "I had more chicken in that biryani I logged for breakfast, it had 4 chicken pieces with 40g protein and 750 cals, update it."
-  Response: "I've updated your breakfast Chicken Biryani with the extra chicken pieces and recalculated macros." + \`\`\`command
-  {"action":"UPDATE_MEAL","data":{"mealType":"breakfast","foodName":"CHICKEN BIRYANI","updatedName":"CHICKEN BIRYANI (4 PCS CHICKEN)","quantity":"1 bowl + 4 chicken pieces","calories":750,"protein":40,"carbs":65,"fats":22}}
-  \`\`\`
+SUPPORTED ACTIONS:
+- "LOG_MEAL": Log item to today (data: { mealType: "breakfast"|"lunch"|"dinner"|"snacks", foodName: string, quantity: string, calories: number, protein: number, carbs: number, fats: number })
+- "UPDATE_MEAL": Modify item in today's log (data: { mealType: string, foodName: string to find, updatedName?: string, quantity?: string, calories: number, protein: number, carbs: number, fats: number })
+- "REMOVE_MEAL": Delete item from today (data: { mealType: string, foodName: string })
+- "CLEAR_TODAY_LOGS": Wipe all meals for today (data: {})
+- "LOG_DATE_MEAL": Log food to a specific past/future date (data: { date: "YYYY-MM-DD", mealType: string, foodName: string, quantity: string, calories: number, protein: number, carbs: number, fats: number })
+- "REMOVE_DATE_MEAL": Remove food from a date (data: { date: "YYYY-MM-DD", mealType: string, foodName: string })
+- "CLEAR_DATE_LOGS": Wipe food logs for a date (data: { date: "YYYY-MM-DD" })
+- "ADD_STAPLE": Save reusable recurring meal/shake (data: { name: string, recipe: string, mealType?: "breakfast"|"lunch"|"dinner"|"snacks"|"any", calories: number, protein: number, carbs: number, fats: number })
+- "REMOVE_STAPLE": Delete a staple recipe (data: { name: string })
+- "LOG_STAPLE": 1-tap log an existing staple to today (data: { stapleName: string, mealType: string })
+- "ADD_PANTRY": Restock kitchen (data: { name: string, quantity: number, unit?: string, category?: string })
+- "CONSUME_PANTRY": Deduct kitchen stock (data: { name: string, quantity: number })
+- "UPDATE_PANTRY": Edit stock or category (data: { name: string, quantity: number, unit?: string, category?: string })
+- "REMOVE_PANTRY": Delete pantry item (data: { name: string })
+- "CLEAR_PANTRY": Empty pantry (data: {})
+- "RESTOCK_LOW_TO_GROCERIES": Auto-transfer low pantry items to groceries (data: {})
+- "ADD_GROCERIES": Add items to shopping list (data: { items: Array<{ name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other" }> | string[] })
+- "REMOVE_GROCERIES": Remove items from list (data: { items: string[] })
+- "CHECK_GROCERIES": Mark items bought (data: { items: string[] })
+- "UNCHECK_GROCERIES": Unmark items (data: { items: string[] })
+- "CLEAR_GROCERIES": Empty grocery list (data: {})
+- "TRANSFER_GROCERIES_TO_PANTRY": Move bought grocery items into pantry inventory (data: {})
+- "UPDATE_MENU_ITEM": Update mess menu items (data: { day: string, mealType: "breakfast"|"lunch"|"dinner", dishes: string[] })
+- "ADD_MENU_ITEM": Add dish to mess menu (data: { day: string, mealType: "breakfast"|"lunch"|"dinner", dish: string })
+- "REMOVE_MENU_ITEM": Remove dish from mess menu (data: { day: string, mealType: "breakfast"|"lunch"|"dinner", dish: string })
+- "UPDATE_GOAL": Set fitness goal (data: { goal: "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
+- "UPDATE_WEIGHT": Log bodyweight (data: { weight: number })
+- "UPDATE_TARGETS": Override daily calorie/macro goals (data: { calories: number, protein: number, carbs: number, fats: number })
+- "RESET_TARGETS": Reset overrides back to automatic calculation (data: {})
+- "UPDATE_PROFILE": Update vitals (data: { age?: number, height?: number, name?: string })
 
-- User: "Delete the biryani from my breakfast"
-  Response: "I've removed Chicken Biryani from your breakfast log." + \`\`\`command
-  {"action":"REMOVE_MEAL","data":{"mealType":"breakfast","foodName":"CHICKEN BIRYANI"}}
-  \`\`\`
-
-- User: "I just ate 2 chapatis for lunch."
-  Response: "Got it, I've logged 2 chapatis for lunch." + \`\`\`command
-  {"action":"LOG_MEAL","data":{"foodName":"CHAPATI","quantity":"2 pieces","mealType":"lunch","calories":240,"protein":7,"carbs":44,"fats":4}}
-  \`\`\`
-
-- User: "Add milk and eggs to my grocery list."
-  Response: "I've added milk and eggs to your groceries." + \`\`\`command
-  {"action":"ADD_GROCERIES","data":{"items":[{"name":"Milk","category":"Dairy"},{"name":"Eggs","category":"Protein"}]}}
-  \`\`\`
-
-- User: "I bought 6 eggs, add them to my pantry"
-  Response: "I've added 6 eggs to your pantry." + \`\`\`command
-  {"action":"ADD_PANTRY","data":{"name":"Eggs","quantity":6,"unit":"pcs","category":"Protein"}}
-  \`\`\`
-
-- User: "I just had a scoop of whey protein"
-  Response: "Logged 1 scoop of whey to snacks and deducted 1 scoop from your pantry." + \`\`\`command
-  {"action":"LOG_MEAL","data":{"foodName":"WHEY PROTEIN","quantity":"1 scoop","mealType":"snacks","calories":120,"protein":24,"carbs":2,"fats":1}}
-  \`\`\`
-  \`\`\`command
-  {"action":"CONSUME_PANTRY","data":{"name":"Whey Protein","quantity":1}}
-  \`\`\`
-
-- User: "Set my goal to bulk"
-  Response: "Updated your goal to bulk." + \`\`\`command
-  {"action":"UPDATE_GOAL","data":{"goal":"muscle_gain"}}
-  \`\`\`
-
-- User: "Clear everything I ate today"
-  Response: "I've wiped today's food logs." + \`\`\`command
-  {"action":"CLEAR_TODAY_LOGS","data":{}}
-  \`\`\`
-
-Valid actions: 
-- "LOG_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": UPPERCASE string, "quantity": string, "calories": number, "protein": number, "carbs": number, "fats": number })
-- "UPDATE_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": string to search and replace, "updatedName"?: string, "quantity"?: string, "calories": number, "protein": number, "carbs": number, "fats": number })
-- "REMOVE_MEAL" (data: { "mealType": "breakfast"|"lunch"|"dinner"|"snacks", "foodName": string to match and delete })
-- "UPDATE_GOAL" (data: { "goal": "fat_loss" | "muscle_gain" | "recomp" | "maintain" })
-- "UPDATE_WEIGHT" (data: { "weight": number })
-- "UPDATE_PROFILE" (data: { "age"?: number, "height"?: number, "name"?: string })
-- "UPDATE_TARGETS" (data: { "calories": number, "protein": number, "carbs": number, "fats": number })
-- "CLEAR_TODAY_LOGS" (data: {})
-- "ADD_GROCERIES" (data: { "items": Array<{name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other"}> })
-- "REMOVE_GROCERIES" (data: { "items": string[] })
-- "CLEAR_GROCERIES" (data: {})
-- "CHECK_GROCERIES" (data: { "items": string[] })
-- "ADD_PANTRY" (data: { "name": string, "quantity": number, "unit"?: string, "category"?: string })
-- "CONSUME_PANTRY" (data: { "name": string, "quantity": number })
-
-Instructions: Be concise. Estimate macros accurately. If the user tells you about food they ate, or asks to modify/correct a logged item, ALWAYS calculate the accurate macros and emit the command block. You have complete permission to manage their meals, groceries, and targets.
-If the user shares an image:
-- If the image contains a food plate, snack, meal, or beverage: identify the items, estimate portions & macros, and if they ask to log it (or if they just sent a photo of their meal), log it.
-- If the image DOES NOT contain any food or drink (e.g. selfie, room, car, object, furniture, electronics, screenshot, pet, document): clearly inform the user that no food was detected in the photo and ask them to share a picture of their plate or describe what they ate.`);
+Instructions:
+1. Always calculate accurate macros using your nutritional intelligence. Never use fake placeholders.
+2. If the user tells you about food they ate, ALWAYS calculate macros and emit LOG_MEAL or UPDATE_MEAL.
+3. If the user mentions groceries, pantry, staples, or profile changes, emit the corresponding command.
+4. If an image is attached, inspect it:
+   - If it contains a food plate, meal, snack, or drink: classify items, estimate macros, and log them if requested.
+   - If it contains NO food/drink (selfie, room, objects, pets, documents): politely explain that no food was detected and ask for a picture of their meal.`);
     };
     loadCtx();
   }, [currentUser, userProfile]);
@@ -383,64 +449,93 @@ If the user shares an image:
       // Remove commands from visible text
       rawText = rawText.replace(/\`\`\`command\n[\s\S]*?\n\`\`\`/g, '').trim();
       
-      let sysMessages = [];
+      const executedActions: AgentAction[] = [];
+      const createActionId = () => "act_" + Date.now().toString(36) + "_" + Math.random().toString(36).substr(2, 4);
+
       for (const cmd of commands) {
         try {
-          if (cmd.action === "LOG_MEAL") {
+          const actionType = cmd.action;
+          const actionData = cmd.data || {};
+
+          // 1. LOG_MEAL
+          if (actionType === "LOG_MEAL") {
             const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const logRef = doc(db, "users", currentUser.uid, "logs", today);
             const logSnap = await getDoc(logRef);
             const d = logSnap.exists() ? logSnap.data() : { breakfast: [], lunch: [], dinner: [], snacks: [] };
             
-            const mealType = cmd.data.mealType || "snacks";
+            const mealType = actionData.mealType || "snacks";
+            const foodName = (actionData.foodName || "MEAL").toUpperCase();
+            const quantity = actionData.quantity || "1 serving";
+            const calories = Math.max(0, Math.round(Number(actionData.calories) || 0));
+            const protein  = Math.max(0, Math.round((Number(actionData.protein) || 0) * 10) / 10);
+            const carbs    = Math.max(0, Math.round((Number(actionData.carbs) || 0) * 10) / 10);
+            const fats     = Math.max(0, Math.round((Number(actionData.fats) || 0) * 10) / 10);
+
             const entry = {
               id: Date.now().toString(),
-              name: cmd.data.foodName,
-              quantity: cmd.data.quantity || "1 serving",
-              calories: cmd.data.calories,
-              protein: cmd.data.protein,
-              carbs: cmd.data.carbs,
-              fats: cmd.data.fats,
+              name: foodName,
+              quantity,
+              calories,
+              protein,
+              carbs,
+              fats,
               loggedAt: new Date().toISOString()
             };
             
             d[mealType] = [...(d[mealType] || []), entry];
-            const all = [...(d.breakfast||[]), ...(d.lunch||[]), ...(d.dinner||[]), ...(d.snacks||[])];
-            d.totals = all.reduce((a:any,i:any)=>({
+            const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+            d.totals = all.reduce((a: any, i: any) => ({
               calories: a.calories + i.calories,
               protein: a.protein + i.protein,
               carbs: a.carbs + i.carbs,
               fats: a.fats + i.fats
-            }), { calories:0, protein:0, carbs:0, fats:0 });
+            }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
             
             await setDoc(logRef, { ...d, date: today });
-            sysMessages.push(`✅ *Successfully logged ${entry.quantity} of ${entry.name} to ${mealType}.*`);
+            clearCachedData("daily_log_" + today);
+            
+            executedActions.push({
+              id: createActionId(),
+              type: "LOG_MEAL",
+              title: "Meal Logged to Daily Intake",
+              description: `${quantity} of ${foodName} logged to ${mealType.charAt(0).toUpperCase() + mealType.slice(1)} (${calories} kcal • P: ${protein}g, C: ${carbs}g, F: ${fats}g)`,
+              store: "nutrition",
+              status: "success",
+              details: entry
+            });
           }
 
-          if (cmd.action === "UPDATE_MEAL") {
+          // 2. UPDATE_MEAL
+          if (actionType === "UPDATE_MEAL") {
             const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const logRef = doc(db, "users", currentUser.uid, "logs", today);
             const logSnap = await getDoc(logRef);
             if (logSnap.exists()) {
               const d = logSnap.data();
-              const mealType = cmd.data.mealType || "lunch";
-              const targetName = (cmd.data.foodName || "").toLowerCase().trim();
+              const mealType = actionData.mealType || "lunch";
+              const targetName = (actionData.foodName || "").toLowerCase().trim();
               const currentItems = d[mealType] || [];
               
               let matched = false;
-              const updatedName = (cmd.data.updatedName || cmd.data.foodName || "MEAL").toUpperCase();
+              const updatedName = (actionData.updatedName || actionData.foodName || "MEAL").toUpperCase();
+              const calories = Math.max(0, Math.round(Number(actionData.calories) || 0));
+              const protein  = Math.max(0, Math.round((Number(actionData.protein) || 0) * 10) / 10);
+              const carbs    = Math.max(0, Math.round((Number(actionData.carbs) || 0) * 10) / 10);
+              const fats     = Math.max(0, Math.round((Number(actionData.fats) || 0) * 10) / 10);
+
               const updated = currentItems.map((item: any) => {
                 const lowerItemName = (item.name || "").toLowerCase();
-                if (!matched && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (cmd.data.id && item.id === cmd.data.id))) {
+                if (!matched && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (actionData.id && item.id === actionData.id))) {
                   matched = true;
                   return {
                     ...item,
                     name: updatedName,
-                    quantity: cmd.data.quantity || item.quantity,
-                    calories: Math.max(0, Math.round(Number(cmd.data.calories) || item.calories)),
-                    protein: Math.max(0, Math.round((Number(cmd.data.protein) ?? item.protein) * 10) / 10),
-                    carbs: Math.max(0, Math.round((Number(cmd.data.carbs) ?? item.carbs) * 10) / 10),
-                    fats: Math.max(0, Math.round((Number(cmd.data.fats) ?? item.fats) * 10) / 10),
+                    quantity: actionData.quantity || item.quantity,
+                    calories: calories || item.calories,
+                    protein: protein || item.protein,
+                    carbs: carbs || item.carbs,
+                    fats: fats || item.fats,
                     updatedAt: new Date().toISOString()
                   };
                 }
@@ -457,23 +552,34 @@ If the user shares an image:
               }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
               await setDoc(logRef, { ...d, date: today });
-              sysMessages.push(`🔄 *Updated "${updatedName}" in ${mealType}: ${cmd.data.calories} kcal, ${cmd.data.protein}g protein, ${cmd.data.carbs}g carbs, ${cmd.data.fats}g fats.*`);
+              clearCachedData("daily_log_" + today);
+
+              executedActions.push({
+                id: createActionId(),
+                type: "UPDATE_MEAL",
+                title: "Meal Record Updated",
+                description: `Updated "${updatedName}" in ${mealType} (${calories} kcal • P: ${protein}g, C: ${carbs}g)`,
+                store: "nutrition",
+                status: "success",
+                details: actionData
+              });
             }
           }
 
-          if (cmd.action === "REMOVE_MEAL") {
+          // 3. REMOVE_MEAL
+          if (actionType === "REMOVE_MEAL") {
             const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const logRef = doc(db, "users", currentUser.uid, "logs", today);
             const logSnap = await getDoc(logRef);
             if (logSnap.exists()) {
               const d = logSnap.data();
-              const mealType = cmd.data.mealType || "lunch";
-              const targetName = (cmd.data.foodName || "").toLowerCase().trim();
+              const mealType = actionData.mealType || "lunch";
+              const targetName = (actionData.foodName || "").toLowerCase().trim();
               
               let removed = false;
               d[mealType] = (d[mealType] || []).filter((item: any) => {
                 const lowerItemName = (item.name || "").toLowerCase();
-                if (!removed && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (cmd.data.id && item.id === cmd.data.id))) {
+                if (!removed && (lowerItemName.includes(targetName) || targetName.includes(lowerItemName) || (actionData.id && item.id === actionData.id))) {
                   removed = true;
                   return false;
                 }
@@ -489,152 +595,248 @@ If the user shares an image:
               }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
               await setDoc(logRef, { ...d, date: today });
-              sysMessages.push(`🗑️ *Removed "${cmd.data.foodName}" from ${mealType}.*`);
+              clearCachedData("daily_log_" + today);
+
+              executedActions.push({
+                id: createActionId(),
+                type: "REMOVE_MEAL",
+                title: "Food Item Deleted",
+                description: `Removed "${actionData.foodName}" from ${mealType}`,
+                store: "nutrition",
+                status: "success",
+                details: actionData
+              });
             }
           }
-          
-          if (cmd.action === "UPDATE_GOAL") {
-            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { goal: cmd.data.goal }, { merge: true });
-            sysMessages.push(`✅ *Goal successfully updated to ${cmd.data.goal}.*`);
-          }
-          
-          if (cmd.action === "UPDATE_WEIGHT") {
-            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: cmd.data.weight }, { merge: true });
-            sysMessages.push(`🎯 *Weight successfully updated to ${cmd.data.weight}kg.*`);
-            await refreshProfile();
-          }
 
-          if (cmd.action === "UPDATE_PROFILE") {
-            const updates: any = {};
-            if (cmd.data.age) updates.age = cmd.data.age;
-            if (cmd.data.height) updates.height = cmd.data.height;
-            if (cmd.data.name) updates.name = cmd.data.name;
-            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), updates, { merge: true });
-            sysMessages.push(`👤 *Profile details updated.*`);
-            await refreshProfile();
-          }
-
-          if (cmd.action === "UPDATE_TARGETS") {
-            // Provide fallbacks in case AI doesn't send all macros
-            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { 
-              targetOverrides: {
-                enabled: true,
-                calories: cmd.data.calories || userProfile?.targetOverrides?.calories || 2000,
-                protein: cmd.data.protein || userProfile?.targetOverrides?.protein || 120,
-                carbs: cmd.data.carbs || userProfile?.targetOverrides?.carbs || 200,
-                fats: cmd.data.fats || userProfile?.targetOverrides?.fats || 60
-              }
-            }, { merge: true });
-            sysMessages.push(`🎯 *Daily macro targets manually overridden to ${cmd.data.calories} kcal.*`);
-            await refreshProfile();
-          }
-
-          if (cmd.action === "CLEAR_TODAY_LOGS") {
+          // 4. CLEAR_TODAY_LOGS
+          if (actionType === "CLEAR_TODAY_LOGS") {
             const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             await setDoc(doc(db, "users", currentUser.uid, "logs", today), { 
               breakfast: [], lunch: [], dinner: [], snacks: [],
               totals: { calories: 0, protein: 0, carbs: 0, fats: 0 }
             }, { merge: true });
-            sysMessages.push(`🗑️ *Cleared all food logs for today.*`);
+            clearCachedData("daily_log_" + today);
+
+            executedActions.push({
+              id: createActionId(),
+              type: "CLEAR_TODAY_LOGS",
+              title: "Daily Nutrition Logs Cleared",
+              description: "Cleared all meals and reset calories & macros to 0",
+              store: "nutrition",
+              status: "success"
+            });
           }
 
-          if (cmd.action === "CHECK_GROCERIES") {
-            const itemsToCheck: string[] = cmd.data.items || [];
-            if (itemsToCheck.length > 0) {
-              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
-              const grocSnap = await getDoc(grocRef);
-              if (grocSnap.exists()) {
-                const currentItems = grocSnap.data().items || [];
-                const lowerToCheck = new Set(itemsToCheck.map(i => i.toLowerCase()));
-                const updated = currentItems.map((item: any) => 
-                  lowerToCheck.has(item.name.toLowerCase()) ? { ...item, purchased: true } : item
-                );
-                await setDoc(grocRef, { items: updated, lastUpdated: new Date().toISOString() }, { merge: true });
-                sysMessages.push(`✅ *Checked off ${itemsToCheck.length} items from your list.*`);
-              }
-            }
+          // 5. LOG_DATE_MEAL (Any past/future date)
+          if (actionType === "LOG_DATE_MEAL") {
+            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            const logRef = doc(db, "users", currentUser.uid, "logs", targetDate);
+            const logSnap = await getDoc(logRef);
+            const d = logSnap.exists() ? logSnap.data() : { breakfast: [], lunch: [], dinner: [], snacks: [] };
+            
+            const mealType = actionData.mealType || "lunch";
+            const foodName = (actionData.foodName || "MEAL").toUpperCase();
+            const quantity = actionData.quantity || "1 serving";
+            const calories = Math.max(0, Math.round(Number(actionData.calories) || 0));
+            const protein  = Math.max(0, Math.round((Number(actionData.protein) || 0) * 10) / 10);
+            const carbs    = Math.max(0, Math.round((Number(actionData.carbs) || 0) * 10) / 10);
+            const fats     = Math.max(0, Math.round((Number(actionData.fats) || 0) * 10) / 10);
+
+            const entry = {
+              id: Date.now().toString(),
+              name: foodName,
+              quantity,
+              calories,
+              protein,
+              carbs,
+              fats,
+              loggedAt: new Date().toISOString()
+            };
+
+            d[mealType] = [...(d[mealType] || []), entry];
+            const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+            d.totals = all.reduce((a: any, i: any) => ({
+              calories: a.calories + i.calories,
+              protein: a.protein + i.protein,
+              carbs: a.carbs + i.carbs,
+              fats: a.fats + i.fats
+            }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+            await setDoc(logRef, { ...d, date: targetDate });
+            clearCachedData("daily_log_" + targetDate);
+
+            executedActions.push({
+              id: createActionId(),
+              type: "LOG_DATE_MEAL",
+              title: "Historical Food Record Logged",
+              description: `${entry.quantity} of ${entry.name} logged to ${mealType} on ${targetDate}`,
+              store: "nutrition",
+              status: "success",
+              details: entry
+            });
           }
 
-          if (cmd.action === "ADD_GROCERIES") {
-            const itemsToAdd: any[] = cmd.data.items || [];
-            if (itemsToAdd.length > 0) {
-              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
-              const grocSnap = await getDoc(grocRef);
-              let currentItems = grocSnap.exists() ? grocSnap.data().items || [] : [];
-              
-              const newGroceryItems = itemsToAdd.map(itemObj => {
-                // Support both string arrays (fallback) and the new object format
-                const name = typeof itemObj === "string" ? itemObj : itemObj.name;
-                const aiCategory = typeof itemObj === "string" ? null : itemObj.category;
-                
-                const lower = name.toLowerCase();
-                let category = aiCategory || "Other";
-                
-                // Fallback auto-categorization only if AI didn't provide a valid one
-                if (!aiCategory) {
-                  if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya") || lower.includes("paneer")) category = "Protein";
-                  else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
-                  else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
-                  else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie") || lower.includes("oat") || lower.includes("pasta") || lower.includes("bread")) category = "Snacks";
-                  else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
-                  else if (lower.includes("rice") || lower.includes("wheat") || lower.includes("atta") || lower.includes("flour") || lower.includes("dal") || lower.includes("lentil")) category = "Grains";
-                  else if (lower.includes("cumin") || lower.includes("turmeric") || lower.includes("chili") || lower.includes("salt") || lower.includes("pepper") || lower.includes("spice") || lower.includes("garlic") || lower.includes("ginger")) category = "Spices";
-                  else if (lower.includes("oil")) category = "Oils";
-                }
+          // 6. REMOVE_DATE_MEAL
+          if (actionType === "REMOVE_DATE_MEAL") {
+            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            const logRef = doc(db, "users", currentUser.uid, "logs", targetDate);
+            const logSnap = await getDoc(logRef);
+            if (logSnap.exists()) {
+              const d = logSnap.data();
+              const mealType = actionData.mealType || "lunch";
+              const targetName = (actionData.foodName || "").toLowerCase().trim();
+              d[mealType] = (d[mealType] || []).filter((item: any) => !item.name.toLowerCase().includes(targetName));
 
-                return {
-                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                  name: name,
-                  category,
-                  purchased: false
-                };
+              const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+              d.totals = all.reduce((a: any, i: any) => ({
+                calories: a.calories + i.calories,
+                protein: a.protein + i.protein,
+                carbs: a.carbs + i.carbs,
+                fats: a.fats + i.fats
+              }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+              await setDoc(logRef, { ...d, date: targetDate });
+              clearCachedData("daily_log_" + targetDate);
+
+              executedActions.push({
+                id: createActionId(),
+                type: "REMOVE_DATE_MEAL",
+                title: "Historical Food Record Removed",
+                description: `Removed "${actionData.foodName}" from ${targetDate}`,
+                store: "nutrition",
+                status: "success"
               });
-              
-              const existingNames = new Set(currentItems.map((i:any) => i.name.toLowerCase()));
-              const filteredNew = newGroceryItems.filter(i => !existingNames.has(i.name.toLowerCase()));
-              
-              await setDoc(grocRef, {
-                items: [...currentItems, ...filteredNew],
-                lastUpdated: new Date().toISOString()
-              }, { merge: true });
-
-              sysMessages.push(`🛒 *Added ${filteredNew.length} items to your shopping list.*`);
             }
           }
 
-          if (cmd.action === "CLEAR_GROCERIES") {
-            const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
-            await setDoc(grocRef, {
-              items: [],
-              lastUpdated: new Date().toISOString()
+          // 7. CLEAR_DATE_LOGS
+          if (actionType === "CLEAR_DATE_LOGS") {
+            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            await setDoc(doc(db, "users", currentUser.uid, "logs", targetDate), {
+              breakfast: [], lunch: [], dinner: [], snacks: [],
+              totals: { calories: 0, protein: 0, carbs: 0, fats: 0 }
             }, { merge: true });
-            sysMessages.push(`🗑️ *Cleared your entire grocery list.*`);
+            clearCachedData("daily_log_" + targetDate);
+
+            executedActions.push({
+              id: createActionId(),
+              type: "CLEAR_DATE_LOGS",
+              title: "Historical Log Cleared",
+              description: `Cleared all nutrition logs for ${targetDate}`,
+              store: "nutrition",
+              status: "success"
+            });
           }
 
-          if (cmd.action === "REMOVE_GROCERIES") {
-            const itemsToRemove: string[] = cmd.data.items || [];
-            if (itemsToRemove.length > 0) {
-              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
-              const grocSnap = await getDoc(grocRef);
-              if (grocSnap.exists()) {
-                const currentItems = grocSnap.data().items || [];
-                const lowerToRemove = new Set(itemsToRemove.map(i => i.toLowerCase()));
-                const filtered = currentItems.filter((item: any) => !lowerToRemove.has(item.name.toLowerCase()));
-                
-                await setDoc(grocRef, {
-                  items: filtered,
-                  lastUpdated: new Date().toISOString()
-                }, { merge: true });
-                sysMessages.push(`🗑️ *Removed ${currentItems.length - filtered.length} items from your grocery list.*`);
+          // 8. ADD_STAPLE
+          if (actionType === "ADD_STAPLE") {
+            const stapleId = "staple_" + Date.now();
+            const staple = {
+              id: stapleId,
+              name: (actionData.name || "Custom Recipe").trim(),
+              recipe: (actionData.recipe || actionData.name || "").trim(),
+              mealType: actionData.mealType || "any",
+              calories: Math.max(0, Math.round(Number(actionData.calories) || 0)),
+              protein: Math.max(0, Math.round((Number(actionData.protein) || 0) * 10) / 10),
+              carbs: Math.max(0, Math.round((Number(actionData.carbs) || 0) * 10) / 10),
+              fats: Math.max(0, Math.round((Number(actionData.fats) || 0) * 10) / 10),
+              createdAt: new Date().toISOString()
+            };
+            await setDoc(doc(db, "users", currentUser.uid, "staples", stapleId), staple);
+            clearCachedData("user_staples");
+
+            executedActions.push({
+              id: createActionId(),
+              type: "ADD_STAPLE",
+              title: "Custom Staple Saved",
+              description: `Saved "${staple.name}" (${staple.calories} kcal • P: ${staple.protein}g)`,
+              store: "staples",
+              status: "success",
+              details: staple
+            });
+          }
+
+          // 9. REMOVE_STAPLE
+          if (actionType === "REMOVE_STAPLE") {
+            const targetName = (actionData.name || "").toLowerCase().trim();
+            const staplesSnap = await getDocs(collection(db, "users", currentUser.uid, "staples"));
+            let deleted = false;
+            for (const d of staplesSnap.docs) {
+              const data = d.data();
+              if (data.name?.toLowerCase().includes(targetName) || d.id === actionData.id) {
+                await deleteDoc(d.ref);
+                deleted = true;
+                break;
               }
             }
+            if (deleted) {
+              clearCachedData("user_staples");
+              executedActions.push({
+                id: createActionId(),
+                type: "REMOVE_STAPLE",
+                title: "Custom Staple Deleted",
+                description: `Removed "${actionData.name}" from your staples library`,
+                store: "staples",
+                status: "success"
+              });
+            }
           }
 
-          if (cmd.action === "ADD_PANTRY") {
-            const name = cmd.data.name;
-            const quantity = Number(cmd.data.quantity) || 1;
-            const unit = cmd.data.unit || "pcs";
-            const category = cmd.data.category || "Other";
+          // 10. LOG_STAPLE (1-tap log staple by name)
+          if (actionType === "LOG_STAPLE") {
+            const targetName = (actionData.stapleName || actionData.name || "").toLowerCase().trim();
+            const mealType = actionData.mealType || "snacks";
+            const staplesSnap = await getDocs(collection(db, "users", currentUser.uid, "staples"));
+            const matchDoc = staplesSnap.docs.find(d => d.data().name?.toLowerCase().includes(targetName));
+            if (matchDoc) {
+              const s = matchDoc.data();
+              const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+              const logRef = doc(db, "users", currentUser.uid, "logs", today);
+              const logSnap = await getDoc(logRef);
+              const d = logSnap.exists() ? logSnap.data() : { breakfast: [], lunch: [], dinner: [], snacks: [] };
+
+              const entry = {
+                id: Date.now().toString(),
+                name: s.name.toUpperCase(),
+                quantity: s.recipe || "1 serving",
+                calories: s.calories,
+                protein: s.protein,
+                carbs: s.carbs,
+                fats: s.fats,
+                loggedAt: new Date().toISOString()
+              };
+
+              d[mealType] = [...(d[mealType] || []), entry];
+              const all = [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || []), ...(d.snacks || [])];
+              d.totals = all.reduce((a: any, i: any) => ({
+                calories: a.calories + i.calories,
+                protein: a.protein + i.protein,
+                carbs: a.carbs + i.carbs,
+                fats: a.fats + i.fats
+              }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+              await setDoc(logRef, { ...d, date: today });
+              clearCachedData("daily_log_" + today);
+
+              executedActions.push({
+                id: createActionId(),
+                type: "LOG_STAPLE",
+                title: "Staple Recipe Logged",
+                description: `Logged "${s.name}" to ${mealType} (${s.calories} kcal • P: ${s.protein}g)`,
+                store: "staples",
+                status: "success",
+                details: entry
+              });
+            }
+          }
+
+          // 11. ADD_PANTRY
+          if (actionType === "ADD_PANTRY") {
+            const name = actionData.name;
+            const quantity = Number(actionData.quantity) || 1;
+            const unit = actionData.unit || "pcs";
+            const category = actionData.category || "Protein";
             
             if (name) {
               const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
@@ -663,19 +865,24 @@ If the user shares an image:
                 });
               }
               
-              await setDoc(pantryRef, {
-                items: currentItems,
-                lastUpdated: new Date().toISOString()
-              }, { merge: true });
-              
-              sysMessages.push(`📦 *Added ${quantity} ${unit} of "${name}" to your Pantry.*`);
+              await setDoc(pantryRef, { items: currentItems, lastUpdated: new Date().toISOString() }, { merge: true });
+              clearCachedData("user_pantry");
+
+              executedActions.push({
+                id: createActionId(),
+                type: "ADD_PANTRY",
+                title: "Pantry Restocked",
+                description: `Added ${quantity} ${unit} of "${name}" to pantry inventory`,
+                store: "pantry",
+                status: "success"
+              });
             }
           }
 
-          if (cmd.action === "CONSUME_PANTRY") {
-            const name = cmd.data.name;
-            const quantity = Number(cmd.data.quantity) || 1;
-            
+          // 12. CONSUME_PANTRY
+          if (actionType === "CONSUME_PANTRY") {
+            const name = actionData.name;
+            const quantity = Number(actionData.quantity) || 1;
             if (name) {
               const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
               const pantrySnap = await getDoc(pantryRef);
@@ -684,7 +891,6 @@ If the user shares an image:
                 const existingIdx = currentItems.findIndex(
                   (p: any) => p.name.toLowerCase() === name.toLowerCase()
                 );
-                
                 if (existingIdx >= 0) {
                   const newQty = Math.max(0, (currentItems[existingIdx].quantity || 0) - quantity);
                   currentItems[existingIdx] = {
@@ -692,27 +898,492 @@ If the user shares an image:
                     quantity: newQty,
                     updatedAt: new Date().toISOString()
                   };
-                  
-                  await setDoc(pantryRef, {
-                    items: currentItems,
-                    lastUpdated: new Date().toISOString()
-                  }, { merge: true });
-                  
-                  sysMessages.push(`📦 *Used ${quantity} ${currentItems[existingIdx].unit || 'pcs'} of "${name}" from Pantry (Remaining: ${newQty}).*`);
+                  await setDoc(pantryRef, { items: currentItems, lastUpdated: new Date().toISOString() }, { merge: true });
+                  clearCachedData("user_pantry");
+
+                  executedActions.push({
+                    id: createActionId(),
+                    type: "CONSUME_PANTRY",
+                    title: "Pantry Inventory Deducted",
+                    description: `Used ${quantity} ${currentItems[existingIdx].unit || 'pcs'} of "${name}" (Remaining: ${newQty})`,
+                    store: "pantry",
+                    status: "success"
+                  });
                 }
               }
             }
           }
+
+          // 13. UPDATE_PANTRY
+          if (actionType === "UPDATE_PANTRY") {
+            const name = (actionData.name || "").toLowerCase().trim();
+            const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+            const pantrySnap = await getDoc(pantryRef);
+            if (pantrySnap.exists()) {
+              let currentItems = pantrySnap.data().items || [];
+              const idx = currentItems.findIndex((p: any) => p.name.toLowerCase().includes(name));
+              if (idx >= 0) {
+                currentItems[idx] = {
+                  ...currentItems[idx],
+                  ...(actionData.quantity !== undefined ? { quantity: Number(actionData.quantity) } : {}),
+                  ...(actionData.unit ? { unit: actionData.unit } : {}),
+                  ...(actionData.category ? { category: actionData.category } : {}),
+                  updatedAt: new Date().toISOString()
+                };
+                await setDoc(pantryRef, { items: currentItems, lastUpdated: new Date().toISOString() }, { merge: true });
+                clearCachedData("user_pantry");
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "UPDATE_PANTRY",
+                  title: "Pantry Item Updated",
+                  description: `Updated "${currentItems[idx].name}" (${currentItems[idx].quantity} ${currentItems[idx].unit})`,
+                  store: "pantry",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 14. REMOVE_PANTRY
+          if (actionType === "REMOVE_PANTRY") {
+            const name = (actionData.name || "").toLowerCase().trim();
+            const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+            const pantrySnap = await getDoc(pantryRef);
+            if (pantrySnap.exists()) {
+              let currentItems = pantrySnap.data().items || [];
+              const filtered = currentItems.filter((p: any) => !p.name.toLowerCase().includes(name));
+              await setDoc(pantryRef, { items: filtered, lastUpdated: new Date().toISOString() }, { merge: true });
+              clearCachedData("user_pantry");
+
+              executedActions.push({
+                id: createActionId(),
+                type: "REMOVE_PANTRY",
+                title: "Pantry Item Deleted",
+                description: `Removed "${actionData.name}" from pantry`,
+                store: "pantry",
+                status: "success"
+              });
+            }
+          }
+
+          // 15. CLEAR_PANTRY
+          if (actionType === "CLEAR_PANTRY") {
+            const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+            await setDoc(pantryRef, { items: [], lastUpdated: new Date().toISOString() }, { merge: true });
+            clearCachedData("user_pantry");
+
+            executedActions.push({
+              id: createActionId(),
+              type: "CLEAR_PANTRY",
+              title: "Pantry Emptied",
+              description: "Cleared all items from pantry inventory",
+              store: "pantry",
+              status: "success"
+            });
+          }
+
+          // 16. RESTOCK_LOW_TO_GROCERIES
+          if (actionType === "RESTOCK_LOW_TO_GROCERIES") {
+            const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+            const pantrySnap = await getDoc(pantryRef);
+            if (pantrySnap.exists()) {
+              const pantryItems = pantrySnap.data().items || [];
+              const lowItems = pantryItems.filter((p: any) => (p.quantity || 0) <= (p.lowStockThreshold || 1));
+              if (lowItems.length > 0) {
+                const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+                const grocSnap = await getDoc(grocRef);
+                const currentGroc = grocSnap.exists() ? grocSnap.data().items || [] : [];
+                const existingNames = new Set(currentGroc.map((i: any) => i.name.toLowerCase()));
+                
+                const toAdd = lowItems
+                  .filter((p: any) => !existingNames.has(p.name.toLowerCase()))
+                  .map((p: any) => ({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    name: p.name,
+                    category: p.category || "Produce",
+                    purchased: false
+                  }));
+
+                await setDoc(grocRef, { items: [...currentGroc, ...toAdd], lastUpdated: new Date().toISOString() }, { merge: true });
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "RESTOCK_LOW_TO_GROCERIES",
+                  title: "Low Stock Restock Triggered",
+                  description: `Transferred ${toAdd.length} low-stock items from pantry to grocery list`,
+                  store: "groceries",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 17. ADD_GROCERIES
+          if (actionType === "ADD_GROCERIES") {
+            const itemsToAdd: any[] = actionData.items || [];
+            if (itemsToAdd.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              let currentItems = grocSnap.exists() ? grocSnap.data().items || [] : [];
+              
+              const newGroceryItems = itemsToAdd.map(itemObj => {
+                const name = typeof itemObj === "string" ? itemObj : itemObj.name;
+                const aiCategory = typeof itemObj === "string" ? "Produce" : itemObj.category || "Produce";
+                return {
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                  name,
+                  category: aiCategory,
+                  purchased: false
+                };
+              });
+              
+              const existingNames = new Set(currentItems.map((i: any) => i.name.toLowerCase()));
+              const filteredNew = newGroceryItems.filter(i => !existingNames.has(i.name.toLowerCase()));
+              
+              await setDoc(grocRef, {
+                items: [...currentItems, ...filteredNew],
+                lastUpdated: new Date().toISOString()
+              }, { merge: true });
+
+              executedActions.push({
+                id: createActionId(),
+                type: "ADD_GROCERIES",
+                title: "Grocery Shopping List Updated",
+                description: `Added ${filteredNew.length} items to your shopping list`,
+                store: "groceries",
+                status: "success"
+              });
+            }
+          }
+
+          // 18. REMOVE_GROCERIES
+          if (actionType === "REMOVE_GROCERIES") {
+            const itemsToRemove: string[] = actionData.items || [];
+            if (itemsToRemove.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              if (grocSnap.exists()) {
+                const currentItems = grocSnap.data().items || [];
+                const lowerToRemove = new Set(itemsToRemove.map(i => i.toLowerCase()));
+                const filtered = currentItems.filter((item: any) => !lowerToRemove.has(item.name.toLowerCase()));
+                
+                await setDoc(grocRef, {
+                  items: filtered,
+                  lastUpdated: new Date().toISOString()
+                }, { merge: true });
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "REMOVE_GROCERIES",
+                  title: "Grocery Items Removed",
+                  description: `Removed ${currentItems.length - filtered.length} items from your shopping list`,
+                  store: "groceries",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 19. CHECK_GROCERIES
+          if (actionType === "CHECK_GROCERIES") {
+            const itemsToCheck: string[] = actionData.items || [];
+            if (itemsToCheck.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              if (grocSnap.exists()) {
+                const currentItems = grocSnap.data().items || [];
+                const lowerToCheck = new Set(itemsToCheck.map(i => i.toLowerCase()));
+                const updated = currentItems.map((item: any) => 
+                  lowerToCheck.has(item.name.toLowerCase()) ? { ...item, purchased: true } : item
+                );
+                await setDoc(grocRef, { items: updated, lastUpdated: new Date().toISOString() }, { merge: true });
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "CHECK_GROCERIES",
+                  title: "Groceries Marked Purchased",
+                  description: `Marked ${itemsToCheck.length} items as bought`,
+                  store: "groceries",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 20. UNCHECK_GROCERIES
+          if (actionType === "UNCHECK_GROCERIES") {
+            const itemsToUncheck: string[] = actionData.items || [];
+            if (itemsToUncheck.length > 0) {
+              const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+              const grocSnap = await getDoc(grocRef);
+              if (grocSnap.exists()) {
+                const currentItems = grocSnap.data().items || [];
+                const lowerToUncheck = new Set(itemsToUncheck.map(i => i.toLowerCase()));
+                const updated = currentItems.map((item: any) => 
+                  lowerToUncheck.has(item.name.toLowerCase()) ? { ...item, purchased: false } : item
+                );
+                await setDoc(grocRef, { items: updated, lastUpdated: new Date().toISOString() }, { merge: true });
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "UNCHECK_GROCERIES",
+                  title: "Groceries Unchecked",
+                  description: `Unchecked ${itemsToUncheck.length} items on shopping list`,
+                  store: "groceries",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 21. CLEAR_GROCERIES
+          if (actionType === "CLEAR_GROCERIES") {
+            const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+            await setDoc(grocRef, { items: [], lastUpdated: new Date().toISOString() }, { merge: true });
+
+            executedActions.push({
+              id: createActionId(),
+              type: "CLEAR_GROCERIES",
+              title: "Grocery List Cleared",
+              description: "Emptied your entire shopping list",
+              store: "groceries",
+              status: "success"
+            });
+          }
+
+          // 22. TRANSFER_GROCERIES_TO_PANTRY
+          if (actionType === "TRANSFER_GROCERIES_TO_PANTRY") {
+            const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
+            const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+            const [grocSnap, pantrySnap] = await Promise.all([getDoc(grocRef), getDoc(pantryRef)]);
+            
+            if (grocSnap.exists()) {
+              const grocItems = grocSnap.data().items || [];
+              const purchased = grocItems.filter((i: any) => i.purchased);
+              const remainingGroc = grocItems.filter((i: any) => !i.purchased);
+              
+              if (purchased.length > 0) {
+                let pantryItems = pantrySnap.exists() ? pantrySnap.data().items || [] : [];
+                for (const item of purchased) {
+                  const idx = pantryItems.findIndex((p: any) => p.name.toLowerCase() === item.name.toLowerCase());
+                  if (idx >= 0) {
+                    pantryItems[idx].quantity = (pantryItems[idx].quantity || 0) + 1;
+                  } else {
+                    pantryItems.push({
+                      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                      name: item.name,
+                      category: item.category || "Produce",
+                      quantity: 1,
+                      unit: "pcs",
+                      lowStockThreshold: 1,
+                      updatedAt: new Date().toISOString()
+                    });
+                  }
+                }
+
+                await Promise.all([
+                  setDoc(pantryRef, { items: pantryItems, lastUpdated: new Date().toISOString() }, { merge: true }),
+                  setDoc(grocRef, { items: remainingGroc, lastUpdated: new Date().toISOString() }, { merge: true }),
+                ]);
+                clearCachedData("user_pantry");
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "TRANSFER_GROCERIES_TO_PANTRY",
+                  title: "Purchased Groceries Moved to Pantry",
+                  description: `Transferred ${purchased.length} bought items into your kitchen pantry inventory`,
+                  store: "pantry",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 23. UPDATE_MENU_ITEM
+          if (actionType === "UPDATE_MENU_ITEM") {
+            const day = actionData.day;
+            const mealType = actionData.mealType as "breakfast" | "lunch" | "dinner";
+            const dishes = actionData.dishes || [];
+            
+            const menuSnap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1)));
+            if (!menuSnap.empty && day && mealType) {
+              const docSnap = menuSnap.docs[0];
+              const extracted = docSnap.data().extractedData || [];
+              const dayIndex = extracted.findIndex((d: any) => d.day?.toLowerCase() === day?.toLowerCase());
+              if (dayIndex >= 0) {
+                extracted[dayIndex][mealType] = dishes;
+                await setDoc(docSnap.ref, { extractedData: extracted }, { merge: true });
+                clearCachedData("weekly_menu_" + day);
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "UPDATE_MENU_ITEM",
+                  title: "Mess Menu Updated",
+                  description: `Updated ${day} ${mealType} dishes in weekly mess schedule`,
+                  store: "menu",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 24. ADD_MENU_ITEM
+          if (actionType === "ADD_MENU_ITEM") {
+            const day = actionData.day;
+            const mealType = actionData.mealType as "breakfast" | "lunch" | "dinner";
+            const dish = actionData.dish;
+            
+            const menuSnap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1)));
+            if (!menuSnap.empty && day && mealType && dish) {
+              const docSnap = menuSnap.docs[0];
+              const extracted = docSnap.data().extractedData || [];
+              const dayIndex = extracted.findIndex((d: any) => d.day?.toLowerCase() === day?.toLowerCase());
+              if (dayIndex >= 0) {
+                const current = extracted[dayIndex][mealType] || [];
+                if (!current.includes(dish)) {
+                  extracted[dayIndex][mealType] = [...current, dish];
+                  await setDoc(docSnap.ref, { extractedData: extracted }, { merge: true });
+                  clearCachedData("weekly_menu_" + day);
+
+                  executedActions.push({
+                    id: createActionId(),
+                    type: "ADD_MENU_ITEM",
+                    title: "Dish Added to Mess Menu",
+                    description: `Added "${dish}" to ${day} ${mealType}`,
+                    store: "menu",
+                    status: "success"
+                  });
+                }
+              }
+            }
+          }
+
+          // 25. REMOVE_MENU_ITEM
+          if (actionType === "REMOVE_MENU_ITEM") {
+            const day = actionData.day;
+            const mealType = actionData.mealType as "breakfast" | "lunch" | "dinner";
+            const dish = actionData.dish?.toLowerCase();
+            
+            const menuSnap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1)));
+            if (!menuSnap.empty && day && mealType && dish) {
+              const docSnap = menuSnap.docs[0];
+              const extracted = docSnap.data().extractedData || [];
+              const dayIndex = extracted.findIndex((d: any) => d.day?.toLowerCase() === day?.toLowerCase());
+              if (dayIndex >= 0) {
+                const current = extracted[dayIndex][mealType] || [];
+                extracted[dayIndex][mealType] = current.filter((item: string) => !item.toLowerCase().includes(dish));
+                await setDoc(docSnap.ref, { extractedData: extracted }, { merge: true });
+                clearCachedData("weekly_menu_" + day);
+
+                executedActions.push({
+                  id: createActionId(),
+                  type: "REMOVE_MENU_ITEM",
+                  title: "Dish Removed from Mess Menu",
+                  description: `Removed "${actionData.dish}" from ${day} ${mealType}`,
+                  store: "menu",
+                  status: "success"
+                });
+              }
+            }
+          }
+
+          // 26. UPDATE_GOAL
+          if (actionType === "UPDATE_GOAL") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { goal: actionData.goal }, { merge: true });
+            await refreshProfile();
+            executedActions.push({
+              id: createActionId(),
+              type: "UPDATE_GOAL",
+              title: "Fitness Target Updated",
+              description: `Goal updated to ${actionData.goal.replace('_', ' ').toUpperCase()}`,
+              store: "profile",
+              status: "success"
+            });
+          }
+          
+          // 27. UPDATE_WEIGHT
+          if (actionType === "UPDATE_WEIGHT") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { weight: Number(actionData.weight) }, { merge: true });
+            await refreshProfile();
+            executedActions.push({
+              id: createActionId(),
+              type: "UPDATE_WEIGHT",
+              title: "Bodyweight Logged",
+              description: `Current weight recorded as ${actionData.weight} kg`,
+              store: "profile",
+              status: "success"
+            });
+          }
+
+          // 28. UPDATE_PROFILE
+          if (actionType === "UPDATE_PROFILE") {
+            const updates: any = {};
+            if (actionData.age) updates.age = Number(actionData.age);
+            if (actionData.height) updates.height = Number(actionData.height);
+            if (actionData.name) updates.name = actionData.name;
+            if (actionData.gender) updates.gender = actionData.gender;
+            if (actionData.activityLevel) updates.activityLevel = actionData.activityLevel;
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), updates, { merge: true });
+            await refreshProfile();
+            executedActions.push({
+              id: createActionId(),
+              type: "UPDATE_PROFILE",
+              title: "Profile Biometrics Synchronized",
+              description: "Updated user profile vitals and biometrics",
+              store: "profile",
+              status: "success"
+            });
+          }
+
+          // 29. UPDATE_TARGETS
+          if (actionType === "UPDATE_TARGETS") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { 
+              targetOverrides: {
+                enabled: true,
+                calories: Number(actionData.calories) || userProfile?.targetOverrides?.calories || 2000,
+                protein: Number(actionData.protein) || userProfile?.targetOverrides?.protein || 120,
+                carbs: Number(actionData.carbs) || userProfile?.targetOverrides?.carbs || 200,
+                fats: Number(actionData.fats) || userProfile?.targetOverrides?.fats || 60
+              }
+            }, { merge: true });
+            await refreshProfile();
+            executedActions.push({
+              id: createActionId(),
+              type: "UPDATE_TARGETS",
+              title: "Daily Macro Targets Locked",
+              description: `Daily targets overridden: ${actionData.calories} kcal (P: ${actionData.protein}g, C: ${actionData.carbs}g, F: ${actionData.fats}g)`,
+              store: "profile",
+              status: "success"
+            });
+          }
+
+          // 30. RESET_TARGETS
+          if (actionType === "RESET_TARGETS") {
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { 
+              targetOverrides: { enabled: false }
+            }, { merge: true });
+            await refreshProfile();
+            executedActions.push({
+              id: createActionId(),
+              type: "RESET_TARGETS",
+              title: "Dynamic Targets Restored",
+              description: "Switched back to automatic BMR / TDEE macro calculation",
+              store: "profile",
+              status: "success"
+            });
+          }
         } catch(e) {
-          console.error("Command failed", e);
+          console.error("[Compass Command Error]", e);
         }
       }
 
-      if (sysMessages.length > 0) {
-        rawText += "\n\n" + sysMessages.join("\n");
-      }
+      // Purge any legacy emoji markdown lines from text
+      const cleanDisplayText = rawText
+        .replace(/^(?:✅|🔄|🗑️|🛒|📦|🎯|👤)\s*\*.*?\*\s*$/gm, "")
+        .trim();
 
-      const modelMsg: Message = { role: "model", text: rawText };
+      const modelMsg: Message = { role: "model", text: cleanDisplayText, actions: executedActions };
       setMessages(prev => [...prev, modelMsg]);
 
       // 4. Save model response to Firestore
@@ -720,6 +1391,7 @@ If the user shares an image:
         role: modelMsg.role,
         text: modelMsg.text,
         image: null,
+        actions: executedActions,
         createdAt: serverTimestamp()
       });
 
@@ -861,6 +1533,15 @@ If the user shares an image:
                     >
                       {m.text}
                     </ReactMarkdown>
+                  </div>
+                )}
+
+                {/* Hardware-Accelerated Luxury Agent Action Badges */}
+                {m.actions && m.actions.length > 0 && (
+                  <div className="space-y-2 mt-2 pt-2 border-t border-white/[0.06]">
+                    {m.actions.map(act => (
+                      <AgentActionCard key={act.id} action={act} />
+                    ))}
                   </div>
                 )}
               </div>

@@ -7,7 +7,7 @@ import path from "path";
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '15mb',
     },
   },
 };
@@ -15,18 +15,17 @@ export const config = {
 const apiKey = process.env.AI_API_KEY;
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[]) {
-  const models = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.7-flash"];
-  let lastErr;
+  const models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
   for (const m of models) {
     try {
       const model = genAI.getGenerativeModel({ model: m });
       return await model.generateContent({ contents });
     } catch (err: any) {
-      lastErr = err;
       console.warn(`[compass] Model ${m} failed: ${err.message}. Trying next fallback...`);
     }
   }
-  throw lastErr;
+  const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  return await fallbackModel.generateContent({ contents });
 }
 
 export default async function handler(req: any, res: any) {
@@ -37,34 +36,27 @@ export default async function handler(req: any, res: any) {
   let tempFiles: string[] = [];
 
   try {
-    const { action, payload, userContext } = req.body;
+    const { action, payload } = req.body || {};
 
     if (!apiKey) {
       return res.status(500).json({ error: "AI API key not configured on server" });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const fileManager = new GoogleAIFileManager(apiKey);
-    let prompt = "";
     let contents: any[] = [];
     
     switch(action) {
-      case "chat":
-        
+      case "chat": {
         // Map history to Gemini format
         contents = (payload.history || []).map((msg: any) => ({
-          role: msg.role,
-          parts: [{ text: msg.text }]
+          role: msg.role === "model" ? "model" : "user",
+          parts: [{ text: msg.text || "" }]
         }));
 
-        // Current turn parts
         let currentParts: any[] = [];
-        
-        // Inject system context if provided
-        const ctxStr = payload.context ? `System Instructions/Context:\n${payload.context}\n\n` : "";
-        currentParts.push({ text: `${ctxStr}User: ${payload.message}` });
+        const ctxStr = payload.context ? `${payload.context}\n\n` : "";
+        currentParts.push({ text: `${ctxStr}User: ${payload.message || ""}` });
 
-        // Add attached images
         if (payload.images && payload.images.length > 0) {
           payload.images.forEach((img: any) => {
             currentParts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } });
@@ -73,37 +65,40 @@ export default async function handler(req: any, res: any) {
 
         contents.push({ role: "user", parts: currentParts });
         break;
+      }
         
-      case "extract_menu":
-        prompt = `
-          Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
-          
-          RULES:
-          1. Detect all 7 days (Monday through Sunday).
-          2. Detect Breakfast, Lunch, and Dinner for each day.
-          3. Extract every listed food item and preserve the relationship Day -> Meal -> Foods.
-          4. Include additional items like milk, tea, coffee, fruit, desserts, etc.
-          5. Ignore irrelevant text (like headers/footers) unless useful.
-          
-          OUTPUT STRICTLY AS JSON:
-          {
-            "menu": [
-              {
-                "day": "Monday",
-                "breakfast": ["Idli", "Sambar", "Milk"],
-                "lunch": ["Rice", "Dal", "Chicken Curry"],
-                "dinner": ["Chapati", "Mixed Veg"]
-              }
-            ]
-          }
-        `;
+      case "extract_menu": {
+        const fileManager = new GoogleAIFileManager(apiKey);
+        const prompt = `Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
+
+CRITICAL CLEANING RULES:
+1. Clean all food item names: STRIP ANY PORTION OR QUANTITY SUFFIXES from the food name string itself.
+   - Example: "Banana - 1pc" or "Banana (1 pc)" MUST BECOME "Banana".
+   - Example: "Boiled Egg - 2 nos" or "Boiled Eggs (2)" MUST BECOME "Boiled Egg" or "Boiled Eggs".
+   - Example: "Puri Bhaji 3pcs" MUST BECOME "Puri Bhaji".
+   - Example: "Milk 200ml" or "Tea 150ml" MUST BECOME "Milk" or "Tea".
+   - The user will choose their own quantity in the app, so NEVER attach quantity suffixes to item titles.
+2. Detect all 7 days (Monday through Sunday).
+3. Detect Breakfast, Lunch, and Dinner for each day.
+4. Extract every food item and preserve the Day -> Meal -> Foods structure.
+5. Capitalize food names cleanly in Title Case (e.g. "Dal Tadka", "Aloo Gobi", "Steam Rice", "Chicken Curry").
+
+OUTPUT STRICTLY AS JSON (no markdown formatting, no commentary):
+{
+  "menu": [
+    {
+      "day": "Monday",
+      "breakfast": ["Idli", "Sambar", "Milk", "Banana"],
+      "lunch": ["Steam Rice", "Dal Tadka", "Chicken Curry", "Curd"],
+      "dinner": ["Chapati", "Mixed Veg Sabzi", "Salad"]
+    }
+  ]
+}`;
         
         const fileParts = [];
-        
         for (let i = 0; i < (payload.files || []).length; i++) {
           const f = payload.files[i];
           if (f.mimeType === "application/pdf") {
-            // PDFs must be uploaded via File API
             const tempFilePath = path.join(os.tmpdir(), `menu-${Date.now()}-${i}.pdf`);
             await fs.writeFile(tempFilePath, Buffer.from(f.base64, "base64"));
             tempFiles.push(tempFilePath);
@@ -120,7 +115,6 @@ export default async function handler(req: any, res: any) {
               }
             });
           } else {
-            // Images can go inline
             fileParts.push({
               inlineData: { data: f.base64, mimeType: f.mimeType }
             });
@@ -129,31 +123,96 @@ export default async function handler(req: any, res: any) {
         
         contents = [{ role: "user", parts: [{ text: prompt }, ...fileParts] }];
         break;
+      }
         
-      case "estimate_macros":
-        prompt = `Estimate accurate, realistic nutritional macronutrients for the meal or item described as: "${payload.foodName}".
+      case "estimate_macros": {
+        const prompt = `Estimate accurate, realistic nutritional macronutrients for: "${payload.foodName}".
 
 RULES:
-1. "name": Return a clean, concise, UPPERCASE food title (e.g. "CHICKEN BIRYANI", "BANANA", "EGG WHITES", "DAL TADKA", "PANEER TIKKA").
-   DO NOT paste the user's raw sentence into "name". DO NOT include parentheticals or gram specs in "name".
-2. CALCULATE ACCURATE MACROS based on the full portion or description provided:
-   - Example: "350g rice and 140g chicken biryani from meghana":
-     350g cooked rice (~450 kcal, ~9g protein, ~98g carbs, ~1g fat) + 140g chicken (~230 kcal, ~43g protein, ~5g fat) + cooking oil/ghee (~250-350 kcal, ~30g fat) => Total ~950-1050 kcal, ~52g protein, ~98g carbs, ~35g fat.
-   - Example: "2 bananas": ~210 kcal, ~2.5g protein, ~54g carbs, ~0.8g fat.
-   - Example: "4 egg whites": ~68 kcal, ~14.4g protein, ~0.8g carbs, ~0.4g fat.
-3. Treat Indian restaurant/mess foods realistically. Meals cooked in ghee or oil contain significant calories and fats.
-4. CRITICAL: If the input describes ANY food, meal, restaurant dish, snack, beverage, or brand (even in ALL CAPS or messy typing), calculate its macros. ONLY return {"error": "INVALID_FOOD"} if the input is explicitly gibberish keyboard spam (e.g. "asdfghjk") or an inedible object (e.g. "chair").
+1. "name": Return a clean, concise, UPPERCASE food title without raw sentence fragments or parentheticals (e.g. "CHICKEN BIRYANI", "BANANA", "BOILED EGGS", "DAL TADKA", "PANEER TIKKA").
+2. Calculate realistic macros based on the full portion or description provided:
+   - For Indian restaurant or mess food, account for realistic cooking oil, ghee, and standard portion sizes.
+   - Example "2 bananas": ~210 kcal, ~2.5g protein, ~54g carbs, ~0.6g fat.
+   - Example "2 boiled eggs": ~156 kcal, ~12.6g protein, ~1.2g carbs, ~10.6g fat.
+   - Example "1 bowl dal tadka (~200g)": ~180 kcal, ~9g protein, ~22g carbs, ~6g fat.
+   - Example "2 chapatis": ~200 kcal, ~6g protein, ~36g carbs, ~2g fat.
+3. If the input describes any food, meal, snack, or drink, calculate its macros. ONLY return {"error": "INVALID_FOOD"} if input is purely gibberish (e.g. "asdfg123") or non-food.
 
-OUTPUT STRICTLY AS JSON (no markdown formatting, no extra commentary):
-{"name":"UPPERCASE_NAME","calories":1000,"protein":50,"carbs":95,"fats":30}`;
+OUTPUT STRICTLY AS JSON (no markdown formatting):
+{"name":"UPPERCASE_NAME","calories":350,"protein":14,"carbs":48,"fats":8}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
+      }
 
-      case "generate_recipes":
-        prompt = `You are an expert student chef creating practical hostel recipes.
-The student has these available ingredients in their pantry: ${JSON.stringify(payload.ingredients || [])}.
-Their fitness goal is: ${payload.goal || "healthy nutrition"}.
-Preferred equipment/method: ${payload.method || "any (microwave, kettle, induction, or no-cook)"}.
+      case "classify_food_portion": {
+        const prompt = `You are an expert nutrition portioning classifier.
+Analyze this food item: "${payload.foodName}".
+
+Determine the most natural, user-friendly portion unit type and provide 4-6 realistic portion presets for logging.
+
+AVAILABLE CATEGORIES:
+- "piece" (for discrete items like banana, egg, chapati, dosa, idli, bread, apple, cookie, samosa)
+- "bowl" (for curries, dal, sabzi, rice, salad, oats, curd, kheer, biryani)
+- "ladle" (for liquid curries, sambar, rasam, dal, gravies)
+- "glass" (for beverages, milk, tea, coffee, lassi, juice, buttermilk)
+- "slice" (for cut fruits like watermelon, papaya, melon, pineapple, bread)
+- "scoop" (for whey protein, ice cream, powders)
+- "tsp" (for condiments, sugar, ghee, butter, peanut butter, oil, salt, pickle)
+
+RULES:
+1. "cleanName": Clean capitalized food name (strip any trailing -1pc, numbers, etc).
+2. "category": Pick EXACTLY one from the categories above.
+3. "defaultQuantity": The most common single serving (e.g. "1 piece", "1 bowl", "1 ladle", "200ml", "1 scoop").
+4. "presets": Array of 4-6 sensible, realistic portion options the user would select on a campus or at home.
+5. "estimatedMacros": Estimated macros for the defaultQuantity.
+
+OUTPUT STRICTLY AS JSON:
+{
+  "cleanName": "Banana",
+  "category": "piece",
+  "defaultQuantity": "1 piece",
+  "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "100g"],
+  "estimatedMacros": { "calories": 105, "protein": 1.3, "carbs": 27, "fats": 0.3 }
+}`;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+      }
+
+      case "get_daily_guidance": {
+        const prompt = `You are Compass, an elite tactical nutrition AI for a student.
+Provide high-impact, 1-2 sentence tactical meal advice for their upcoming meal.
+
+CONTEXT:
+- Current Meal Slot: ${payload.currentMeal || "lunch"}
+- Mess Serving Today: ${JSON.stringify(payload.menuItems || [])}
+- Remaining Budget Today: ${JSON.stringify(payload.remaining || { calories: 500, protein: 30, carbs: 60, fats: 15 })}
+- Fitness Goal: ${payload.goal || "maintain"}
+- Available in Pantry: ${JSON.stringify(payload.pantryItems || [])}
+
+RULES:
+1. Keep the advice to 1 or 2 clear, punchy, actionable sentences.
+2. Recommend specific items from today's mess menu or pantry that optimize their remaining protein without blowing their calorie limit.
+3. No fluffy disclaimers. Speak like a smart, friendly, high-performance fitness coach.
+4. "suggestedCombo": Up to 2-3 specific meal items to log directly.
+
+OUTPUT STRICTLY AS JSON:
+{
+  "headline": "High-protein Lunch Strategy",
+  "advice": "Mess has Chicken Curry and Dal Tadka. Take 2 ladles of Chicken Curry with 1 chapati to lock in 42g protein within your remaining 650 kcal budget.",
+  "suggestedCombo": [
+    { "name": "Chicken Curry", "quantity": "2 ladles", "calories": 320, "protein": 36, "carbs": 8, "fats": 16 },
+    { "name": "Chapati", "quantity": "1 piece", "calories": 100, "protein": 3, "carbs": 18, "fats": 1 }
+  ]
+}`;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+      }
+
+      case "generate_recipes": {
+        const prompt = `You are an expert student chef creating practical hostel recipes.
+Available ingredients in pantry: ${JSON.stringify(payload.ingredients || [])}.
+Fitness goal: ${payload.goal || "healthy nutrition"}.
+Preferred equipment: ${payload.method || "any"}.
 
 Generate 3 creative, delicious, high-protein recipes they can make in a hostel room with minimal equipment.
 
@@ -177,51 +236,51 @@ OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
 ]`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
+      }
 
-      case "analyze_plate":
-        prompt = `Analyze this photo of a food plate/tray, meal, snack, or beverage.
+      case "analyze_plate": {
+        const prompt = `Analyze this photo of a food plate/tray, meal, snack, or beverage.
 Identify each food or beverage item visible and estimate its quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
 For each item estimate realistic macros based on the visible portion.
 
 CRITICAL INSTRUCTIONS:
-1. If the photo DOES NOT contain any food, meal, or edible beverage (for example: person, selfie, furniture, car, room, empty plate/table, electronics, screenshot of text/code, paper, animal, or non-food object), return STRICTLY:
+1. If the photo DOES NOT contain any food, meal, or edible beverage (e.g. person, selfie, furniture, car, room, empty plate/table, electronics, text, document, pet, non-food object), return STRICTLY:
    {"error": "NO_FOOD_DETECTED", "items": []}
-
 2. If food or drink IS present, return ONLY a JSON array of items:
-   [{"name":"Chapati","quantity":"2 pieces","calories":240,"protein":7,"carbs":44,"fats":4},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
-        {
-          const imgPart = payload.image
-            ? { inlineData: { data: payload.image, mimeType: payload.mimeType || "image/jpeg" } }
-            : null;
-          contents = [{ role: "user", parts: imgPart ? [{ text: prompt }, imgPart] : [{ text: prompt }] }];
-        }
+   [{"name":"Chapati","quantity":"2 pieces","calories":200,"protein":6,"carbs":36,"fats":2},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
+        const imgPart = payload.image
+          ? { inlineData: { data: payload.image, mimeType: payload.mimeType || "image/jpeg" } }
+          : null;
+        contents = [{ role: "user", parts: imgPart ? [{ text: prompt }, imgPart] : [{ text: prompt }] }];
         break;
+      }
 
-      case "parse_and_classify_food":
-        prompt = `You are an expert grocery and nutrition database classifier.
+      case "parse_and_classify_food": {
+        const prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${payload.input}".
 
-AVAILABLE CATEGORIES (You must pick EXACTLY one):
-- "Protein" (e.g. chicken, fish, mutton, eggs, egg whites, paneer, tofu, soya chunks, tuna, turkey, beef)
-- "Dairy" (e.g. milk, cheese, curd, dahi, yogurt, butter, ghee, cream)
-- "Produce" (e.g. bananas, apples, spinach, vegetables, fruits, onions, tomatoes, potatoes, garlic, ginger, cilantro, lemon)
-- "Grains" (e.g. rice, oats, fruit and nut oats, rolled oats, muesli, oatmeal, wheat, flour/atta, bread, roti, chapati, dal, lentils, pasta, noodles, quinoa)
-- "Snacks" (e.g. peanut butter, almonds, nuts, chips, biscuits, cookies, popcorn, chocolates)
-- "Supplements" (e.g. whey protein, casein, creatine, multivitamins, fish oil, bcaa, pre-workout, electrolytes)
-- "Spices" (e.g. chilli powder, red chilli, turmeric, haldi, jeera, cumin, garam masala, salt, black pepper, oregano, paprika, chaat masala, curry powder)
-- "Oils" (e.g. olive oil, mustard oil, coconut oil, sunflower oil, vegetable oil, cooking spray)
-- "Other" (any food or consumable that strictly does not fit the above)
+AVAILABLE CATEGORIES (Pick EXACTLY one):
+- "Protein" (chicken, fish, eggs, egg whites, paneer, tofu, soya chunks, meat, tuna)
+- "Dairy" (milk, curd, dahi, yogurt, butter, ghee, cheese, paneer)
+- "Produce" (bananas, apples, spinach, veggies, fruits, onions, tomatoes, potatoes, lemon)
+- "Grains" (rice, oats, muesli, wheat, atta, bread, roti, chapati, dal, lentils, pasta, noodles)
+- "Snacks" (peanut butter, almonds, nuts, chips, biscuits, cookies, chocolates, seeds)
+- "Supplements" (whey protein, casein, creatine, multivitamins, fish oil, electrolytes)
+- "Spices" (chilli powder, turmeric, jeera, cumin, garam masala, salt, pepper, chaat masala)
+- "Oils" (olive oil, mustard oil, coconut oil, sunflower oil, vegetable oil, cooking spray)
+- "Other" (consumables not fitting above)
 
 RULES:
-1. "name": Clean, properly capitalized food title (e.g. "Chilli Powder", "Fruit & Nuts Oats", "Eggs", "Rolled Oats", "Peanut Butter"). Strip leading numbers.
-2. "category": Must match one of the exact categories above. If the item is oats, muesli, or breakfast cereal with fruits or nuts (e.g. "Fruit & Nuts Oats"), its primary base is Grains.
-3. "quantity": Numeric quantity from the input if specified, or fallback to ${payload.fallbackQty || 1}.
-4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops"). If not mentioned, infer the natural standard unit (e.g. spices -> "g" or "packs", peanut butter -> "jar", eggs -> "pcs", oats -> "g", whey -> "scoops", oil -> "bottles").
+1. "name": Clean, Title Case food title (e.g. "Chilli Powder", "Eggs", "Rolled Oats", "Peanut Butter").
+2. "category": Must match one of the exact categories above.
+3. "quantity": Numeric quantity from input, or fallback to ${payload.fallbackQty || 1}.
+4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops").
 
-OUTPUT STRICTLY AS JSON (no markdown formatting):
-{"name":"Fruit & Nuts Oats","category":"Grains","quantity":${payload.fallbackQty || 1},"unit":"g"}`;
+OUTPUT STRICTLY AS JSON:
+{"name":"Rolled Oats","category":"Grains","quantity":${payload.fallbackQty || 1},"unit":"g"}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
+      }
 
       default:
         return res.status(400).json({ error: "Unknown action" });
@@ -230,15 +289,12 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
     const result = await generateWithFallback(genAI, contents);
     let responseText = result.response.text();
     
-    // If it's chat, just return raw text
     if (action === "chat") {
       return res.status(200).json({ text: responseText });
     }
     
-    // Otherwise it expects JSON
     let responseData;
     try {
-      // Find the first { or [ and last } or ]
       const firstCurly = responseText.indexOf('{');
       const lastCurly = responseText.lastIndexOf('}');
       const firstSquare = responseText.indexOf('[');
@@ -253,7 +309,6 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
       
       responseData = JSON.parse(jsonStr);
 
-      // Normalize keys to lowercase to prevent AI capitalization errors (e.g., "Calories" instead of "calories")
       if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
         const normalized: any = {};
         for (const k in responseData) {
@@ -261,7 +316,7 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
         }
         responseData = normalized;
       }
-    } catch (e) {
+    } catch {
       responseData = { text: responseText, parseError: true, raw: responseText };
     }
 
@@ -269,9 +324,8 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
 
   } catch (error: any) {
     console.error("AI Error:", error);
-    return res.status(500).json({ error: "Failed to process AI request", details: error.message, stack: error.stack });
+    return res.status(500).json({ error: "Failed to process AI request", details: error.message });
   } finally {
-    // Clean up temp files
     for (const file of tempFiles) {
       try {
         await fs.unlink(file);

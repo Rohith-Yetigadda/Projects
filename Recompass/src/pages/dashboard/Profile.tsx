@@ -4,7 +4,7 @@ import { db, auth } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { User, Target, Activity, LogOut, Check, Loader2, Sparkles } from "lucide-react";
+import { User, Target, Activity, LogOut, Check, Loader2, Sparkles, PieChart, Flame } from "lucide-react";
 
 export default function Profile() {
   const { userProfile, refreshProfile } = useAuth();
@@ -91,8 +91,23 @@ export default function Profile() {
   const autoFats = Math.round((autoCalories * 0.25) / 9);
   const autoCarbs = Math.round((autoCalories - (autoProtein * 4) - (autoFats * 9)) / 4);
 
+  // Active target calculation for energy distribution
+  const activeCalories = data.customTargetsEnabled ? (parseInt(data.customCalories) || 2000) : autoCalories;
+  const activeProtein = data.customTargetsEnabled ? (parseInt(data.customProtein) || 120) : Math.round(autoProtein);
+  const activeCarbs = data.customTargetsEnabled ? (parseInt(data.customCarbs) || 200) : autoCarbs;
+  const activeFats = data.customTargetsEnabled ? (parseInt(data.customFats) || 60) : autoFats;
+
+  const proteinCal = activeProtein * 4;
+  const carbsCal = activeCarbs * 4;
+  const fatsCal = activeFats * 9;
+  const totalMacroCal = (proteinCal + carbsCal + fatsCal) || 1;
+
+  const proteinPct = Math.round((proteinCal / totalMacroCal) * 100);
+  const carbsPct = Math.round((carbsCal / totalMacroCal) * 100);
+  const fatsPct = Math.max(0, 100 - proteinPct - carbsPct);
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500 pb-28 md:pb-8">
+    <div className="max-w-2xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-36 md:pb-12">
       
       {/* Editorial Header */}
       <header className="flex items-end justify-between">
@@ -121,7 +136,7 @@ export default function Profile() {
       <div className="space-y-6">
         
         {/* Personal Details */}
-        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 space-y-5">
           <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
             <div className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/80">
               <User className="w-4 h-4" />
@@ -143,34 +158,34 @@ export default function Profile() {
             />
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Age</label>
+              <label className="text-[10px] sm:text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Age</label>
               <input 
                 type="number" 
                 value={data.age} 
                 onChange={e=>setData({...data, age: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3 sm:px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="20" 
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Weight (kg)</label>
+              <label className="text-[10px] sm:text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Weight (kg)</label>
               <input 
                 type="number" 
                 value={data.weight} 
                 onChange={e=>setData({...data, weight: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3 sm:px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="70" 
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Height (cm)</label>
+              <label className="text-[10px] sm:text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Height (cm)</label>
               <input 
                 type="number" 
                 value={data.height} 
                 onChange={e=>setData({...data, height: e.target.value})} 
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3 sm:px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
                 placeholder="175" 
               />
             </div>
@@ -178,7 +193,7 @@ export default function Profile() {
         </section>
 
         {/* Goal Settings */}
-        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 space-y-5">
           <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
             <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
               <Target className="w-4 h-4" />
@@ -191,29 +206,30 @@ export default function Profile() {
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {[
-              { id: "fat_loss", label: "Fat Loss" },
-              { id: "muscle_gain", label: "Build Muscle" },
-              { id: "recomp", label: "Recomposition" },
-              { id: "maintain", label: "Maintenance" }
+              { id: "fat_loss", label: "Fat Loss", desc: "Deficit • High Protein" },
+              { id: "muscle_gain", label: "Build Muscle", desc: "Surplus • 2.2g/kg Protein" },
+              { id: "recomp", label: "Recomp", desc: "Maintenance • Lean Mass" },
+              { id: "maintain", label: "Maintenance", desc: "Energy Balance" }
             ].map(g => (
               <button 
                 key={g.id} 
                 type="button"
                 onClick={() => setData({...data, goal: g.id})}
-                className={`py-3 px-3 rounded-2xl text-xs font-semibold transition-all duration-200 border text-center ${
+                className={`py-3 px-3 rounded-2xl text-left transition-all duration-200 border flex flex-col justify-between min-h-[72px] ${
                   data.goal === g.id 
-                    ? "bg-white text-black border-white shadow-sm font-bold" 
+                    ? "bg-white text-black border-white shadow-sm" 
                     : "bg-white/[0.03] border-white/[0.06] text-white/60 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
-                {g.label}
+                <span className={`text-xs font-bold ${data.goal === g.id ? "text-black" : "text-white"}`}>{g.label}</span>
+                <span className={`text-[10px] mt-1 line-clamp-1 ${data.goal === g.id ? "text-black/60 font-medium" : "text-white/35"}`}>{g.desc}</span>
               </button>
             ))}
           </div>
         </section>
 
         {/* Nutrition Targets */}
-        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 space-y-6">
           <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
@@ -246,34 +262,34 @@ export default function Profile() {
           </div>
 
           {!data.customTargetsEnabled ? (
-            <div className="pt-2 animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <div className="animate-in fade-in duration-300 space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
                   Auto-Calculated Profile Active
                 </p>
               </div>
-              <div className="grid grid-cols-4 gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-                <div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest mb-1">Calories</p>
-                  <p className="font-sans font-bold text-white text-xl md:text-2xl">{autoCalories}</p>
+                  <p className="font-sans font-bold text-white text-xl sm:text-2xl">{autoCalories}</p>
                 </div>
-                <div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-orange-400/70 font-semibold uppercase tracking-widest mb-1">Protein</p>
-                  <p className="font-sans font-bold text-orange-400 text-xl md:text-2xl">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-orange-400 text-xl sm:text-2xl">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
                 </div>
-                <div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-widest mb-1">Carbs</p>
-                  <p className="font-sans font-bold text-emerald-400 text-xl md:text-2xl">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-emerald-400 text-xl sm:text-2xl">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
                 </div>
-                <div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-1">Fats</p>
-                  <p className="font-sans font-bold text-blue-400 text-xl md:text-2xl">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
+                  <p className="font-sans font-bold text-blue-400 text-xl sm:text-2xl">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="pt-2 animate-in fade-in duration-300 space-y-4">
+            <div className="animate-in fade-in duration-300 space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">
@@ -324,13 +340,82 @@ export default function Profile() {
               </div>
             </div>
           )}
+
+          {/* Live Macro Energy Split Ratio Bar */}
+          <div className="pt-4 border-t border-white/[0.06] space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-white/60 font-medium">
+                <PieChart className="w-3.5 h-3.5 text-white/40" />
+                <span>Macro Energy Split</span>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-white/40">
+                <Flame className="w-3 h-3 text-orange-400/70" />
+                <span>{activeCalories} kcal target</span>
+              </div>
+            </div>
+
+            {/* Segmented Progress Bar */}
+            <div className="h-3 w-full rounded-full bg-white/[0.04] p-0.5 overflow-hidden flex gap-1">
+              <div 
+                style={{ width: `${Math.max(5, proteinPct)}%` }} 
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-300"
+                title={`Protein: ${proteinPct}%`}
+              />
+              <div 
+                style={{ width: `${Math.max(5, carbsPct)}%` }} 
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
+                title={`Carbs: ${carbsPct}%`}
+              />
+              <div 
+                style={{ width: `${Math.max(5, fatsPct)}%` }} 
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300"
+                title={`Fats: ${fatsPct}%`}
+              />
+            </div>
+
+            {/* Split Legend */}
+            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+              <div className="p-2 rounded-xl bg-orange-500/5 border border-orange-500/10">
+                <p className="text-[10px] font-bold text-orange-400 tracking-wider uppercase">Protein</p>
+                <p className="text-xs font-bold text-white mt-0.5">{proteinPct}% <span className="text-[10px] text-white/40 font-normal">({activeProtein}g)</span></p>
+              </div>
+              <div className="p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <p className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Carbs</p>
+                <p className="text-xs font-bold text-white mt-0.5">{carbsPct}% <span className="text-[10px] text-white/40 font-normal">({activeCarbs}g)</span></p>
+              </div>
+              <div className="p-2 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                <p className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">Fats</p>
+                <p className="text-xs font-bold text-white mt-0.5">{fatsPct}% <span className="text-[10px] text-white/40 font-normal">({activeFats}g)</span></p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Action Button */}
+        {/* Desktop Save Button */}
+        <div className="hidden md:block">
+          <button 
+            onClick={handleSave} 
+            disabled={saving} 
+            className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveSuccess ? (
+              <><Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> Saved Successfully</>
+            ) : (
+              "Save Changes"
+            )}
+          </button>
+        </div>
+
+      </div>
+
+      {/* Sticky Mobile Save Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0a0a0c]/90 backdrop-blur-2xl border-t border-white/[0.08] z-30 md:hidden animate-in slide-in-from-bottom duration-300">
         <button 
           onClick={handleSave} 
           disabled={saving} 
-          className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+          className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xl disabled:opacity-50"
         >
           {saving ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -340,8 +425,8 @@ export default function Profile() {
             "Save Changes"
           )}
         </button>
-
       </div>
+
     </div>
   );
 }

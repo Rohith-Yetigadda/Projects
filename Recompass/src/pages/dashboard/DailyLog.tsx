@@ -1,16 +1,42 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Bookmark } from "lucide-react";
+import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Bookmark, UtensilsCrossed } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
+import {
+  AppleActivityRing,
+  APPLE_FITNESS_MACRO_PALETTES,
+  type RingData
+} from "@/components/ui/AppleActivityRing";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
 type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
 type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; };
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
-type FoodCategory = "liquid" | "piece" | "slice" | "ladle" | "tsp" | "generic";
+
+function calcTargets(profile: any) {
+  if (profile?.targetOverrides?.enabled) {
+    return {
+      calories: profile.targetOverrides.calories || 2000,
+      protein: profile.targetOverrides.protein || 120,
+      carbs: profile.targetOverrides.carbs || 200,
+      fats: profile.targetOverrides.fats || 60
+    };
+  }
+  const weight = parseFloat(profile?.weight) || 70;
+  const height = parseFloat(profile?.height) || 170;
+  const age    = parseFloat(profile?.age)    || 20;
+  const bmr    = 10 * weight + 6.25 * height - 5 * age + 5;
+  const tdee   = bmr * 1.55;
+  const goal   = profile?.goal || "maintain_weight";
+  const kcal   = goal.includes("muscle") ? tdee + 300 : goal.includes("lose") ? tdee - 300 : tdee;
+  const protein = goal.includes("muscle") ? weight * 2.2 : weight * 1.6;
+  const fats    = (kcal * 0.25) / 9;
+  const carbs   = (kcal - protein * 4 - fats * 9) / 4;
+  return { calories: Math.round(kcal), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats) };
+}
 
 export type StapleMeal = {
   id: string;
@@ -33,208 +59,66 @@ const mealConfig: { key: MealType; label: string; icon: any; color: string; bg: 
   { key: "snacks",    label: "Snacks",    icon: Sparkles, color: "text-purple-400",  bg: "bg-purple-400/10",  border: "border-purple-400/20"  },
 ];
 
-// ─── Comprehensive Indian mess food categorization ─────────────────
-function getFoodCategory(name: string): FoodCategory {
-  const n = name.toLowerCase().replace(/[()[\]]/g, "").trim();
-
-  // Liquids — must NOT match fruits (handled below)
-  if (/\b(milks?|hot milk|cold milk|toned milk|skim milk|buttermilk|chaas|lassis?|juices?|nimbu|lemon water|lemonade|soups?|tomato soup|rasam|teas?|coffees?|hot water|water|shakes?|protein shake|smoothies?|syrup|sharbat)\b/.test(n)) return "liquid";
-
-  // Banana → whole fruit (piece)
-  if (/\bbananas?\b/.test(n)) return "piece";
-
-  // Other fruits → served as small cut pieces in mess
-  if (/\b(watermelons?|melons?|muskmelons?|cantaloupes?|apples?|mangoes?|oranges?|grapes?|papayas?|guavas?|pears?|pomegranates?|pineapples?|kiwis?|strawberries?|blueberries?|fruit salad|mixed fruit|seasonal fruit|chikoo|sapota|jackfruit|litchi|lychee)\b/.test(n)) return "slice";
-
-  // Condiments & small additions — teaspoon amounts
-  if (/\b(sugar|salt|pickle|achar|chutneys?|coconut chutney|tomato chutney|mint chutney|green chutney|jams?|bread butter jam|butter|ghee|oils?|sauces?|ketchup|mayo|honey|cream|papads?|pappads?|achaar|murabba|salsa|horlicks|boost|bournvita|complan|milo|powders?|protein|whey)\b/.test(n)) return "tsp";
-
-  // Solid pieces — chapati, bread, eggs, snacks
-  if (/\b(chapatis?|chapathis?|chappatis?|rotis?|phulkas?|tandoori roti|naans?|kulchas?|puris?|pooris?|parathas?|aloo paratha|bhaturas?|uttapams?|dosas?|masala dosa|set dosa|mini dosa|idlis?|vadas?|medu vada|breads?|toasts?|sandwich(es)?|buns?|burgers?|rolls?|eggs?|omelettes?|boiled eggs?|fried eggs?|scrambled eggs?|poached eggs?|egg whites?|biscuits?|cookies?|cake slice|ladoos?|laddoos?|barfis?|gulab jamuns?|rasgullas?|jalebis?|pedas?|modaks?|karanjis?)\b/.test(n)) return "piece";
-
-  // Ladle/bowl items — cooked grains, curries, sabzis, desserts
-  if (/\b(rices?|steamed rice|steam rice|plain rice|fried rice|pulaos?|biryanis?|khichdis?|pongals?|ven pongal|upmas?|rava upma|semolina|semiya|vermicelli|oats|porridge|daliya|broken wheat|pohas?|avals?|dals?|lentils?|sambars?|rasams?|kadhis?|chole|rajma|black beans?|kidney beans?|mungs?|moong|masoor|arhar|toor|chanas?|chickpeas?|sabzis?|subzis?|sabjis?|vegetables?|veg dry|veg gravy|aloo|potato|gobi|cauliflower|matar|peas|palak|spinach|paneer|soya|tofus?|mushrooms?|mixed veg|avial|kootu|poriyal|thoran|stir fry|gravy|curries?|curry|masala|fry|roast|bhurji|bhaji|bhujia|pakoras?|fritters?|bonda|bajjis?|cutlets?|tikkis?|patties?|patty|kebabs?|chickens?|mutton|fishes?|fish|egg curry|prawns?|seafood|halwa|sooji halwa|carrot halwa|moong dal halwa|kheer|payasam|phirni|custards?|puddings?|shrikhand|rabdi|rasmalai|ice cream|curds?|yogurts?|dahi|raita|boondi|salads?|sprouts?|kachumber)\b/.test(n)) return "ladle";
-
-  return "generic";
+// ─── Food Name Sanitizer (Strips -1pc, 2 nos, etc.) ─────────────────
+export function cleanFoodName(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/[-–—]\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)?$/i, "")
+    .replace(/\(\s*\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)?\s*\)/i, "")
+    .replace(/\s+\d+(?:\.\d+)?\s*(?:pc|pcs|nos?|piece|pieces|slice|slices|plate|bowl|cup|glass|ml|g|gm)$/i, "")
+    .replace(/^[-,:.]+|[-,:.]+$/g, "")
+    .trim();
 }
 
-const PRESETS: Record<FoodCategory, string[]> = {
-  liquid:  ["50ml", "100ml", "150ml", "200ml", "250ml", "270ml", "300ml", "350ml"],
-  slice:   ["small serving (~5 cubes)", "1 serving (~8 cubes)", "large serving (~12 cubes)", "2 servings (~16 cubes)"],
-  piece:   ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"],
-  tsp:     ["1 tsp (5g)", "2 tsp (10g)", "1 tbsp (15g)", "2 tbsp", "small sprinkle"],
-  ladle:   ["1 small ladle (~75ml)", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~250ml)", "1 full plate"],
-  generic: ["1 piece", "2 pieces", "small serving", "medium serving", "large serving", "1 bowl"],
-};
+// ─── Dynamic Portion Presets Caching & Inference ────────────────────
+const PORTION_PRESETS_CACHE = new Map<string, { category: string; defaultUnit: string; presets: string[] }>();
 
-// ─── Instant Macro Truth Table for 0ms calculations ─────────────────
-const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
-  // Pure carbs / No macros
-  sugar:            { calories: 16, protein: 0, carbs: 4, fats: 0 },
-  salt:             { calories: 0,  protein: 0, carbs: 0, fats: 0 },
-
-  // Condiments (per tsp ~ 5g unless noted)
-  pickle:           { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
-  achar:            { calories: 8,  protein: 0, carbs: 1, fats: 0.5 },
-  butter:           { calories: 36, protein: 0, carbs: 0, fats: 4 },
-  ghee:             { calories: 45, protein: 0, carbs: 0, fats: 5 },
-  honey:            { calories: 21, protein: 0, carbs: 6, fats: 0 },
-  jam:              { calories: 18, protein: 0, carbs: 5, fats: 0 },
-  "bread butter jam": { calories: 120, protein: 3, carbs: 18, fats: 4 }, // 1 slice bread + butter + jam
-  papad:            { calories: 35, protein: 1, carbs: 6, fats: 0.5 }, // per piece
-  chutney:          { calories: 25, protein: 1, carbs: 2, fats: 1.5 }, // coconut chutney
-  "peanut butter":  { calories: 95, protein: 4, carbs: 3, fats: 8 }, // 1 tbsp (16g)
-
-  // Beverages (per 100ml)
-  milk:             { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  "hot milk":       { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  "cold milk":      { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
-  buttermilk:       { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
-  chaas:            { calories: 18,  protein: 1.0, carbs: 2.3, fats: 0.3 },
-  tea:              { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
-  coffee:           { calories: 5,   protein: 0.1, carbs: 1,   fats: 0   },
-  rasam:            { calories: 10,  protein: 0.5, carbs: 2,   fats: 0.2 },
-  soup:             { calories: 30,  protein: 0.5, carbs: 5,   fats: 1.0 },
-
-  // Fruits (base 1 serving ~8 cubes/120g, or 1 piece)
-  watermelon:       { calories: 36, protein: 0.7, carbs: 9, fats: 0.2 },
-  papaya:           { calories: 52, protein: 0.6, carbs: 13, fats: 0.3 },
-  pineapple:        { calories: 60, protein: 0.6, carbs: 16, fats: 0.2 },
-  muskmelon:        { calories: 41, protein: 1.0, carbs: 10, fats: 0.2 },
-  melon:            { calories: 41, protein: 1.0, carbs: 10, fats: 0.2 },
-  mango:            { calories: 72, protein: 1.0, carbs: 18, fats: 0.5 },
-  apple:            { calories: 62, protein: 0.3, carbs: 17, fats: 0.2 },
-  banana:           { calories: 105, protein: 1.3, carbs: 27, fats: 0.4 }, // 1 piece
-  grapes:           { calories: 82, protein: 0.8, carbs: 21, fats: 0.2 }, // 1 bowl
-
-  // Breakfast Items (per standard serving / ladle / piece)
-  poha:             { calories: 180, protein: 3, carbs: 32, fats: 5 }, // per ladle
-  upma:             { calories: 170, protein: 3, carbs: 28, fats: 5 }, // per ladle
-  "veg vermicelli upma": { calories: 160, protein: 3, carbs: 30, fats: 3 }, // per ladle
-  idli:             { calories: 60,  protein: 2, carbs: 12, fats: 0 }, // per piece
-  vada:             { calories: 140, protein: 3, carbs: 14, fats: 8 }, // per piece
-  dosa:             { calories: 130, protein: 3, carbs: 22, fats: 3 }, // per piece
-  "masala dosa":    { calories: 220, protein: 4, carbs: 30, fats: 9 }, // per piece
-  "aloo paratha":   { calories: 220, protein: 5, carbs: 32, fats: 8 }, // per piece
-
-  // Carbs (Breads/Rice/Oats)
-  oats:             { calories: 190, protein: 6, carbs: 34, fats: 3.5 }, // 1 bowl
-  "rolled oats":    { calories: 190, protein: 6, carbs: 34, fats: 3.5 },
-  oatmeal:          { calories: 200, protein: 6, carbs: 36, fats: 4 },
-  bread:            { calories: 75,  protein: 2.5, carbs: 14, fats: 1 }, // 1 slice
-  toast:            { calories: 75,  protein: 2.5, carbs: 14, fats: 1 },
-  chapathi:         { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
-  chapati:          { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
-  roti:             { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
-  paratha:          { calories: 150, protein: 3, carbs: 20, fats: 6 }, // plain, per piece
-  puri:             { calories: 120, protein: 2, carbs: 15, fats: 6 }, // per piece
-  "steam rice":     { calories: 130, protein: 3, carbs: 28, fats: 0.5 }, // per ladle (100g)
-  rice:             { calories: 130, protein: 3, carbs: 28, fats: 0.5 }, // per ladle (100g)
-  "jeera rice":     { calories: 140, protein: 3, carbs: 28, fats: 2 }, // per ladle
-  pulao:            { calories: 180, protein: 4, carbs: 30, fats: 5 }, // per ladle
-
-  // Dals & Legumes (per ladle ~ 150g)
-  "dal fry":        { calories: 120, protein: 7, carbs: 15, fats: 4 },
-  "dal tadka":      { calories: 130, protein: 7, carbs: 15, fats: 5 },
-  "dal makhani":    { calories: 180, protein: 8, carbs: 18, fats: 9 },
-  sambar:           { calories: 110, protein: 4, carbs: 16, fats: 3 },
-  chole:            { calories: 160, protein: 7, carbs: 22, fats: 5 }, // chickpeas
-  rajma:            { calories: 160, protein: 7, carbs: 22, fats: 5 }, // kidney beans
-
-  // Veg Sabzis / Curries (per ladle ~ 150g)
-  "aloo matar gravy":{ calories: 140, protein: 3, carbs: 18, fats: 6 },
-  "tawa veg dry":   { calories: 130, protein: 3, carbs: 14, fats: 7 },
-  "mix veg":        { calories: 130, protein: 3, carbs: 14, fats: 7 },
-  sabzi:            { calories: 120, protein: 2, carbs: 12, fats: 7 }, // generic veg
-  "bhindi masala":  { calories: 120, protein: 2, carbs: 12, fats: 7 },
-  "palak paneer":   { calories: 190, protein: 8, carbs: 10, fats: 13 },
-  "paneer butter masala": { calories: 240, protein: 8, carbs: 12, fats: 18 },
-  "malai kofta":    { calories: 260, protein: 6, carbs: 18, fats: 19 },
-  "gobi masala":    { calories: 90,  protein: 2, carbs: 8,  fats: 5 }, // cauliflower
-
-  // Non-Veg / Eggs (per ladle/piece)
-  "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // 1 piece
-  egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
-  "boiled egg":     { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
-  omelette:         { calories: 155, protein: 12, carbs: 1, fats: 11 }, // 2 eggs
-  "egg curry":      { calories: 210, protein: 14, carbs: 10, fats: 12 }, // 2 eggs + gravy
-  "chicken curry":  { calories: 220, protein: 18, carbs: 8, fats: 12 }, // per ladle
-  "butter chicken": { calories: 280, protein: 16, carbs: 10, fats: 20 }, // per ladle
-  "fish fry":       { calories: 200, protein: 15, carbs: 8, fats: 10 }, // per piece
-
-  // Desserts (per ladle/piece)
-  "gulab jamun":    { calories: 150, protein: 2, carbs: 22, fats: 6 }, // 1 piece
-  kheer:            { calories: 200, protein: 4, carbs: 32, fats: 6 }, // per ladle
-  halwa:            { calories: 220, protein: 2, carbs: 30, fats: 10 }, // per ladle
-  "ice cream":      { calories: 140, protein: 2, carbs: 16, fats: 8 }, // 1 scoop
-
-  // Powders & Supplements (per tsp ~ 5g or per scoop)
-  horlicks:         { calories: 19, protein: 0.5, carbs: 3.7, fats: 0.1 },
-  boost:            { calories: 18, protein: 0.3, carbs: 4, fats: 0.1 },
-  bournvita:        { calories: 19, protein: 0.3, carbs: 4, fats: 0.1 },
-  complan:          { calories: 22, protein: 0.9, carbs: 3, fats: 0.7 },
-  milo:             { calories: 20, protein: 0.5, carbs: 3.3, fats: 0.5 },
-  "whey protein":   { calories: 120, protein: 24, carbs: 2, fats: 1.5 }, // 1 standard scoop (30g)
-  protein:          { calories: 120, protein: 24, carbs: 2, fats: 1.5 },
-  "chia seeds":     { calories: 45, protein: 1.5, carbs: 4, fats: 3 }, // 1 tbsp (10g)
-};
-
-// Scale known macros by quantity
-function getKnownMacros(foodName: string, quantity: string): { calories: number; protein: number; carbs: number; fats: number } | null {
-  const n = foodName.toLowerCase().replace(/[()[\]]/g, "").trim();
-  // Sort keys by length so "veg vermicelli upma" matches before "upma"
-  const sortedKeys = Object.keys(KNOWN_MACROS).sort((a, b) => b.length - a.length);
-  const key = sortedKeys.find(k => {
-    const regex = new RegExp(`\\b${k}s?\\b`, 'i');
-    return regex.test(n);
-  });
-  if (!key) return null;
-
-  const base = KNOWN_MACROS[key];
-  const q = quantity.toLowerCase();
-  let scale = 1;
-
-  if (q.includes("ladle") || q.includes("bowl") || q.includes("plate") || q.includes("serving")) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:small ladle|ladle|bowl|plate|serving)/) || q.match(/^(\d+(?:\.\d+)?)/);
-    let qty = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
-    if (q.includes("small ladle")) scale = qty * 0.5;
-    else if (q.includes("bowl")) scale = qty * 2;
-    else if (q.includes("plate")) scale = qty * 3;
-    else scale = qty;
-  }
-  else if (q.includes("ml")) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*ml/);
-    const ml = match ? parseFloat(match[1]) : 200;
-    scale = ml / 100; // base is per 100ml for liquids
-  }
-  else if (q.includes("cube")) {
-    const match = q.match(/(\d+)\s*cube/);
-    const cubes = match ? parseInt(match[1]) : 8;
-    scale = cubes / 8; // base is 8 cubes
-  }
-  else if (q.includes("piece") || q.includes("slice") || q.includes("scoop")) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:piece|slice|scoop)/) || q.match(/^(\d+(?:\.\d+)?)/);
-    scale = match ? parseFloat(match[1]) : (q.includes("half") ? 0.5 : 1);
-  }
-  else if (q.includes("tbsp") || q.includes("tablespoon")) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tbsp|tablespoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
-    scale = match ? parseFloat(match[1]) : 1;
-    scale = scale * 3; 
-  }
-  else if (q.includes("tsp") || q.includes("teaspoon") || q.includes("sprinkle")) {
-    const match = q.match(/(\d+(?:\.\d+)?)\s*(?:tsp|teaspoon)/) || q.match(/^(\d+(?:\.\d+)?)/);
-    scale = match ? parseFloat(match[1]) : (q.includes("sprinkle") ? 0.25 : 1);
+export function getQuickPortionPresets(foodName: string): { category: string; defaultUnit: string; presets: string[] } {
+  const n = cleanFoodName(foodName).toLowerCase();
+  
+  if (PORTION_PRESETS_CACHE.has(n)) {
+    return PORTION_PRESETS_CACHE.get(n)!;
   }
 
-  return {
-    calories: Math.round(base.calories * scale),
-    protein: Math.round(base.protein * scale * 10) / 10,
-    carbs: Math.round(base.carbs * scale * 10) / 10,
-    fats: Math.round(base.fats * scale * 10) / 10
-  };
+  // Intuitive defaults based on food type
+  if (/\b(bananas?|apples?|oranges?|eggs?|boiled eggs?|egg whites?|chapatis?|rotis?|phulkas?|dosas?|idlis?|vadas?|parathas?|puris?|breads?|toasts?|biscuits?|cookies?|samosas?)\b/.test(n)) {
+    const res = { category: "piece", defaultUnit: "piece", presets: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+  if (/\b(milks?|teas?|coffees?|buttermilk|chaas|lassis?|juices?|smoothies?|shakes?|water|rasam|soups?)\b/.test(n)) {
+    const res = { category: "glass", defaultUnit: "ml", presets: ["100ml", "150ml", "200ml", "250ml", "1 glass (~250ml)", "300ml"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+  if (/\b(dals?|sambars?|curries?|gravy|sabzi|sabjis?|chole|rajma|paneer|chicken curry)\b/.test(n)) {
+    const res = { category: "ladle", defaultUnit: "ladle", presets: ["1 small ladle", "1 ladle (~150ml)", "2 ladles", "half bowl", "1 bowl (~200ml)"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+  if (/\b(rices?|pulaos?|biryanis?|khichdis?|pohas?|upmas?|oats|porridge|noodles?|maggi|pasta|salads?|curds?|dahi)\b/.test(n)) {
+    const res = { category: "bowl", defaultUnit: "bowl", presets: ["half bowl", "1 bowl (~150g)", "2 bowls", "1 plate", "100g", "200g"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+  if (/\b(watermelons?|melons?|papayas?|pineapples?|mangoes?)\b/.test(n)) {
+    const res = { category: "slice", defaultUnit: "serving", presets: ["1 small bowl (~5 cubes)", "1 regular bowl (~8 cubes)", "large bowl (~12 cubes)"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+  if (/\b(whey|protein powder|peanut butter|ghee|butter|honey|jams?|oil|sugar)\b/.test(n)) {
+    const res = { category: "scoop", defaultUnit: "serving", presets: ["1 scoop (30g)", "half scoop", "1 tbsp (15g)", "2 tbsp", "1 tsp"] };
+    PORTION_PRESETS_CACHE.set(n, res);
+    return res;
+  }
+
+  // Fallback generic presets
+  const res = { category: "portion", defaultUnit: "serving", presets: ["1 serving", "small portion", "regular portion", "large portion", "1 piece", "1 bowl"] };
+  PORTION_PRESETS_CACHE.set(n, res);
+  return res;
 }
 
-// Clean and validate macro values without corrupting high-protein ratios
+// Clean and validate macro values
 function sanitizeMacros(raw: { calories: number; protein: number; carbs: number; fats: number }) {
   const calories = Math.max(0, Math.round(Number(raw.calories) || 0));
   const protein  = Math.max(0, Math.round((Number(raw.protein) || 0) * 10) / 10);
@@ -251,17 +135,12 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   };
 }
 
-async function estimateMacros(foodName: string, quantity: string, isCustom = false) {
-  // 1. Instant 0ms lookup if matches known foods and is not a multi-ingredient recipe
-  const hasComplexRecipe = /\b(with|plus|\+)\b/i.test(foodName);
-  if (!isCustom && !hasComplexRecipe) {
-    const known = getKnownMacros(foodName, quantity || "1 serving");
-    if (known) return { ...known, name: foodName.toUpperCase() };
-  }
-
-  // 2. Check local sessionStorage cache for instant repeat calculations
-  const queryStr = (quantity ? `${quantity} ${foodName}` : foodName).trim();
-  const cacheKey = "recompass_macros_" + queryStr.toLowerCase();
+// ─── Pure Gemini Macro Estimation (Zero Hardcoded Truth Table) ────────
+async function estimateMacros(foodName: string, quantity: string, _isCustom = false) {
+  const cleanedName = cleanFoodName(foodName);
+  const queryStr = (quantity ? `${quantity} ${cleanedName}` : cleanedName).trim();
+  const cacheKey = "recompass_macros_v2_" + queryStr.toLowerCase();
+  
   try {
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
@@ -269,7 +148,6 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     }
   } catch {}
 
-  console.log("[estimateMacros] Calling AI for:", queryStr);
   const res = await fetch("/api/compass", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -295,7 +173,7 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
   
   const result = {
     ...sanitized,
-    name: data.name || foodName.toUpperCase()
+    name: data.name || cleanedName.toUpperCase()
   };
 
   try {
@@ -325,29 +203,82 @@ async function analyzePlate(base64: string, mimeType: string): Promise<{ items: 
   }
 }
 
-// ─── Quantity Picker Modal ─────────────────────────────────────────
+// ─── Dynamic Quantity Picker with Live Gemini Preview ───────────────
 function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string) => void; onCancel: () => void }) {
-  const category = getFoodCategory(foodName);
-  const presets = PRESETS[category];
+  const cleaned = cleanFoodName(foodName);
+  const portionInfo = getQuickPortionPresets(cleaned);
+  const presets = portionInfo.presets;
   const [custom, setCustom] = useState("");
-  const [selected, setSelected] = useState<string | null>(presets[Math.floor(presets.length / 2)] || null);
+  const [selected, setSelected] = useState<string>(presets[1] || presets[0] || "1 serving");
+  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number } | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
-  const confirm = () => { const qty = custom.trim() || selected; if (qty) onConfirm(qty); };
+  // Debounced live macro estimation preview
+  useEffect(() => {
+    const activeQty = custom.trim() || selected;
+    if (!activeQty) return;
+    let isCurrent = true;
+    const timer = setTimeout(async () => {
+      setEstimating(true);
+      try {
+        const macros = await estimateMacros(cleaned, activeQty);
+        if (isCurrent) setLiveMacros(macros);
+      } catch {
+        // Ignore live preview errors
+      } finally {
+        if (isCurrent) setEstimating(false);
+      }
+    }, 250);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [cleaned, selected, custom]);
+
+  const confirm = () => {
+    const qty = custom.trim() || selected;
+    if (qty) onConfirm(qty);
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Select Portion</p>
-            <p className="text-base font-bold text-white mt-0.5">{foodName}</p>
-            <p className="text-[11px] text-white/30 capitalize">{category === "tsp" ? "condiment / small portion" : category}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Select Portion</p>
+            <p className="text-base font-bold text-white mt-0.5 capitalize">{cleaned}</p>
+            <p className="text-[11px] text-white/40 capitalize">{portionInfo.category} portioning</p>
           </div>
           <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
+        {/* Live Macro Calculation Preview Ribbon */}
+        <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+          <span className="text-white/40 text-[11px] font-medium flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            <span>AI Macro Estimate</span>
+          </span>
+          {estimating ? (
+            <span className="text-[11px] text-white/40 animate-pulse font-mono">Calculating...</span>
+          ) : liveMacros ? (
+            <div className="flex items-center gap-2 font-mono tabular-nums text-[11px]">
+              <span className="font-bold text-white">{liveMacros.calories} kcal</span>
+              <span className="text-white/20">&middot;</span>
+              <span className="text-[#A1FF00] font-semibold">P {liveMacros.protein}g</span>
+              <span className="text-white/20">&middot;</span>
+              <span className="text-[#00F0FF] font-semibold">C {liveMacros.carbs}g</span>
+              <span className="text-white/20">&middot;</span>
+              <span className="text-[#FFD600] font-semibold">F {liveMacros.fats}g</span>
+            </div>
+          ) : (
+            <span className="text-[11px] text-white/40">Select portion below</span>
+          )}
+        </div>
+
+        {/* Dynamic Portion Presets */}
         <div className="flex flex-wrap gap-2 pt-1">
           {presets.map(p => (
             <button 
@@ -356,7 +287,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
               onClick={() => { setSelected(p); setCustom(""); }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                 selected === p && !custom 
-                  ? "bg-white text-black border-white shadow-sm font-bold" 
+                  ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]" 
                   : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
               }`}
             >
@@ -369,9 +300,9 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
           type="text" 
           placeholder="Or type custom amount (e.g. 150g, 2 pieces)..." 
           value={custom}
-          onChange={e => { setCustom(e.target.value); setSelected(null); }}
+          onChange={e => { setCustom(e.target.value); setSelected(""); }}
           onKeyDown={e => e.key === "Enter" && confirm()}
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-all" 
+          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-all font-medium" 
         />
 
         <button 
@@ -1170,7 +1101,7 @@ function StaplesManagerModal({
 
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { hash } = useLocation();
 
   const today = todayStr();
@@ -1190,6 +1121,11 @@ export default function DailyLog() {
   const [editingEntry, setEditingEntry] = useState<{ mealType: MealType; item: MacroEntry } | null>(null);
   const [customInput, setCustomInput]   = useState<{ [k in MealType]?: string }>({});
   const [toast, setToast] = useState<string | null>(null);
+
+  // Active Meal Tab for Mobile Scroll Reduction
+  const [activeMealFilter, setActiveMealFilter] = useState<MealType | "all">("all");
+
+  const targets = useMemo(() => calcTargets(userProfile), [userProfile]);
 
   // Staples / Custom Foods State
   const [staples, setStaples] = useState<StapleMeal[]>(cachedStaples || []);
@@ -1452,10 +1388,45 @@ export default function DailyLog() {
     {calories:0,protein:0,carbs:0,fats:0}
   );
 
+  const ringData: RingData[] = useMemo(() => [
+    {
+      id: "calories",
+      label: "Calories",
+      current: totals.calories,
+      target: targets.calories,
+      unit: "kcal",
+      gradientStart: APPLE_FITNESS_MACRO_PALETTES.calories.gradientStart,
+      gradientEnd: APPLE_FITNESS_MACRO_PALETTES.calories.gradientEnd,
+      trackColor: APPLE_FITNESS_MACRO_PALETTES.calories.trackColor,
+    },
+    {
+      id: "protein",
+      label: "Protein",
+      current: totals.protein,
+      target: targets.protein,
+      unit: "g",
+      gradientStart: APPLE_FITNESS_MACRO_PALETTES.protein.gradientStart,
+      gradientEnd: APPLE_FITNESS_MACRO_PALETTES.protein.gradientEnd,
+      trackColor: APPLE_FITNESS_MACRO_PALETTES.protein.trackColor,
+    },
+    {
+      id: "carbs",
+      label: "Carbs",
+      current: totals.carbs,
+      target: targets.carbs,
+      unit: "g",
+      gradientStart: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientStart,
+      gradientEnd: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientEnd,
+      trackColor: APPLE_FITNESS_MACRO_PALETTES.carbs.trackColor,
+    },
+  ], [totals, targets]);
+
+  const caloriesRemaining = targets.calories - totals.calories;
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin"/></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-24">
+    <div className="max-w-3xl mx-auto space-y-5 pb-24">
       {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
       {editingEntry && (
@@ -1515,66 +1486,144 @@ export default function DailyLog() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* Page Title & Staples Trigger */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-1.5">
             <Sparkles className="w-3 h-3 text-emerald-400" />
             <span>Daily Intake</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tightest font-sans">
             Nutrition Log
           </h1>
-          <p className="text-sm font-normal text-white/45 mt-1.5">
+          <p className="text-xs text-white/45 mt-0.5">
             {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
         
-        <div className="flex items-center gap-3 self-start sm:self-auto">
-          <button
-            onClick={() => setIsStaplesManagerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#121418] border border-white/[0.08] hover:border-amber-400/40 hover:bg-white/[0.04] text-white transition-all group active:scale-[0.98]"
-            title="Manage permanent custom staples & recipes"
-          >
-            <Bookmark className="w-4 h-4 text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform" />
-            <div className="text-left">
-              <p className="text-xs font-bold leading-tight flex items-center gap-1.5">
-                <span>My Staples</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-400/15 text-amber-300 font-semibold border border-amber-400/20">
-                  {staples.length}
-                </span>
-              </p>
-              <p className="text-[10px] text-white/40">Custom Recipes</p>
-            </div>
-          </button>
-
-          <div className="rounded-2xl bg-[#121418] border border-white/[0.06] px-4 py-2.5 text-right">
-            <p className="text-2xl font-extrabold font-sans text-white tracking-tight">
-              {Math.round(totals.calories)}
+        <button
+          onClick={() => setIsStaplesManagerOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#121418] border border-white/[0.08] hover:border-amber-400/40 hover:bg-white/[0.04] text-white transition-all group active:scale-[0.98]"
+          title="Manage permanent custom staples & recipes"
+        >
+          <Bookmark className="w-4 h-4 text-amber-400 fill-amber-400/20 group-hover:scale-110 transition-transform" />
+          <div className="text-left">
+            <p className="text-xs font-bold leading-tight flex items-center gap-1.5">
+              <span>My Staples</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-400/15 text-amber-300 font-semibold border border-amber-400/20">
+                {staples.length}
+              </span>
             </p>
-            <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">kcal logged</p>
+            <p className="text-[9px] text-white/40 hidden sm:block">Custom Recipes</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Apple Fitness Activity Rings Overview Card */}
+      <div className="rounded-3xl bg-[#121418] border border-white/[0.08] p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+          {/* Apple Rings Visualizer */}
+          <div className="shrink-0 flex flex-col items-center justify-center">
+            <AppleActivityRing
+              rings={ringData}
+              size={116}
+              strokeWidth={11}
+              ringGap={4}
+            />
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-white/35 mt-2">
+              Move &middot; Pro &middot; Carb
+            </span>
+          </div>
+
+          {/* Calorie & Macro Target Split */}
+          <div className="flex-1 w-full space-y-4">
+            <div className="flex items-baseline justify-between border-b border-white/[0.06] pb-3">
+              <div>
+                <p className="text-3xl sm:text-4xl font-black font-sans tracking-tight text-white tabular-nums">
+                  {Math.round(totals.calories)}
+                  <span className="text-xs sm:text-sm font-normal text-white/40 ml-1">/ {targets.calories} kcal</span>
+                </p>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-white/40 mt-0.5">Active Energy Logged</p>
+              </div>
+
+              <div className="text-right">
+                <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-full ${
+                  caloriesRemaining < 0
+                    ? "bg-rose-500/15 text-rose-400 border border-rose-500/25"
+                    : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                }`}>
+                  {caloriesRemaining < 0 ? `+${Math.abs(Math.round(caloriesRemaining))} over` : `${Math.round(caloriesRemaining)} left`}
+                </span>
+              </div>
+            </div>
+
+            {/* Micro Macro Bars */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {[
+                { label: "Protein", current: totals.protein, target: targets.protein, color: "text-orange-400", bar: "bg-orange-400" },
+                { label: "Carbs",   current: totals.carbs,   target: targets.carbs,   color: "text-emerald-400", bar: "bg-emerald-400" },
+                { label: "Fats",    current: totals.fats,    target: targets.fats,    color: "text-blue-400",    bar: "bg-blue-400" },
+              ].map(m => {
+                const pct = Math.min(100, Math.round((m.current / Math.max(1, m.target)) * 100));
+                return (
+                  <div key={m.label} className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-white/40 uppercase tracking-wider font-bold text-[9px]">{m.label}</span>
+                      <span className="text-[9px] font-mono text-white/40">{pct}%</span>
+                    </div>
+                    <p className={`text-sm sm:text-base font-extrabold font-sans tabular-nums ${m.color}`}>
+                      {Math.round(m.current)}<span className="text-[10px] font-normal text-white/40">/{m.target}g</span>
+                    </p>
+                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Macro Strip */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
+      {/* Segmented Meal Filter Tabs for Frictionless Mobile Browsing */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#121418] border border-white/[0.06] overflow-x-auto no-scrollbar">
         {[
-          { label: "Protein", value: totals.protein, color: "text-orange-400" },
-          { label: "Carbs",   value: totals.carbs,   color: "text-emerald-400" },
-          { label: "Fats",    value: totals.fats,    color: "text-blue-400" },
-        ].map(m => (
-          <div key={m.label} className="rounded-3xl bg-[#121418] border border-white/[0.06] p-4 text-center group hover:border-white/[0.12] transition-all">
-            <p className={`text-xl md:text-2xl font-extrabold font-sans ${m.color}`}>
-              {Math.round(m.value)}<span className="text-xs font-normal text-white/40 ml-0.5">g</span>
-            </p>
-            <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider mt-1">{m.label}</p>
-          </div>
-        ))}
+          { key: "all" as const, label: "All Meals", icon: UtensilsCrossed, count: log.breakfast.length + log.lunch.length + log.dinner.length + log.snacks.length },
+          { key: "breakfast" as const, label: "Breakfast", icon: Coffee, count: log.breakfast.length },
+          { key: "lunch" as const, label: "Lunch", icon: Sun, count: log.lunch.length },
+          { key: "dinner" as const, label: "Dinner", icon: Moon, count: log.dinner.length },
+          { key: "snacks" as const, label: "Snacks", icon: Sparkles, count: log.snacks.length },
+        ].map(tab => {
+          const isActive = activeMealFilter === tab.key;
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveMealFilter(tab.key)}
+              className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                isActive
+                  ? "bg-white text-black shadow-md font-bold"
+                  : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+              }`}
+            >
+              <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-black" : "text-white/50"}`} />
+              <span>{tab.label}</span>
+              {tab.count > 0 && (
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                  isActive ? "bg-black/15 text-black" : "bg-white/[0.08] text-white/70"
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Meal Sections */}
-      {mealConfig.map(({ key, label, icon: Icon, color, bg, border }) => {
+      {mealConfig
+        .filter(({ key }) => activeMealFilter === "all" || activeMealFilter === key)
+        .map(({ key, label, icon: Icon, color, bg, border }) => {
         const loggedItems = log[key]||[];
         const menuItems: string[] = key!=="snacks"&&menu ? (menu[key as "breakfast"|"lunch"|"dinner"]||[]) : [];
         const alreadyLogged = new Set(loggedItems.map(i=>i.name));
