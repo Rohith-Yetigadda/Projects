@@ -40,6 +40,12 @@ export function getStockStatus(item: PantryItem): StockStatus {
   if (qty <= 0) return "depleted";
 
   const unit = (item.unit || "").toLowerCase().trim();
+  const category = (item.category || "").toLowerCase().trim();
+
+  // If user set an explicit custom threshold on this item:
+  if (item.lowStockThreshold && item.lowStockThreshold > 0) {
+    return qty <= item.lowStockThreshold ? "low_stock" : "in_stock";
+  }
 
   // 1. Packaged bulk/containers (jar, bottle, pack, box, tub, can)
   // 1 whole container (e.g. 1 jar of Peanut Butter, 1 bottle of oil, 1 pack of bread) is fully in stock.
@@ -47,7 +53,19 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return "in_stock";
   }
 
-  // 2. Measured weight/volume: (g, kg, ml, l)
+  // 2. Spices: Indian hostel/dorm spice packets are small 10-15rs sachets (20g-50g)
+  // Low on stock only when nearly finished (<= 15g, or <= 0.015kg)
+  if (category === "spices") {
+    if (unit === "g") {
+      return qty <= 15 ? "low_stock" : "in_stock";
+    }
+    if (unit === "kg") {
+      return qty <= 0.015 ? "low_stock" : "in_stock";
+    }
+    return qty <= 1 ? "low_stock" : "in_stock";
+  }
+
+  // 3. Measured weight/volume: (g, kg, ml, l) for staples
   if (unit === "g") {
     return qty <= 50 ? "low_stock" : "in_stock";
   }
@@ -58,12 +76,12 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return qty <= 100 ? "low_stock" : "in_stock";
   }
 
-  // 3. Portions / Scoops: (scoop, scoops, serving, servings)
+  // 4. Portions / Scoops: (scoop, scoops, serving, servings)
   if (["scoop", "scoops", "serving", "servings"].includes(unit)) {
     return qty <= 2 ? "low_stock" : "in_stock";
   }
 
-  // 4. Counted individual pieces: (pcs, eggs, bananas, etc.)
+  // 5. Counted individual pieces: (pcs, eggs, bananas, etc.)
   // Only low when down to the final single piece
   if (qty <= 1) {
     return "low_stock";
@@ -74,10 +92,12 @@ export function getStockStatus(item: PantryItem): StockStatus {
 
 /**
  * Smart, unit-aware stepper increment.
- * e.g. 50g for grams, 100ml for liquids, 1 for discrete items (scoop, pcs, jar, pack).
+ * e.g. 10g for spices, 50g for grams, 100ml for liquids, 1 for discrete items (scoop, pcs, jar, pack).
  */
-export function getSmartStep(unit: string): number {
+export function getSmartStep(unit: string, category?: string): number {
   const u = (unit || "").toLowerCase().trim();
+  const c = (category || "").toLowerCase().trim();
+  if (c === "spices" && u === "g") return 10;
   if (u === "g") return 50;
   if (u === "ml") return 100;
   if (u === "kg" || u === "l") return 0.25;
@@ -649,7 +669,7 @@ export default function Pantry() {
               const status = getStockStatus(item);
               const isLow = status === "low_stock";
               const isDepleted = status === "depleted";
-              const step = getSmartStep(item.unit);
+              const step = getSmartStep(item.unit, item.category);
 
               return (
                 <div
@@ -675,21 +695,28 @@ export default function Pantry() {
                     )}
                   </div>
 
-                  {/* Category Col (Interactive Clickable Badge) */}
-                  <div className="relative inline-flex items-center">
-                    <select
-                      value={item.category}
-                      onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
-                      className={`appearance-none cursor-pointer pl-2.5 pr-5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border focus:outline-none transition-all ${getCategoryColor(item.category)}`}
-                      title="Click to change category"
-                    >
-                      {FOOD_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 pointer-events-none opacity-40" />
+                  {/* Category Col (Interactive Dynamic Centered Badge) */}
+                  <div className="flex items-center justify-start">
+                    <div className="relative inline-flex items-center">
+                      <div
+                        className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border transition-all pointer-events-none select-none ${getCategoryColor(item.category)}`}
+                      >
+                        <span className="text-center">{item.category}</span>
+                        <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />
+                      </div>
+                      <select
+                        value={item.category}
+                        onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-center"
+                        title="Click to change category"
+                      >
+                        {FOOD_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Quantity Stepper & Direct Editable Input */}

@@ -436,21 +436,28 @@ export default function Groceries() {
                   {item.name}
                 </div>
                 
-                {/* Category Badge Col (Interactive Clickable Badge) */}
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={item.category}
-                    onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
-                    className={`appearance-none cursor-pointer pl-2.5 pr-5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border focus:outline-none transition-all ${getCategoryColor(item.category)}`}
-                    title="Click to change category"
-                  >
-                    {FOOD_CATEGORIES.map(cat => (
-                      <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 pointer-events-none opacity-40" />
+                {/* Category Badge Col (Interactive Dynamic Centered Badge) */}
+                <div className="flex items-center justify-start">
+                  <div className="relative inline-flex items-center">
+                    <div
+                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border transition-all pointer-events-none select-none ${getCategoryColor(item.category)}`}
+                    >
+                      <span className="text-center">{item.category}</span>
+                      <ChevronDown className="w-2.5 h-2.5 opacity-40 shrink-0" />
+                    </div>
+                    <select
+                      value={item.category}
+                      onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-center"
+                      title="Click to change category"
+                    >
+                      {FOOD_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
                 {/* Actions Col */}
