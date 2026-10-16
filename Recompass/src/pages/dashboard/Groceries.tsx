@@ -14,6 +14,7 @@ import {
   Package,
   ArrowRight
 } from "lucide-react";
+import { classifyFoodWithAI, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
 
 type GroceryItem = {
   id: string;
@@ -40,6 +41,7 @@ export default function Groceries() {
   const { currentUser } = useAuth();
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingItem, setAddingItem] = useState(false);
   const [newItem, setNewItem] = useState("");
 
   const [sortBy, setSortBy] = useState<"name" | "category">("category");
@@ -57,7 +59,34 @@ export default function Groceries() {
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
         if (snap.exists()) {
-          setItems(snap.data().items || []);
+          const loaded: GroceryItem[] = snap.data().items || [];
+          setItems(loaded);
+
+          // Auto-reclassify any items previously stuck in "Other" with Gemini AI
+          const otherItems = loaded.filter(i => i.category === "Other");
+          if (otherItems.length > 0) {
+            let hasChanges = false;
+            const fixed = await Promise.all(
+              loaded.map(async (item) => {
+                if (item.category === "Other") {
+                  const aiResult = await classifyFoodWithAI(item.name);
+                  if (aiResult && aiResult.category !== "Other") {
+                    hasChanges = true;
+                    return { ...item, category: aiResult.category };
+                  }
+                }
+                return item;
+              })
+            );
+
+            if (hasChanges) {
+              setItems(fixed);
+              await updateDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
+                items: fixed,
+                lastUpdated: new Date().toISOString()
+              });
+            }
+          }
         } else {
           await setDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
             items: [],
@@ -86,30 +115,31 @@ export default function Groceries() {
     }
   };
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItem.trim()) return;
     
-    const lower = newItem.toLowerCase();
-    let category = "Other";
-    if (lower.includes("chicken") || lower.includes("egg") || lower.includes("whey") || lower.includes("meat") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya")) category = "Protein";
-    else if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("paneer") || lower.includes("curd") || lower.includes("ghee") || lower.includes("butter")) category = "Dairy";
-    else if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit")) category = "Produce";
-    else if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie")) category = "Snacks";
-    else if (lower.includes("creatine") || lower.includes("vitamin") || lower.includes("protein")) category = "Supplements";
-    else if (lower.includes("rice") || lower.includes("wheat") || lower.includes("atta") || lower.includes("flour") || lower.includes("dal") || lower.includes("lentil") || lower.includes("oat") || lower.includes("pasta") || lower.includes("bread")) category = "Grains";
-    else if (lower.includes("cumin") || lower.includes("turmeric") || lower.includes("chili") || lower.includes("salt") || lower.includes("pepper") || lower.includes("spice") || lower.includes("garlic") || lower.includes("ginger")) category = "Spices";
-    else if (lower.includes("oil")) category = "Oils";
+    setAddingItem(true);
+    const inputStr = newItem.trim();
+    const parsed = await classifyFoodWithAI(inputStr);
 
     const item: GroceryItem = {
       id: Date.now().toString(),
-      name: newItem.trim(),
-      category,
+      name: parsed.name || inputStr,
+      category: parsed.category,
       purchased: false,
     };
 
     saveItems([...items, item]);
     setNewItem("");
+    setAddingItem(false);
+    showNotification(`Added "${item.name}" • ${item.category}`);
+  };
+
+  const handleUpdateCategory = (id: string, newCat: string) => {
+    const updated = items.map(item => item.id === id ? { ...item, category: newCat } : item);
+    saveItems(updated);
+    showNotification(`Category updated to ${newCat}`);
   };
 
   const togglePurchased = (id: string) => {
@@ -325,21 +355,26 @@ export default function Groceries() {
         {/* Quick Add Row */}
         <form onSubmit={handleAddItem} className="flex items-center px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-3">
           <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <Plus className="w-4 h-4 text-white/60" />
+            {addingItem ? (
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 text-white/60" />
+            )}
           </div>
           <input 
             type="text" 
-            placeholder="Add grocery item... (e.g. Eggs, Bananas, Greek Yogurt)"
+            placeholder="Add grocery item with AI (e.g. Chilli powder, Greek Yogurt, Eggs)..."
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
+            disabled={addingItem}
             className="w-full h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30"
           />
           <button 
             type="submit" 
-            disabled={!newItem.trim()}
-            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all"
+            disabled={!newItem.trim() || addingItem}
+            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
           >
-            Add
+            {addingItem ? "AI Adding..." : "Add"}
           </button>
         </form>
 
@@ -401,11 +436,21 @@ export default function Groceries() {
                   {item.name}
                 </div>
                 
-                {/* Category Badge Col */}
-                <div className="flex items-center">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border ${getCategoryColor(item.category)}`}>
-                    {item.category}
-                  </span>
+                {/* Category Badge Col (Interactive Clickable Badge) */}
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={item.category}
+                    onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
+                    className={`appearance-none cursor-pointer pl-2.5 pr-5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border focus:outline-none transition-all ${getCategoryColor(item.category)}`}
+                    title="Click to change category"
+                  >
+                    {FOOD_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 pointer-events-none opacity-40" />
                 </div>
                 
                 {/* Actions Col */}

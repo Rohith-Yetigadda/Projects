@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Check
 } from "lucide-react";
+import { classifyFoodWithAI, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
 
 export type PantryItem = {
   id: string;
@@ -32,7 +33,7 @@ export type StockStatus = "in_stock" | "low_stock" | "depleted";
 
 /**
  * Universal, unit-aware stock status evaluation.
- * Never hardcodes per item name; evaluates mathematically by unit context.
+ * Evaluates mathematically by unit context.
  */
 export function getStockStatus(item: PantryItem): StockStatus {
   const qty = Number(item.quantity) || 0;
@@ -42,7 +43,6 @@ export function getStockStatus(item: PantryItem): StockStatus {
 
   // 1. Packaged bulk/containers (jar, bottle, pack, box, tub, can)
   // 1 whole container (e.g. 1 jar of Peanut Butter, 1 bottle of oil, 1 pack of bread) is fully in stock.
-  // Only low if quantity < 1 (i.e. empty / depleted)
   if (["jar", "bottle", "pack", "packs", "box", "boxes", "tub", "can", "cans"].includes(unit)) {
     return "in_stock";
   }
@@ -86,15 +86,7 @@ export function getSmartStep(unit: string): number {
 
 const CATEGORIES = [
   "All",
-  "Protein",
-  "Dairy",
-  "Produce",
-  "Grains",
-  "Snacks",
-  "Supplements",
-  "Spices",
-  "Oils",
-  "Other"
+  ...FOOD_CATEGORIES
 ];
 
 const getCategoryColor = (cat: string) => {
@@ -124,6 +116,7 @@ export default function Pantry() {
   const { currentUser } = useAuth();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingItem, setAddingItem] = useState(false);
   
   // Direct quantity editing state
   const [editingQuantities, setEditingQuantities] = useState<{ [id: string]: string }>({});
@@ -148,14 +141,41 @@ export default function Pantry() {
     setTimeout(() => setNotification(null), 3500);
   };
 
-  // Fetch Pantry from Firestore
+  // Fetch Pantry from Firestore & Auto-Reclassify any legacy "Other" items with Gemini
   useEffect(() => {
     if (!currentUser) return;
     const fetchPantry = async () => {
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
         if (snap.exists()) {
-          setItems(snap.data().items || []);
+          const loaded: PantryItem[] = snap.data().items || [];
+          setItems(loaded);
+
+          // Auto-classify any items previously stuck in "Other" (e.g. Chilli Powder)
+          const otherItems = loaded.filter(i => i.category === "Other");
+          if (otherItems.length > 0) {
+            let hasChanges = false;
+            const fixed = await Promise.all(
+              loaded.map(async (item) => {
+                if (item.category === "Other") {
+                  const aiResult = await classifyFoodWithAI(item.name, item.quantity, item.unit);
+                  if (aiResult && aiResult.category !== "Other") {
+                    hasChanges = true;
+                    return { ...item, category: aiResult.category };
+                  }
+                }
+                return item;
+              })
+            );
+
+            if (hasChanges) {
+              setItems(fixed);
+              await updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
+                items: fixed,
+                lastUpdated: new Date().toISOString()
+              });
+            }
+          }
         } else {
           await setDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
             items: [],
@@ -185,74 +205,16 @@ export default function Pantry() {
     }
   };
 
-  // Auto-detect category from name
-  const detectCategory = (name: string): string => {
-    const lower = name.toLowerCase();
-    if (lower.includes("chicken") || lower.includes("egg") || lower.includes("fish") || lower.includes("mutton") || lower.includes("soya") || lower.includes("tofu") || lower.includes("tuna")) return "Protein";
-    if (lower.includes("milk") || lower.includes("cheese") || lower.includes("yogurt") || lower.includes("curd") || lower.includes("paneer") || lower.includes("butter") || lower.includes("ghee")) return "Dairy";
-    if (lower.includes("apple") || lower.includes("banana") || lower.includes("spinach") || lower.includes("veg") || lower.includes("tomato") || lower.includes("onion") || lower.includes("potato") || lower.includes("fruit") || lower.includes("berries")) return "Produce";
-    if (lower.includes("bar") || lower.includes("chips") || lower.includes("snack") || lower.includes("biscuit") || lower.includes("cookie") || lower.includes("peanut butter") || lower.includes("nuts") || lower.includes("almond")) return "Snacks";
-    if (lower.includes("whey") || lower.includes("creatine") || lower.includes("vitamin") || lower.includes("supplement") || lower.includes("bcaa") || lower.includes("omega")) return "Supplements";
-    if (lower.includes("rice") || lower.includes("wheat") || lower.includes("atta") || lower.includes("dal") || lower.includes("lentil") || lower.includes("oat") || lower.includes("pasta") || lower.includes("bread") || lower.includes("quinoa")) return "Grains";
-    if (lower.includes("cumin") || lower.includes("turmeric") || lower.includes("chili") || lower.includes("salt") || lower.includes("pepper") || lower.includes("spice") || lower.includes("garlic") || lower.includes("ginger") || lower.includes("masala")) return "Spices";
-    if (lower.includes("oil")) return "Oils";
-    return "Other";
-  };
-
-  // Smart Parser for user inputs (e.g. "6 eggs", "500g oats", "peanut butter")
-  const parseItemInput = (raw: string, defaultUnit: string, fallbackQty: number) => {
-    const trimmed = raw.trim();
-    const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|pcs|pc|pack|packs|jar|jars|bottle|bottles|box|boxes|tub|tubs|can|cans|scoop|scoops|serving|servings)?\s*(.+)$/i);
-    
-    if (match) {
-      const parsedQty = parseFloat(match[1]);
-      let parsedUnit = (match[2] || "").toLowerCase();
-      const parsedName = match[3].trim();
-      
-      if (parsedUnit === "pc") parsedUnit = "pcs";
-      if (parsedUnit === "jars") parsedUnit = "jar";
-      if (parsedUnit === "boxes") parsedUnit = "box";
-      if (parsedUnit === "tubs") parsedUnit = "tub";
-      if (parsedUnit === "cans") parsedUnit = "can";
-      if (parsedUnit === "bottles") parsedUnit = "bottle";
-
-      return {
-        name: parsedName || trimmed,
-        quantity: parsedQty || fallbackQty,
-        unit: parsedUnit || defaultUnit
-      };
-    }
-
-    // Natural default unit detection if no unit was given
-    const lower = trimmed.toLowerCase();
-    let autoUnit = defaultUnit;
-    if (lower.includes("peanut butter") || lower.includes("jam") || lower.includes("nutella")) {
-      autoUnit = "jar";
-    } else if (lower.includes("oats") || lower.includes("rice") || lower.includes("flour") || lower.includes("atta")) {
-      autoUnit = "g";
-    } else if (lower.includes("whey") || lower.includes("protein powder")) {
-      autoUnit = "scoops";
-    } else if (lower.includes("milk") || lower.includes("bread")) {
-      autoUnit = "packs";
-    } else if (lower.includes("oil")) {
-      autoUnit = "bottles";
-    }
-
-    return {
-      name: trimmed,
-      quantity: fallbackQty,
-      unit: autoUnit
-    };
-  };
-
-  // Add Item Handler
-  const handleAddItem = (e: React.FormEvent) => {
+  // Add Item Handler with Gemini Flash AI Classifier
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
+    setAddingItem(true);
     const fallbackQty = Math.max(0, parseFloat(newQuantity) || 1);
-    const parsed = parseItemInput(newName, newUnit, fallbackQty);
-    const category = detectCategory(parsed.name);
+    
+    // AI Classification (handles any typo, language, brand, or regional spice/dish)
+    const parsed = await classifyFoodWithAI(newName, fallbackQty, newUnit);
 
     const existingIndex = items.findIndex(
       i => i.name.toLowerCase() === parsed.name.toLowerCase()
@@ -262,26 +224,27 @@ export default function Pantry() {
     if (existingIndex >= 0) {
       updated = items.map((item, idx) => 
         idx === existingIndex 
-          ? { ...item, quantity: item.quantity + parsed.quantity, updatedAt: new Date().toISOString() }
+          ? { ...item, quantity: item.quantity + parsed.quantity, category: parsed.category, updatedAt: new Date().toISOString() }
           : item
       );
-      showNotification(`Added +${parsed.quantity} ${parsed.unit} to existing ${items[existingIndex].name}`);
+      showNotification(`Added +${parsed.quantity} ${parsed.unit} to ${items[existingIndex].name}`);
     } else {
       const newItem: PantryItem = {
         id: Date.now().toString(),
         name: parsed.name,
-        category,
+        category: parsed.category,
         quantity: parsed.quantity,
         unit: parsed.unit,
         updatedAt: new Date().toISOString()
       };
       updated = [newItem, ...items];
-      showNotification(`Added ${newItem.name} (${parsed.quantity} ${parsed.unit}) to pantry`);
+      showNotification(`Added "${newItem.name}" (${parsed.quantity} ${parsed.unit}) • ${parsed.category}`);
     }
 
     savePantry(updated);
     setNewName("");
     setNewQuantity("1");
+    setAddingItem(false);
   };
 
   // Adjust Quantity via Steppers
@@ -313,6 +276,13 @@ export default function Pantry() {
       delete next[id];
       return next;
     });
+  };
+
+  // Update Category on direct badge click
+  const handleUpdateCategory = (id: string, newCat: string) => {
+    const updated = items.map(item => item.id === id ? { ...item, category: newCat, updatedAt: new Date().toISOString() } : item);
+    savePantry(updated);
+    showNotification(`Category updated to ${newCat}`);
   };
 
   // Delete Item
@@ -553,18 +523,23 @@ export default function Pantry() {
       {/* Main Pantry Table Bento Container with Integrated Quick-Add Row */}
       <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
         
-        {/* Streamlined Quick Add Row (Identical Clean UX to Groceries.tsx) */}
+        {/* Streamlined Quick Add Row with Gemini AI Parsing */}
         <form onSubmit={handleAddItem} className="flex items-center px-4 md:px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5">
           <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <Plus className="w-4 h-4 text-white/60" />
+            {addingItem ? (
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 text-white/60" />
+            )}
           </div>
           
           {/* Main Item Name Input */}
           <input
             type="text"
-            placeholder="Add to stash (e.g. 6 Eggs, Peanut Butter, 500g Oats, Greek Yogurt)..."
+            placeholder="Add with AI (e.g. Chilli powder, 6 Eggs, Peanut Butter, 500g Oats)..."
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            disabled={addingItem}
             className="flex-1 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30 min-w-0"
           />
 
@@ -577,15 +552,17 @@ export default function Pantry() {
               min="0"
               value={newQuantity}
               onChange={(e) => setNewQuantity(e.target.value)}
+              disabled={addingItem}
               className="w-10 bg-transparent border-none text-center text-xs font-bold text-white focus:outline-none"
             />
           </div>
 
-          {/* Tight Custom Unit Dropdown (Chevron tightly hugs label, NO wide empty gap) */}
+          {/* Tight Custom Unit Dropdown (Chevron tightly hugs label) */}
           <div className="relative shrink-0 flex items-center">
             <select
               value={newUnit}
               onChange={(e) => setNewUnit(e.target.value)}
+              disabled={addingItem}
               className="appearance-none bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-white/80 text-xs font-semibold rounded-xl pl-2.5 pr-6 py-1.5 focus:outline-none cursor-pointer transition-colors"
             >
               <option value="pcs" className="bg-[#171a20]">pcs</option>
@@ -602,10 +579,14 @@ export default function Pantry() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!newName.trim()}
-            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
+            disabled={!newName.trim() || addingItem}
+            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1.5"
           >
-            Add
+            {addingItem ? (
+              <span>AI Adding...</span>
+            ) : (
+              <span>Add</span>
+            )}
           </button>
         </form>
 
@@ -694,11 +675,21 @@ export default function Pantry() {
                     )}
                   </div>
 
-                  {/* Category Col */}
-                  <div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border ${getCategoryColor(item.category)}`}>
-                      {item.category}
-                    </span>
+                  {/* Category Col (Interactive Clickable Badge) */}
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={item.category}
+                      onChange={(e) => handleUpdateCategory(item.id, e.target.value)}
+                      className={`appearance-none cursor-pointer pl-2.5 pr-5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border focus:outline-none transition-all ${getCategoryColor(item.category)}`}
+                      title="Click to change category"
+                    >
+                      {FOOD_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat} className="bg-[#171a20] text-white py-1">
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-2.5 h-2.5 absolute right-1.5 pointer-events-none opacity-40" />
                   </div>
 
                   {/* Quantity Stepper & Direct Editable Input */}
