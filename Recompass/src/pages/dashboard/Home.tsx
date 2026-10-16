@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { Compass, Flame, Droplet, Wheat, Plus, ArrowRight, Coffee, Sun, Moon, Check, Sparkles, Package, ChefHat } from "lucide-react";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 
 type MacroEntry = { name: string; calories: number; protein: number; carbs: number; fats: number; };
 type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; totals?: { calories: number; protein: number; carbs: number; fats: number } };
@@ -47,12 +48,16 @@ export default function Home() {
   const firstName = userProfile?.name?.split(" ")[0] || "User";
   const targets = calcTargets(userProfile);
 
-  const [todayLog, setTodayLog] = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
-  const [todayMenu, setTodayMenu] = useState<MealPlan | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const today = new Date().toISOString().split("T")[0];
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+  const cachedLog = getCachedData<DayLog>("daily_log_" + today);
+  const cachedMenu = getCachedData<MealPlan>("weekly_menu_" + dayName);
+
+  const [todayLog, setTodayLog] = useState<DayLog>(cachedLog || { breakfast: [], lunch: [], dinner: [], snacks: [] });
+  const [todayMenu, setTodayMenu] = useState<MealPlan | null>(cachedMenu || null);
+  const [loading, setLoading] = useState(!cachedLog);
+
   const currentMeal = getCurrentMeal();
 
   const hour = new Date().getHours();
@@ -60,20 +65,32 @@ export default function Home() {
 
   useEffect(() => {
     if (!currentUser) return;
+    let isMounted = true;
     (async () => {
       try {
         const [logSnap, menuSnap] = await Promise.all([
           getDoc(doc(db, "users", currentUser.uid, "logs", today)),
           getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1))),
         ]);
-        if (logSnap.exists()) setTodayLog(logSnap.data() as DayLog);
+        if (!isMounted) return;
+        if (logSnap.exists()) {
+          const lData = logSnap.data() as DayLog;
+          setTodayLog(lData);
+          setCachedData("daily_log_" + today, lData);
+        }
         if (!menuSnap.empty) {
           const extracted: MealPlan[] = menuSnap.docs[0].data().extractedData || [];
-          setTodayMenu(extracted.find(d => d.day === dayName) || extracted[0] || null);
+          const selected = extracted.find(d => d.day === dayName) || extracted[0] || null;
+          setTodayMenu(selected);
+          if (selected) setCachedData("weekly_menu_" + dayName, selected);
         }
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     })();
+    return () => { isMounted = false; };
   }, [currentUser, today, dayName]);
 
   const allItems = [...(todayLog.breakfast||[]), ...(todayLog.lunch||[]), ...(todayLog.dinner||[]), ...(todayLog.snacks||[])];

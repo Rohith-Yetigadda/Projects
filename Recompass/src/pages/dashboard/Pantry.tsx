@@ -17,7 +17,8 @@ import {
   ChevronUp,
   Check
 } from "lucide-react";
-import { classifyFoodWithAI, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
+import { classifyFoodWithAI, fastClassifyFood, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
 
 export type PantryItem = {
@@ -121,8 +122,9 @@ const STARTER_STASH: Omit<PantryItem, "id">[] = [
 
 export default function Pantry() {
   const { currentUser } = useAuth();
-  const [items, setItems] = useState<PantryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedItems = getCachedData<PantryItem[]>("pantry_items");
+  const [items, setItems] = useState<PantryItem[]>(cachedItems || []);
+  const [loading, setLoading] = useState(!cachedItems);
   const [addingItem, setAddingItem] = useState(false);
   
   // Direct quantity editing state
@@ -148,59 +150,39 @@ export default function Pantry() {
     setTimeout(() => setNotification(null), 3500);
   };
 
-  // Fetch Pantry from Firestore & Auto-Reclassify any legacy "Other" items with Gemini
+  // Fetch Pantry from Firestore & Sync Cache
   useEffect(() => {
     if (!currentUser) return;
+    let isMounted = true;
     const fetchPantry = async () => {
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
+        if (!isMounted) return;
         if (snap.exists()) {
           const loaded: PantryItem[] = snap.data().items || [];
           setItems(loaded);
-
-          // Auto-classify any items previously stuck in "Other" (e.g. Chilli Powder)
-          const otherItems = loaded.filter(i => i.category === "Other");
-          if (otherItems.length > 0) {
-            let hasChanges = false;
-            const fixed = await Promise.all(
-              loaded.map(async (item) => {
-                if (item.category === "Other") {
-                  const aiResult = await classifyFoodWithAI(item.name, item.quantity, item.unit);
-                  if (aiResult && aiResult.category !== "Other") {
-                    hasChanges = true;
-                    return { ...item, category: aiResult.category };
-                  }
-                }
-                return item;
-              })
-            );
-
-            if (hasChanges) {
-              setItems(fixed);
-              await updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
-                items: fixed,
-                lastUpdated: new Date().toISOString()
-              });
-            }
-          }
+          setCachedData("pantry_items", loaded);
         } else {
           await setDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
             items: [],
             lastUpdated: new Date().toISOString()
           });
+          setCachedData("pantry_items", []);
         }
       } catch (err) {
         console.error("Error fetching pantry:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchPantry();
+    return () => { isMounted = false; };
   }, [currentUser]);
 
-  // Save to Firestore
+  // Save to Firestore & Cache
   const savePantry = async (newItems: PantryItem[]) => {
     setItems(newItems);
+    setCachedData("pantry_items", newItems);
     if (!currentUser) return;
     try {
       await updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
@@ -212,32 +194,33 @@ export default function Pantry() {
     }
   };
 
-  // Add Item Handler with Gemini Flash AI Classifier
-  const handleAddItem = async (e: React.FormEvent) => {
+  // Instant 0ms Add Item Handler with Fast Classification
+  const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
-    setAddingItem(true);
+    const rawInput = newName.trim();
     const fallbackQty = Math.max(0, parseFloat(newQuantity) || 1);
     
-    // AI Classification (handles any typo, language, brand, or regional spice/dish)
-    const parsed = await classifyFoodWithAI(newName, fallbackQty, newUnit);
+    // 1. Instant Synchronous Classification (<1ms)
+    const parsed = fastClassifyFood(rawInput, fallbackQty, newUnit);
 
     const existingIndex = items.findIndex(
       i => i.name.toLowerCase() === parsed.name.toLowerCase()
     );
 
     let updated: PantryItem[];
+    const addedId = Date.now().toString();
     if (existingIndex >= 0) {
       updated = items.map((item, idx) => 
         idx === existingIndex 
-          ? { ...item, quantity: item.quantity + parsed.quantity, category: parsed.category, updatedAt: new Date().toISOString() }
+          ? { ...item, quantity: item.quantity + parsed.quantity, category: parsed.category !== "Other" ? parsed.category : item.category, updatedAt: new Date().toISOString() }
           : item
       );
       showNotification(`Added +${parsed.quantity} ${parsed.unit} to ${items[existingIndex].name}`);
     } else {
       const newItem: PantryItem = {
-        id: Date.now().toString(),
+        id: addedId,
         name: parsed.name,
         category: parsed.category,
         quantity: parsed.quantity,
@@ -248,10 +231,30 @@ export default function Pantry() {
       showNotification(`Added "${newItem.name}" (${parsed.quantity} ${parsed.unit}) • ${parsed.category}`);
     }
 
+    // Instant UI update (<1ms)
     savePantry(updated);
     setNewName("");
     setNewQuantity("1");
     setAddingItem(false);
+
+    // 2. If the category was ambiguous ("Other"), refine in the background with AI without blocking
+    if (parsed.category === "Other") {
+      classifyFoodWithAI(rawInput, fallbackQty, newUnit).then(aiResult => {
+        if (aiResult && aiResult.category !== "Other") {
+          setItems(prev => {
+            const refined = prev.map(it => it.id === addedId ? { ...it, category: aiResult.category, name: aiResult.name || it.name } : it);
+            setCachedData("pantry_items", refined);
+            if (currentUser) {
+              updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
+                items: refined,
+                lastUpdated: new Date().toISOString()
+              }).catch(console.error);
+            }
+            return refined;
+          });
+        }
+      }).catch(console.error);
+    }
   };
 
   // Adjust Quantity via Steppers

@@ -22,11 +22,149 @@ export interface ClassifiedFood {
 }
 
 const CLIENT_API_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+const CLASSIFICATION_CACHE = new Map<string, ClassifiedFood>();
+
+// Load persistent cache from localStorage
+try {
+  const stored = localStorage.getItem("recompass_food_classifications");
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    Object.entries(parsed).forEach(([k, v]) => CLASSIFICATION_CACHE.set(k, v as ClassifiedFood));
+  }
+} catch {
+  // Ignore
+}
+
+function saveToCache(key: string, item: ClassifiedFood) {
+  CLASSIFICATION_CACHE.set(key.toLowerCase().trim(), item);
+  try {
+    const obj = Object.fromEntries(CLASSIFICATION_CACHE.entries());
+    localStorage.setItem("recompass_food_classifications", JSON.stringify(obj));
+  } catch {
+    // Ignore
+  }
+}
 
 /**
- * Classifies food inputs dynamically using Gemini AI.
- * First queries /api/compass; if offline or unavailable, falls back to direct client-side Gemini SDK.
- * No hardcoded keyword matching is used.
+ * Instant local parser & classifier that runs in <1ms (0 network delay).
+ * Enables instant optimistic UI updates when adding items to Pantry or Groceries.
+ */
+export function fastClassifyFood(
+  input: string,
+  fallbackQty = 1,
+  defaultUnit = "pcs"
+): ClassifiedFood {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { name: "", category: "Other", quantity: fallbackQty, unit: defaultUnit };
+  }
+
+  // 1. Check persistent cache
+  const cached = CLASSIFICATION_CACHE.get(trimmed.toLowerCase());
+  if (cached) {
+    return { ...cached, quantity: fallbackQty || cached.quantity, unit: defaultUnit !== "pcs" ? defaultUnit : cached.unit };
+  }
+
+  // 2. Parse quantity and unit from input string (e.g., "500g rolled oats", "2 jars peanut butter", "1 pack milk")
+  let cleanName = trimmed;
+  let parsedQty = fallbackQty;
+  let parsedUnit = defaultUnit;
+
+  const matchLeading = cleanName.match(/^(\d+(?:\.\d+)?)\s*(g|gm|gms|gram|grams|kg|kgs|ml|l|ltr|litre|litres|pcs|piece|pieces|slice|slices|scoop|scoops|jar|jars|pack|packs|packet|packets|bottle|bottles|box|boxes|bowl|bowls|tbsp|tsp)\b\s*(?:of\s+)?(.*)$/i);
+  if (matchLeading) {
+    parsedQty = parseFloat(matchLeading[1]);
+    const rawUnit = matchLeading[2].toLowerCase();
+    if (rawUnit.startsWith("g") && !rawUnit.startsWith("gar")) parsedUnit = "g";
+    else if (rawUnit.startsWith("kg")) parsedUnit = "kg";
+    else if (rawUnit === "ml") parsedUnit = "ml";
+    else if (rawUnit.startsWith("l")) parsedUnit = "L";
+    else if (rawUnit.startsWith("scoop")) parsedUnit = "scoops";
+    else if (rawUnit.startsWith("jar")) parsedUnit = "jar";
+    else if (rawUnit.startsWith("pack")) parsedUnit = "packs";
+    else if (rawUnit.startsWith("bottle")) parsedUnit = "bottles";
+    else if (rawUnit.startsWith("box")) parsedUnit = "box";
+    else parsedUnit = "pcs";
+    cleanName = matchLeading[3].trim();
+  }
+
+  // Clean trailing punctuation and capitalize
+  cleanName = cleanName.replace(/^[-,:.]+|[-,:.]+$/g, "").trim() || trimmed;
+  const capitalized = cleanName
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+
+  const lower = cleanName.toLowerCase();
+
+  // Instant category resolution for common pantry & grocery staples
+  let category: FoodCategory = "Other";
+
+  // Grains (prioritize oats/muesli first so "Fruit & Nuts Oats" doesn't hit fruit)
+  if (/\b(oats?|rolled oats?|instant oats?|steel cut|muesli|oatmeal|breakfast cereal|cornflakes?|rice|steamed rice|basmati|brown rice|wheat|flour|atta|maida|besan|sooji|rava|semolina|poha|chivda|quinoa|daliya|vermicelli|semiya|noodles?|maggi|pasta|macaroni|bread|brown bread|multigrain|roti|chapatis?|parathas?|kulcha|naan|dals?|moong|toor|masoor|urad|chana|rajma|chole|lentils?)\b/.test(lower)) {
+    category = "Grains";
+    if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "g";
+  }
+  // Dairy
+  else if (/\b(milks?|toned milk|skim milk|dairy|curds?|dahi|yogurt|cheese|paneer|cottage cheese|butter|ghee|cream|malai|chaas|buttermilk|lassis?)\b/.test(lower)) {
+    category = "Dairy";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      parsedUnit = /milk|chaas|lassi/.test(lower) ? "ml" : /paneer|butter|cheese/.test(lower) ? "g" : "packs";
+    }
+  }
+  // Protein
+  else if (/\b(eggs?|egg whites?|boiled eggs?|chickens?|chicken breast|chicken curry|fish|fishes?|tuna|salmon|mutton|prawns?|tofu|soya|soya chunks?|nutrela|nutri|meat)\b/.test(lower)) {
+    category = "Protein";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      parsedUnit = /egg/.test(lower) ? "pcs" : "g";
+    }
+  }
+  // Supplements
+  else if (/\b(whey|protein powder|casein|creatine|multivitamin|fish oil|omega 3|bcaa|pre-workout|preworkout|electrolytes?|isolate)\b/.test(lower)) {
+    category = "Supplements";
+    if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "scoops";
+  }
+  // Spices & Condiments
+  else if (/\b(chilli|chilli powder|red chilli|mirchi|turmeric|haldi|jeera|cumin|coriander powder|dhania|garam masala|masala|black pepper|pepper|salt|black salt|rock salt|chaat masala|oregano|chilli flakes|paprika|cardamom|elaichi|clove|laung|cinnamon|dalchini|ginger garlic|mustard seeds|rai)\b/.test(lower)) {
+    category = "Spices";
+    if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "g";
+  }
+  // Oils
+  else if (/\b(oils?|olive oil|mustard oil|coconut oil|sunflower oil|vegetable oil|refined oil|sesame oil|cooking spray)\b/.test(lower)) {
+    category = "Oils";
+    if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "ml";
+  }
+  // Snacks
+  else if (/\b(peanut butter|pb|almonds?|badam|cashews?|kaju|walnuts?|akhrot|raisins?|kishmish|chia seeds?|flax seeds?|pumpkin seeds?|sunflower seeds?|mixed seeds?|dry fruits?|peanuts?|groundnuts?|biscuits?|cookies?|chips?|popcorn|chocolates?|energy bar|protein bar|honey|jams?|peanut)\b/.test(lower)) {
+    category = "Snacks";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      parsedUnit = /peanut butter|pb|honey|jam/.test(lower) ? "jar" : /seeds|almonds|cashews|nuts/.test(lower) ? "g" : "packs";
+    }
+  }
+  // Produce (Fruits & Veggies)
+  else if (/\b(bananas?|apples?|oranges?|papayas?|watermelons?|melons?|mangoes?|grapes?|guavas?|pineapples?|onions?|tomatoes?|potatoes?|aloo|pyaz|garlic|lahsun|ginger|adrak|spinach|palak|coriander|cilantro|mint|pudina|lemons?|nimbu|carrots?|cucumber|kheera|capsicum|shimla mirch|gobi|cauliflower|cabbage|matar|green peas|mushrooms?|vegetables?|veggies?|fruits?)\b/.test(lower)) {
+    category = "Produce";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      parsedUnit = /banana|apple|orange|lemon/.test(lower) ? "pcs" : "kg";
+    }
+  }
+
+  const result: ClassifiedFood = {
+    name: capitalized,
+    category,
+    quantity: parsedQty,
+    unit: parsedUnit,
+  };
+
+  if (category !== "Other") {
+    saveToCache(trimmed, result);
+  }
+
+  return result;
+}
+
+/**
+ * Classifies food inputs dynamically using Gemini AI with instant local fast-path fallback.
+ * Checks local cache first; if known staple, returns in <1ms; otherwise queries /api/compass.
  */
 export async function classifyFoodWithAI(
   input: string,
@@ -38,7 +176,13 @@ export async function classifyFoodWithAI(
     return { name: "", category: "Other", quantity: fallbackQty, unit: defaultUnit };
   }
 
-  // 1. Try serverless endpoint /api/compass
+  // 1. Try instant fast classifier
+  const instant = fastClassifyFood(trimmed, fallbackQty, defaultUnit);
+  if (instant.category !== "Other") {
+    return instant;
+  }
+
+  // 2. Try serverless endpoint /api/compass (Gemini 3.5 Flash Lite)
   try {
     const res = await fetch("/api/compass", {
       method: "POST",
@@ -59,55 +203,37 @@ export async function classifyFoodWithAI(
 
         const parsedQty = typeof data.quantity === "number" ? data.quantity : parseFloat(data.quantity) || fallbackQty;
 
-        return {
+        const result: ClassifiedFood = {
           name: data.name,
           category: matchedCat,
           quantity: Math.max(0, parsedQty),
           unit: data.unit || defaultUnit
         };
+
+        saveToCache(trimmed, result);
+        return result;
       }
     }
   } catch (err) {
     console.warn("API /api/compass unavailable, trying direct Gemini SDK:", err);
   }
 
-  // 2. Direct Gemini SDK fallback
+  // 3. Direct Gemini SDK fallback
   if (CLIENT_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(CLIENT_API_KEY);
-      let model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      let model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
       const prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${trimmed}".
 
-AVAILABLE CATEGORIES (You must pick EXACTLY one):
-- "Protein" (e.g. chicken, fish, mutton, eggs, egg whites, paneer, tofu, soya chunks, tuna, turkey, beef)
-- "Dairy" (e.g. milk, cheese, curd, dahi, yogurt, butter, ghee, cream)
-- "Produce" (e.g. bananas, apples, spinach, vegetables, fruits, onions, tomatoes, potatoes, garlic, ginger, cilantro, lemon)
-- "Grains" (e.g. rice, oats, fruit and nut oats, rolled oats, muesli, oatmeal, wheat, flour/atta, bread, roti, chapati, dal, lentils, pasta, noodles, quinoa)
-- "Snacks" (e.g. peanut butter, almonds, nuts, chips, biscuits, cookies, popcorn, chocolates)
-- "Supplements" (e.g. whey protein, casein, creatine, multivitamins, fish oil, bcaa, pre-workout, electrolytes)
-- "Spices" (e.g. chilli powder, red chilli, turmeric, haldi, jeera, cumin, garam masala, salt, black pepper, oregano, paprika, chaat masala, curry powder)
-- "Oils" (e.g. olive oil, mustard oil, coconut oil, sunflower oil, vegetable oil, cooking spray)
-- "Other" (any food or consumable that strictly does not fit the above)
+AVAILABLE CATEGORIES:
+"Protein", "Dairy", "Produce", "Grains", "Snacks", "Supplements", "Spices", "Oils", "Other"
 
-RULES:
-1. "name": Clean, properly capitalized food title (e.g. "Chilli Powder", "Fruit & Nuts Oats", "Eggs", "Rolled Oats", "Peanut Butter"). Strip leading numbers.
-2. "category": Must match one of the exact categories above. If the item is oats, muesli, or breakfast cereal with fruits or nuts (e.g. "Fruit & Nuts Oats"), its primary base is Grains.
-3. "quantity": Numeric quantity from the input if specified, or fallback to ${fallbackQty}.
-4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops"). If not mentioned, infer the natural standard unit.
+OUTPUT STRICTLY AS JSON:
+{"name":"FOOD_NAME","category":"CATEGORY","quantity":${fallbackQty},"unit":"${defaultUnit}"}`;
 
-OUTPUT STRICTLY AS JSON (no markdown formatting):
-{"name":"Fruit & Nuts Oats","category":"Grains","quantity":${fallbackQty},"unit":"g"}`;
-
-      let result;
-      try {
-        result = await model.generateContent(prompt);
-      } catch {
-        model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
-        result = await model.generateContent(prompt);
-      }
-
+      const result = await model.generateContent(prompt);
       const text = result.response.text();
       const firstCurly = text.indexOf('{');
       const lastCurly = text.lastIndexOf('}');
@@ -123,22 +249,19 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
 
       const parsedQty = typeof data.quantity === "number" ? data.quantity : parseFloat(data.quantity) || fallbackQty;
 
-      return {
-        name: data.name || trimmed,
+      const resItem: ClassifiedFood = {
+        name: data.name || instant.name,
         category: matchedCat,
         quantity: Math.max(0, parsedQty),
         unit: data.unit || defaultUnit
       };
+
+      saveToCache(trimmed, resItem);
+      return resItem;
     } catch (sdkErr) {
       console.error("Direct Gemini SDK classification failed:", sdkErr);
     }
   }
 
-  // 3. Clean fallback when totally offline (never use hardcoded regex assumptions)
-  return {
-    name: trimmed,
-    category: "Other",
-    quantity: fallbackQty,
-    unit: defaultUnit
-  };
+  return instant;
 }

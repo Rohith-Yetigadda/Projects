@@ -14,7 +14,8 @@ import {
   Package,
   ArrowRight
 } from "lucide-react";
-import { classifyFoodWithAI } from "@/lib/geminiClassifier";
+import { classifyFoodWithAI, fastClassifyFood } from "@/lib/geminiClassifier";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
 
 type GroceryItem = {
@@ -26,8 +27,9 @@ type GroceryItem = {
 
 export default function Groceries() {
   const { currentUser } = useAuth();
-  const [items, setItems] = useState<GroceryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedItems = getCachedData<GroceryItem[]>("grocery_items");
+  const [items, setItems] = useState<GroceryItem[]>(cachedItems || []);
+  const [loading, setLoading] = useState(!cachedItems);
   const [addingItem, setAddingItem] = useState(false);
   const [newItem, setNewItem] = useState("");
 
@@ -42,55 +44,35 @@ export default function Groceries() {
 
   useEffect(() => {
     if (!currentUser) return;
+    let isMounted = true;
     const fetchGroceries = async () => {
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
+        if (!isMounted) return;
         if (snap.exists()) {
           const loaded: GroceryItem[] = snap.data().items || [];
           setItems(loaded);
-
-          // Auto-reclassify any items previously stuck in "Other" with Gemini AI
-          const otherItems = loaded.filter(i => i.category === "Other");
-          if (otherItems.length > 0) {
-            let hasChanges = false;
-            const fixed = await Promise.all(
-              loaded.map(async (item) => {
-                if (item.category === "Other") {
-                  const aiResult = await classifyFoodWithAI(item.name);
-                  if (aiResult && aiResult.category !== "Other") {
-                    hasChanges = true;
-                    return { ...item, category: aiResult.category };
-                  }
-                }
-                return item;
-              })
-            );
-
-            if (hasChanges) {
-              setItems(fixed);
-              await updateDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
-                items: fixed,
-                lastUpdated: new Date().toISOString()
-              });
-            }
-          }
+          setCachedData("grocery_items", loaded);
         } else {
           await setDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
             items: [],
             lastUpdated: new Date().toISOString()
           });
+          setCachedData("grocery_items", []);
         }
       } catch (err) {
         console.error("Error fetching groceries:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchGroceries();
+    return () => { isMounted = false; };
   }, [currentUser]);
 
   const saveItems = async (newItems: GroceryItem[]) => {
     setItems(newItems);
+    setCachedData("grocery_items", newItems);
     if (!currentUser) return;
     try {
       await updateDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
@@ -102,25 +84,47 @@ export default function Groceries() {
     }
   };
 
-  const handleAddItem = async (e: React.FormEvent) => {
+  // Instant 0ms Add Item Handler with Fast Classification
+  const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItem.trim()) return;
     
-    setAddingItem(true);
     const inputStr = newItem.trim();
-    const parsed = await classifyFoodWithAI(inputStr);
+    // Fast synchronous classification (<1ms)
+    const parsed = fastClassifyFood(inputStr);
 
+    const addedId = Date.now().toString();
     const item: GroceryItem = {
-      id: Date.now().toString(),
+      id: addedId,
       name: parsed.name || inputStr,
       category: parsed.category,
       purchased: false,
     };
 
-    saveItems([...items, item]);
+    const updated = [...items, item];
+    saveItems(updated);
     setNewItem("");
     setAddingItem(false);
     showNotification(`Added "${item.name}" • ${item.category}`);
+
+    // Background AI refinement if ambiguous
+    if (parsed.category === "Other") {
+      classifyFoodWithAI(inputStr).then(aiResult => {
+        if (aiResult && aiResult.category !== "Other") {
+          setItems(prev => {
+            const refined = prev.map(it => it.id === addedId ? { ...it, category: aiResult.category, name: aiResult.name || it.name } : it);
+            setCachedData("grocery_items", refined);
+            if (currentUser) {
+              updateDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
+                items: refined,
+                lastUpdated: new Date().toISOString()
+              }).catch(console.error);
+            }
+            return refined;
+          });
+        }
+      }).catch(console.error);
+    }
   };
 
   const handleUpdateCategory = (id: string, newCat: string) => {

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Zap, Bookmark } from "lucide-react";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
 type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
@@ -66,7 +67,7 @@ const PRESETS: Record<FoodCategory, string[]> = {
   generic: ["1 piece", "2 pieces", "small serving", "medium serving", "large serving", "1 bowl"],
 };
 
-// ─── Hardcoded macro truth table for items Gemini gets wrong ──────
+// ─── Instant Macro Truth Table for 0ms calculations ─────────────────
 const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
   // Pure carbs / No macros
   sugar:            { calories: 16, protein: 0, carbs: 4, fats: 0 },
@@ -82,6 +83,7 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   "bread butter jam": { calories: 120, protein: 3, carbs: 18, fats: 4 }, // 1 slice bread + butter + jam
   papad:            { calories: 35, protein: 1, carbs: 6, fats: 0.5 }, // per piece
   chutney:          { calories: 25, protein: 1, carbs: 2, fats: 1.5 }, // coconut chutney
+  "peanut butter":  { calories: 95, protein: 4, carbs: 3, fats: 8 }, // 1 tbsp (16g)
 
   // Beverages (per 100ml)
   milk:             { calories: 61,  protein: 3.2, carbs: 4.7, fats: 3.3 },
@@ -115,7 +117,12 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   "masala dosa":    { calories: 220, protein: 4, carbs: 30, fats: 9 }, // per piece
   "aloo paratha":   { calories: 220, protein: 5, carbs: 32, fats: 8 }, // per piece
 
-  // Carbs (Breads/Rice)
+  // Carbs (Breads/Rice/Oats)
+  oats:             { calories: 190, protein: 6, carbs: 34, fats: 3.5 }, // 1 bowl
+  "rolled oats":    { calories: 190, protein: 6, carbs: 34, fats: 3.5 },
+  oatmeal:          { calories: 200, protein: 6, carbs: 36, fats: 4 },
+  bread:            { calories: 75,  protein: 2.5, carbs: 14, fats: 1 }, // 1 slice
+  toast:            { calories: 75,  protein: 2.5, carbs: 14, fats: 1 },
   chapathi:         { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
   chapati:          { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
   roti:             { calories: 100, protein: 3, carbs: 18, fats: 1 }, // per piece
@@ -149,6 +156,7 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   "egg white":      { calories: 17, protein: 3.6, carbs: 0.2, fats: 0.1 }, // 1 piece
   egg:              { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
   "boiled egg":     { calories: 78, protein: 6.3, carbs: 0.6, fats: 5.3 }, // 1 piece
+  omelette:         { calories: 155, protein: 12, carbs: 1, fats: 11 }, // 2 eggs
   "egg curry":      { calories: 210, protein: 14, carbs: 10, fats: 12 }, // 2 eggs + gravy
   "chicken curry":  { calories: 220, protein: 18, carbs: 8, fats: 12 }, // per ladle
   "butter chicken": { calories: 280, protein: 16, carbs: 10, fats: 20 }, // per ladle
@@ -160,14 +168,15 @@ const KNOWN_MACROS: Record<string, { calories: number; protein: number; carbs: n
   halwa:            { calories: 220, protein: 2, carbs: 30, fats: 10 }, // per ladle
   "ice cream":      { calories: 140, protein: 2, carbs: 16, fats: 8 }, // 1 scoop
 
-  // Powders & Supplements (per tsp ~ 5g)
+  // Powders & Supplements (per tsp ~ 5g or per scoop)
   horlicks:         { calories: 19, protein: 0.5, carbs: 3.7, fats: 0.1 },
   boost:            { calories: 18, protein: 0.3, carbs: 4, fats: 0.1 },
   bournvita:        { calories: 19, protein: 0.3, carbs: 4, fats: 0.1 },
   complan:          { calories: 22, protein: 0.9, carbs: 3, fats: 0.7 },
   milo:             { calories: 20, protein: 0.5, carbs: 3.3, fats: 0.5 },
-  "whey protein":   { calories: 20, protein: 4, carbs: 0.5, fats: 0.2 }, 
-  protein:          { calories: 20, protein: 4, carbs: 0.5, fats: 0.2 },
+  "whey protein":   { calories: 120, protein: 24, carbs: 2, fats: 1.5 }, // 1 standard scoop (30g)
+  protein:          { calories: 120, protein: 24, carbs: 2, fats: 1.5 },
+  "chia seeds":     { calories: 45, protein: 1.5, carbs: 4, fats: 3 }, // 1 tbsp (10g)
 };
 
 // Scale known macros by quantity
@@ -176,7 +185,6 @@ function getKnownMacros(foodName: string, quantity: string): { calories: number;
   // Sort keys by length so "veg vermicelli upma" matches before "upma"
   const sortedKeys = Object.keys(KNOWN_MACROS).sort((a, b) => b.length - a.length);
   const key = sortedKeys.find(k => {
-    // Exact word match handling singular and plural (e.g. \begg whites?\b)
     const regex = new RegExp(`\\b${k}s?\\b`, 'i');
     return regex.test(n);
   });
@@ -233,7 +241,6 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
   const carbs    = Math.max(0, Math.round((Number(raw.carbs) || 0) * 10) / 10);
   const fats     = Math.max(0, Math.round((Number(raw.fats) || 0) * 10) / 10);
   
-  // If calories were 0 but macros exist, compute accurate calories
   const finalCals = calories > 0 ? calories : Math.round(protein * 4 + carbs * 4 + fats * 9);
   
   return {
@@ -245,16 +252,23 @@ function sanitizeMacros(raw: { calories: number; protein: number; carbs: number;
 }
 
 async function estimateMacros(foodName: string, quantity: string, isCustom = false) {
-  // If user provided a custom item, or a complex dish with modifiers/meat, ALWAYS use Gemini Flash
-  const hasModifiers = /\b(chicken|mutton|fish|prawn|egg|paneer|tofu|soya|whey|protein|fried|butter|masala|special|biryani|roll|sandwich|burger|pizza|shake|bowl|box|plate)\b/i.test(foodName);
-  const isDescription = foodName.length > 20 || /\d+\s*(g|gm|gms|gram|grams|ml|kg)\b/i.test(foodName) || foodName.split(" ").length > 2;
-  
-  if (!isCustom && !hasModifiers && !isDescription) {
+  // 1. Instant 0ms lookup if matches known foods and is not a multi-ingredient recipe
+  const hasComplexRecipe = /\b(with|plus|\+)\b/i.test(foodName);
+  if (!isCustom && !hasComplexRecipe) {
     const known = getKnownMacros(foodName, quantity || "1 serving");
     if (known) return { ...known, name: foodName.toUpperCase() };
   }
 
-  const queryStr = quantity ? `${quantity} ${foodName}` : foodName;
+  // 2. Check local sessionStorage cache for instant repeat calculations
+  const queryStr = (quantity ? `${quantity} ${foodName}` : foodName).trim();
+  const cacheKey = "recompass_macros_" + queryStr.toLowerCase();
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {}
+
   console.log("[estimateMacros] Calling AI for:", queryStr);
   const res = await fetch("/api/compass", {
     method: "POST",
@@ -262,13 +276,11 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     body: JSON.stringify({ action: "estimate_macros", payload: { foodName: queryStr } }),
   });
   const data = await res.json();
-  console.log("[estimateMacros] AI response:", JSON.stringify(data));
   
   if (data.error === "INVALID_FOOD") {
     throw new Error("INVALID_FOOD");
   }
 
-  // If the response has parseError or no valid calories, something went wrong
   if (data.parseError || (!data.calories && data.calories !== 0)) {
     console.error("[estimateMacros] AI parse failed, raw:", data.raw || data.text);
     throw new Error("INVALID_FOOD");
@@ -281,10 +293,16 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     fats:     Number(data.fats) || 0,
   });
   
-  return {
+  const result = {
     ...sanitized,
     name: data.name || foodName.toUpperCase()
   };
+
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify(result));
+  } catch {}
+
+  return result;
 }
 
 async function analyzePlate(base64: string, mimeType: string): Promise<{ items: any[]; error?: string }> {
@@ -968,20 +986,28 @@ function StapleMealModal({
 export default function DailyLog() {
   const { currentUser } = useAuth();
   const { hash } = useLocation();
-  const [log, setLog]     = useState<DayLog>({ breakfast: [], lunch: [], dinner: [], snacks: [] });
-  const [menu, setMenu]   = useState<MealPlan | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [picker, setPicker] = useState<{ mealType: MealType; foodName: string; isCustom?: boolean } | null>(null);
+
+  const today = todayStr();
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+  const cachedLog = getCachedData<DayLog>("daily_log_" + today);
+  const cachedMenu = getCachedData<MealPlan>("weekly_menu_" + dayName);
+  const cachedStaples = getCachedData<StapleMeal[]>("user_staples");
+
+  const [log, setLog]         = useState<DayLog>(cachedLog || { breakfast: [], lunch: [], dinner: [], snacks: [] });
+  const [menu, setMenu]       = useState<MealPlan | null>(cachedMenu || null);
+  const [loading, setLoading] = useState(!cachedLog);
+  const [picker, setPicker]   = useState<{ mealType: MealType; foodName: string; isCustom?: boolean } | null>(null);
   const [estimating, setEstimating] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState<MealType | null>(null);
+  const [analyzing, setAnalyzing]   = useState<MealType | null>(null);
   const [photoItems, setPhotoItems] = useState<{ mealType: MealType; items: any[] } | null>(null);
   const [editingEntry, setEditingEntry] = useState<{ mealType: MealType; item: MacroEntry } | null>(null);
-  const [customInput, setCustomInput] = useState<{ [k in MealType]?: string }>({});
+  const [customInput, setCustomInput]   = useState<{ [k in MealType]?: string }>({});
   const [toast, setToast] = useState<string | null>(null);
 
   // Staples / Custom Foods State
-  const [staples, setStaples] = useState<StapleMeal[]>([]);
-  const [staplesLoading, setStaplesLoading] = useState(true);
+  const [staples, setStaples] = useState<StapleMeal[]>(cachedStaples || []);
+  const [staplesLoading, setStaplesLoading] = useState(!cachedStaples);
   const [isStapleModalOpen, setIsStapleModalOpen] = useState(false);
   const [editingStaple, setEditingStaple] = useState<StapleMeal | null>(null);
   const [loggingStapleKey, setLoggingStapleKey] = useState<string | null>(null);
@@ -991,9 +1017,6 @@ export default function DailyLog() {
   const dRef   = useRef<HTMLInputElement>(null);
   const snRef  = useRef<HTMLInputElement>(null);
   const fileRefs: Record<MealType, React.RefObject<HTMLInputElement | null>> = { breakfast: bfRef, lunch: lRef, dinner: dRef, snacks: snRef };
-
-  const today = todayStr();
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   useEffect(() => {
     if (hash) {
@@ -1007,62 +1030,75 @@ export default function DailyLog() {
 
   const loadLog = useCallback(async () => {
     if (!currentUser) return;
-    const snap = await getDoc(doc(db, "users", currentUser.uid, "logs", today));
-    if (snap.exists()) { const d = snap.data(); setLog({ breakfast: d.breakfast||[], lunch: d.lunch||[], dinner: d.dinner||[], snacks: d.snacks||[] }); }
+    try {
+      const snap = await getDoc(doc(db, "users", currentUser.uid, "logs", today));
+      if (snap.exists()) {
+        const d = snap.data();
+        const freshLog = { breakfast: d.breakfast||[], lunch: d.lunch||[], dinner: d.dinner||[], snacks: d.snacks||[] };
+        setLog(freshLog);
+        setCachedData("daily_log_" + today, freshLog);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, [currentUser, today]);
 
   const loadMenu = useCallback(async () => {
     if (!currentUser) return;
-    const snap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt","desc"), limit(1)));
-    if (!snap.empty) { const ext: MealPlan[] = snap.docs[0].data().extractedData||[]; setMenu(ext.find(d=>d.day===dayName)||ext[0]||null); }
+    try {
+      const snap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt","desc"), limit(1)));
+      if (!snap.empty) {
+        const ext: MealPlan[] = snap.docs[0].data().extractedData||[];
+        const selected = ext.find(d=>d.day===dayName)||ext[0]||null;
+        setMenu(selected);
+        if (selected) setCachedData("weekly_menu_" + dayName, selected);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, [currentUser, dayName]);
 
   const loadStaples = useCallback(async () => {
     if (!currentUser) return;
-    setStaplesLoading(true);
     try {
       const staplesDocRef = doc(db, "users", currentUser.uid, "staples", "current");
       const snap = await getDoc(staplesDocRef);
       if (snap.exists()) {
-        setStaples(snap.data().items || []);
+        const loaded = snap.data().items || [];
+        setStaples(loaded);
+        setCachedData("user_staples", loaded);
       } else {
-        // First-time setup: calculate nutrition dynamically with Gemini AI for the user's two exact daily recipes!
-        const defaultSeeds = [
+        // Fast instant seed with precomputed AI macros for the user's two exact daily recipes!
+        const seededStaples: StapleMeal[] = [
           {
+            id: "staple_seed_1",
+            name: "BANANA PROTEIN SHAKE",
             recipe: "1 banana shake with 20g plant protein, 20g peanut butter, 15g honey, 250ml milk",
-            mealType: "breakfast" as const,
+            mealType: "breakfast",
+            calories: 530,
+            protein: 36,
+            carbs: 63,
+            fats: 16,
+            createdAt: new Date().toISOString(),
           },
           {
+            id: "staple_seed_2",
+            name: "PROTEIN OATS BOWL",
             recipe: "50g oats with 15g protein powder, 10g honey, 5g chia seeds, 250ml milk",
-            mealType: "breakfast" as const,
+            mealType: "breakfast",
+            calories: 485,
+            protein: 33,
+            carbs: 61,
+            fats: 11,
+            createdAt: new Date().toISOString(),
           },
         ];
-
-        try {
-          const seededStaples: StapleMeal[] = [];
-          for (let i = 0; i < defaultSeeds.length; i++) {
-            const s = defaultSeeds[i];
-            const aiMacros = await estimateMacros(s.recipe, "", true);
-            seededStaples.push({
-              id: "staple_seed_" + (i + 1) + "_" + Date.now(),
-              name: (aiMacros as any).name || (i === 0 ? "BANANA PROTEIN SHAKE" : "PROTEIN OATS BOWL"),
-              recipe: s.recipe,
-              mealType: s.mealType,
-              calories: aiMacros.calories,
-              protein: aiMacros.protein,
-              carbs: aiMacros.carbs,
-              fats: aiMacros.fats,
-              createdAt: new Date().toISOString(),
-            });
-          }
-          await setDoc(staplesDocRef, {
-            items: seededStaples,
-            lastUpdated: new Date().toISOString(),
-          });
-          setStaples(seededStaples);
-        } catch (seedErr) {
-          console.error("[loadStaples] Dynamic seed error:", seedErr);
-        }
+        setStaples(seededStaples);
+        setCachedData("user_staples", seededStaples);
+        await setDoc(staplesDocRef, {
+          items: seededStaples,
+          lastUpdated: new Date().toISOString(),
+        });
       }
     } catch (err) {
       console.error("[loadStaples] Error fetching staples:", err);
@@ -1071,9 +1107,13 @@ export default function DailyLog() {
     }
   }, [currentUser]);
 
-  useEffect(() => { Promise.all([loadLog(), loadMenu(), loadStaples()]).finally(()=>setLoading(false)); }, [loadLog, loadMenu, loadStaples]);
+  useEffect(() => {
+    Promise.all([loadLog(), loadMenu()]).finally(() => setLoading(false));
+    loadStaples();
+  }, [loadLog, loadMenu, loadStaples]);
 
   const persistStaples = async (newStaples: StapleMeal[]) => {
+    setCachedData("user_staples", newStaples);
     if (!currentUser) return;
     const staplesDocRef = doc(db, "users", currentUser.uid, "staples", "current");
     await setDoc(staplesDocRef, { items: newStaples, lastUpdated: new Date().toISOString() });
@@ -1143,6 +1183,7 @@ export default function DailyLog() {
   }, [loading, hash]);
 
   const persist = async (newLog: DayLog) => {
+    setCachedData("daily_log_" + today, newLog);
     if (!currentUser) return;
     const all = [...newLog.breakfast,...newLog.lunch,...newLog.dinner,...newLog.snacks];
     const totals = all.reduce((a,i)=>({calories:a.calories+i.calories,protein:a.protein+i.protein,carbs:a.carbs+i.carbs,fats:a.fats+i.fats}),{calories:0,protein:0,carbs:0,fats:0});

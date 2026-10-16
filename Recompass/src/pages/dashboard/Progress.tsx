@@ -7,25 +7,23 @@ import {
   BarChart, Bar, Cell
 } from "recharts";
 import { TrendingUp, Activity, Flame, Sparkles, CheckCircle2 } from "lucide-react";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 
 export default function Progress() {
   const { currentUser, userProfile } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [targetCalories, setTargetCalories] = useState(2000);
-  const [targetProtein, setTargetProtein] = useState(120);
-  const [stats, setStats] = useState({ avgCals: 0, avgPro: 0, activeDays: 0 });
+  const cachedProgress = getCachedData<{ chartData: any[]; stats: any; targetCals: number; targetPro: number }>("progress_7_days");
+  const [loading, setLoading] = useState(!cachedProgress);
+  const [chartData, setChartData] = useState<any[]>(cachedProgress?.chartData || []);
+  const [targetCalories, setTargetCalories] = useState(cachedProgress?.targetCals || 2000);
+  const [targetProtein, setTargetProtein] = useState(cachedProgress?.targetPro || 120);
+  const [stats, setStats] = useState(cachedProgress?.stats || { avgCals: 0, avgPro: 0, activeDays: 0 });
 
   useEffect(() => {
     if (!currentUser) return;
+    let isMounted = true;
 
     const fetchLast7Days = async () => {
       try {
-        const data = [];
-        let totalCals = 0;
-        let totalPro = 0;
-        let daysActive = 0;
-
         // Calculate user's target calories
         let targetCals = 2000;
         let targetPro = 120;
@@ -52,60 +50,77 @@ export default function Progress() {
           targetPro = Math.round(userProfile.goal === "muscle_gain" ? w * 2.2 : w * 1.6);
         }
 
-        setTargetCalories(targetCals);
-        setTargetProtein(targetPro);
+        if (isMounted) {
+          setTargetCalories(targetCals);
+          setTargetProtein(targetPro);
+        }
 
-        // Get last 7 days
+        // Build list of last 7 dates
+        const dateItems: { dateStr: string; displayDate: string }[] = [];
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
           const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
           const displayDate = d.toLocaleDateString("en-US", { weekday: 'short', month: 'numeric', day: 'numeric' });
+          dateItems.push({ dateStr, displayDate });
+        }
 
-          const logSnap = await getDoc(doc(db, "users", currentUser.uid, "logs", dateStr));
-          
-          if (logSnap.exists()) {
-            const lData = logSnap.data();
+        // Fetch all 7 days in PARALLEL via Promise.all (not sequential)
+        const snapshots = await Promise.all(
+          dateItems.map(item => getDoc(doc(db, "users", currentUser.uid, "logs", item.dateStr)))
+        );
+
+        if (!isMounted) return;
+
+        let totalCals = 0;
+        let totalPro = 0;
+        let daysActive = 0;
+
+        const data = snapshots.map((snap, idx) => {
+          const displayDate = dateItems[idx].displayDate;
+          if (snap.exists()) {
+            const lData = snap.data();
             const cals = lData.totals?.calories || 0;
             const pro = lData.totals?.protein || 0;
-            
-            data.push({
-              date: displayDate,
-              calories: Math.round(cals),
-              target: targetCals,
-              protein: Math.round(pro),
-            });
-
             if (cals > 0) {
               totalCals += cals;
               totalPro += pro;
               daysActive++;
             }
+            return {
+              date: displayDate,
+              calories: Math.round(cals),
+              target: targetCals,
+              protein: Math.round(pro),
+            };
           } else {
-            data.push({
+            return {
               date: displayDate,
               calories: 0,
               target: targetCals,
               protein: 0,
-            });
+            };
           }
-        }
+        });
 
-        setChartData(data);
-        setStats({
+        const newStats = {
           avgCals: daysActive ? Math.round(totalCals / daysActive) : 0,
           avgPro: daysActive ? Math.round(totalPro / daysActive) : 0,
           activeDays: daysActive
-        });
+        };
 
+        setChartData(data);
+        setStats(newStats);
+        setCachedData("progress_7_days", { chartData: data, stats: newStats, targetCals, targetPro });
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchLast7Days();
+    return () => { isMounted = false; };
   }, [currentUser, userProfile]);
 
   if (loading) {

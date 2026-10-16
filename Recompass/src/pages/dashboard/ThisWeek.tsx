@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { ArrowRight, Coffee, Sun, Moon, Plus, Upload, Sparkles } from "lucide-react";
+import { getCachedData, setCachedData } from "@/lib/dataCache";
 
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 type SavedMenu = { uploadedAt: string; extractedData: MealPlan[]; };
@@ -27,20 +28,32 @@ function getCurrentMealIndex() {
 
 export default function ThisWeek() {
   const { currentUser } = useAuth();
-  const [menu, setMenu] = useState<SavedMenu | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedMenu = getCachedData<SavedMenu>("saved_mess_menu");
+  const [menu, setMenu] = useState<SavedMenu | null>(cachedMenu || null);
+  const [loading, setLoading] = useState(!cachedMenu);
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const [selectedDay, setSelectedDay] = useState(todayIndex);
   const currentMeal = getCurrentMealIndex();
 
   useEffect(() => {
     if (!currentUser) return;
+    let isMounted = true;
     (async () => {
       try {
         const snap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt", "desc"), limit(1)));
-        if (!snap.empty) setMenu(snap.docs[0].data() as SavedMenu);
-      } catch (e) { console.error(e); } finally { setLoading(false); }
+        if (!isMounted) return;
+        if (!snap.empty) {
+          const data = snap.docs[0].data() as SavedMenu;
+          setMenu(data);
+          setCachedData("saved_mess_menu", data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     })();
+    return () => { isMounted = false; };
   }, [currentUser]);
 
   if (loading) return (
