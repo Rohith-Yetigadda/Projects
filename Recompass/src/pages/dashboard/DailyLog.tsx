@@ -154,17 +154,87 @@ export function getCachedPortionProfile(foodName: string): FoodPortionProfile | 
   const key = cleanFoodName(foodName).toLowerCase();
   if (!key) return null;
   if (PORTION_MEMORY_CACHE.has(key)) {
-    return PORTION_MEMORY_CACHE.get(key)!;
+    const mem = PORTION_MEMORY_CACHE.get(key)!;
+    if (mem.category === "portion" && mem.estimatedMacros?.calories === 160) {
+      PORTION_MEMORY_CACHE.delete(key);
+    } else {
+      return mem;
+    }
   }
   try {
     const local = localStorage.getItem("recompass_portion_v2_" + key);
     if (local) {
       const parsed: FoodPortionProfile = JSON.parse(local);
-      PORTION_MEMORY_CACHE.set(key, parsed);
-      return parsed;
+      if (parsed.category === "portion" && parsed.estimatedMacros?.calories === 160) {
+        localStorage.removeItem("recompass_portion_v2_" + key);
+      } else {
+        PORTION_MEMORY_CACHE.set(key, parsed);
+        return parsed;
+      }
     }
   } catch {}
   return null;
+}
+
+export async function batchClassifyFoodPortions(foods: string[]): Promise<Record<string, FoodPortionProfile>> {
+  const cleanedFoods = Array.from(new Set(foods.map(cleanFoodName).filter(Boolean)));
+  const results: Record<string, FoodPortionProfile> = {};
+  const unclassified: string[] = [];
+
+  for (const food of cleanedFoods) {
+    const cached = getCachedPortionProfile(food);
+    if (cached) {
+      results[cleanFoodName(food)] = cached;
+    } else {
+      unclassified.push(food);
+    }
+  }
+
+  if (unclassified.length === 0) {
+    return results;
+  }
+
+  try {
+    const res = await fetch("/api/compass", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "batch_classify_food_portions", payload: { foods: unclassified } }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === "object" && !data.error) {
+        for (const rawName in data) {
+          const item = data[rawName];
+          if (item && item.presets && Array.isArray(item.presets)) {
+            const clean = cleanFoodName(rawName);
+            const key = clean.toLowerCase();
+            const profile: FoodPortionProfile = {
+              cleanName: clean,
+              category: item.category || "portion",
+              defaultQuantity: item.defaultQuantity || item.presets[0] || "1 serving",
+              presets: item.presets,
+              estimatedMacros: item.estimatedMacros ? sanitizeMacros(item.estimatedMacros) : undefined,
+            };
+            results[clean] = profile;
+            PORTION_MEMORY_CACHE.set(key, profile);
+            try { localStorage.setItem("recompass_portion_v2_" + key, JSON.stringify(profile)); } catch {}
+
+            if (profile.estimatedMacros) {
+              const defaultKey = `recompass_macros_v4_${(profile.defaultQuantity + " " + profile.cleanName).toLowerCase().trim()}`;
+              try {
+                localStorage.setItem(defaultKey, JSON.stringify({ ...profile.estimatedMacros, name: profile.cleanName.toUpperCase() }));
+              } catch {}
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[batchClassifyFoodPortions] Error:", err);
+  }
+
+  return results;
 }
 
 export async function getFoodPortionProfile(foodName: string): Promise<FoodPortionProfile> {
@@ -175,6 +245,9 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
   if (cached) return cached;
 
   try {
+    const batchRes = await batchClassifyFoodPortions([cleaned]);
+    if (batchRes[cleaned]) return batchRes[cleaned];
+
     const res = await fetch("/api/compass", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -215,9 +288,8 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
     category: "portion",
     defaultQuantity: "1 serving",
     presets: ["1 serving", "half portion", "2 servings", "100g", "200g"],
-    estimatedMacros: { calories: 160, protein: 5.5, carbs: 22, fats: 5.5 },
+    estimatedMacros: { calories: 180, protein: 6, carbs: 25, fats: 6 },
   };
-  PORTION_MEMORY_CACHE.set(key, fallbackProfile);
   return fallbackProfile;
 }
 
@@ -341,19 +413,20 @@ async function analyzePlate(base64: string, mimeType: string): Promise<{ items: 
 }
 
 // ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
+// ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
 function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string) => void; onCancel: () => void }) {
   const cleaned = cleanFoodName(foodName);
   const [profile, setProfile] = useState<FoodPortionProfile | null>(() => getCachedPortionProfile(cleaned));
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(!profile);
 
-  const presets = profile?.presets || ["1 serving", "half portion", "2 servings", "100g", "200g"];
+  const presets = profile?.presets || [];
   const [custom, setCustom] = useState("");
-  const initialQty = profile?.defaultQuantity || presets[1] || presets[0] || "1 serving";
+  const initialQty = profile?.defaultQuantity || presets[0] || "1 serving";
   const [selected, setSelected] = useState<string>(initialQty);
 
-  // Instant baseline calculation so the modal NEVER displays blank or outdated values:
-  const baseMacros = profile?.estimatedMacros || { calories: 160, protein: 5.5, carbs: 22, fats: 5.5 };
-  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number }>(() => {
+  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number } | null>(() => {
+    const base = profile?.estimatedMacros;
+    if (!base) return null;
     const queryStr = `${initialQty} ${cleaned}`.trim();
     const cacheKey = "recompass_macros_v4_" + queryStr.toLowerCase();
     try {
@@ -362,10 +435,10 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
     } catch {}
     const mult = parseQuantityMultiplier(initialQty, cleaned);
     return {
-      calories: Math.max(10, Math.round(baseMacros.calories * mult)),
-      protein: Math.max(0, Math.round(baseMacros.protein * mult * 10) / 10),
-      carbs: Math.max(0, Math.round(baseMacros.carbs * mult * 10) / 10),
-      fats: Math.max(0, Math.round(baseMacros.fats * mult * 10) / 10),
+      calories: Math.max(10, Math.round(base.calories * mult)),
+      protein: Math.max(0, Math.round(base.protein * mult * 10) / 10),
+      carbs: Math.max(0, Math.round(base.carbs * mult * 10) / 10),
+      fats: Math.max(0, Math.round(base.fats * mult * 10) / 10),
     };
   });
   const [estimating, setEstimating] = useState(false);
@@ -380,17 +453,15 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
           if (!isCurrent) return;
           setProfile(p);
           setIsLoadingProfile(false);
-          if (!custom) {
-            const def = p.defaultQuantity || p.presets[1] || p.presets[0];
-            setSelected(def);
-          }
+          const def = p.defaultQuantity || p.presets[0] || "1 serving";
+          setSelected(def);
         })
         .catch(() => {
           if (isCurrent) setIsLoadingProfile(false);
         });
     }
     return () => { isCurrent = false; };
-  }, [cleaned, profile, custom]);
+  }, [cleaned, profile]);
 
   // Live macro calculation preview: 0ms instant multiplier scaling + debounced AI verification
   useEffect(() => {
@@ -409,15 +480,17 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
     } catch {}
 
     // 2. 0ms instant visual update using AI baseline & mathematical multiplier
-    const currentBase = profile?.estimatedMacros || baseMacros;
-    const mult = parseQuantityMultiplier(activeQty, cleaned);
-    const instant = {
-      calories: Math.max(10, Math.round(currentBase.calories * mult)),
-      protein: Math.max(0, Math.round(currentBase.protein * mult * 10) / 10),
-      carbs: Math.max(0, Math.round(currentBase.carbs * mult * 10) / 10),
-      fats: Math.max(0, Math.round(currentBase.fats * mult * 10) / 10),
-    };
-    setLiveMacros(instant);
+    const currentBase = profile?.estimatedMacros;
+    if (currentBase) {
+      const mult = parseQuantityMultiplier(activeQty, cleaned);
+      const instant = {
+        calories: Math.max(10, Math.round(currentBase.calories * mult)),
+        protein: Math.max(0, Math.round(currentBase.protein * mult * 10) / 10),
+        carbs: Math.max(0, Math.round(currentBase.carbs * mult * 10) / 10),
+        fats: Math.max(0, Math.round(currentBase.fats * mult * 10) / 10),
+      };
+      setLiveMacros(instant);
+    }
 
     // 3. Debounced AI verification & precision refinement
     let isCurrent = true;
@@ -437,7 +510,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
       isCurrent = false;
       clearTimeout(timer);
     };
-  }, [cleaned, selected, custom, profile, baseMacros]);
+  }, [cleaned, selected, custom, profile]);
 
   const confirm = () => {
     const qty = custom.trim() || selected;
@@ -473,9 +546,14 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
             <Sparkles className="w-3 h-3 text-emerald-400" />
             <span>AI Macro Estimate</span>
           </span>
-          {estimating ? (
+          {isLoadingProfile || !liveMacros ? (
+            <span className="text-[11px] text-emerald-400/80 animate-pulse font-mono flex items-center gap-1.5">
+              <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+              <span>Analyzing portion with Gemini...</span>
+            </span>
+          ) : estimating ? (
             <span className="text-[11px] text-white/40 animate-pulse font-mono">Refining...</span>
-          ) : liveMacros ? (
+          ) : (
             <div className="flex items-center gap-2 font-mono tabular-nums text-[11px]">
               <span className="font-bold text-white">{liveMacros.calories} kcal</span>
               <span className="text-white/20">&middot;</span>
@@ -485,27 +563,32 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
               <span className="text-white/20">&middot;</span>
               <span className="text-amber-400 font-semibold">F {liveMacros.fats}g</span>
             </div>
-          ) : (
-            <span className="text-[11px] text-white/40">Select portion below</span>
           )}
         </div>
 
         {/* Dynamic Portion Presets */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {presets.map(p => (
-            <button 
-              key={p} 
-              type="button"
-              onClick={() => { setSelected(p); setCustom(""); }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                selected === p && !custom 
-                  ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]" 
-                  : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2 pt-1 min-h-[38px] items-center">
+          {isLoadingProfile || presets.length === 0 ? (
+            <div className="flex items-center gap-2 py-1 text-xs text-white/40 animate-pulse font-mono">
+              <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+              <span>Sizing presets with AI...</span>
+            </div>
+          ) : (
+            presets.map(p => (
+              <button 
+                key={p} 
+                type="button"
+                onClick={() => { setSelected(p); setCustom(""); }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                  selected === p && !custom 
+                    ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]" 
+                    : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                {p}
+              </button>
+            ))
+          )}
         </div>
 
         <input 
@@ -1396,10 +1479,45 @@ export default function DailyLog() {
     try {
       const snap = await getDocs(query(collection(db, "users", currentUser.uid, "menus"), orderBy("uploadedAt","desc"), limit(1)));
       if (!snap.empty) {
-        const ext: MealPlan[] = snap.docs[0].data().extractedData||[];
-        const selected = ext.find(d=>d.day===dayName)||ext[0]||null;
+        const menuDoc = snap.docs[0];
+        const menuData = menuDoc.data();
+        const ext: MealPlan[] = menuData.extractedData || [];
+        const selected = ext.find(d => d.day === dayName) || ext[0] || null;
         setMenu(selected);
         if (selected) setCachedData("weekly_menu_" + dayName, selected);
+
+        // Pre-load stored portion profiles
+        const storedProfiles = menuData.portionProfiles || {};
+        for (const k in storedProfiles) {
+          const profile = storedProfiles[k];
+          const key = cleanFoodName(k).toLowerCase();
+          PORTION_MEMORY_CACHE.set(key, profile);
+          try { localStorage.setItem("recompass_portion_v2_" + key, JSON.stringify(profile)); } catch {}
+        }
+
+        // Gather all unique dishes across the entire menu
+        const allDishes = Array.from(new Set(
+          ext.flatMap(d => [...(d.breakfast || []), ...(d.lunch || []), ...(d.dinner || [])])
+            .map(cleanFoodName)
+            .filter(Boolean)
+        ));
+
+        // Find any dishes that don't have a valid profile yet
+        const unclassified = allDishes.filter(dish => {
+          const p = getCachedPortionProfile(dish);
+          return !p || (p.category === "portion" && p.estimatedMacros?.calories === 160);
+        });
+
+        if (unclassified.length > 0) {
+          batchClassifyFoodPortions(unclassified).then(async (newProfiles) => {
+            const merged = { ...storedProfiles, ...newProfiles };
+            try {
+              await setDoc(menuDoc.ref, { portionProfiles: merged }, { merge: true });
+            } catch (err) {
+              console.warn("Failed to update menu doc with portionProfiles:", err);
+            }
+          });
+        }
       }
     } catch (e) {
       console.error(e);

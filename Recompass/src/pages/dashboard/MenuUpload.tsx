@@ -164,11 +164,39 @@ export default function MenuUpload() {
         dinner: d.dinner.map(cleanFoodName).filter(Boolean),
       }));
 
+      // Immediately classify every item in the whole menu with Gemini in 1 batch call
+      const allUniqueDishes = Array.from(new Set(
+        finalized.flatMap(d => [...d.breakfast, ...d.lunch, ...d.dinner])
+      ));
+
+      let portionProfiles: Record<string, any> = {};
+      try {
+        const portionRes = await fetch("/api/compass", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "batch_classify_food_portions", payload: { foods: allUniqueDishes } }),
+        });
+        if (portionRes.ok) {
+          const pData = await portionRes.json();
+          if (pData && typeof pData === "object" && !pData.error) {
+            portionProfiles = pData;
+            // Also store directly in localStorage for instant 0ms access in Daily Log
+            for (const name in pData) {
+              const clean = cleanFoodName(name).toLowerCase();
+              try { localStorage.setItem("recompass_portion_v2_" + clean, JSON.stringify(pData[name])); } catch {}
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to pre-classify menu portions upon upload:", e);
+      }
+
       await setDoc(doc(db, "users", currentUser.uid, "menus", menuId), {
         startDate: new Date().toISOString(),
         status: "confirmed",
         uploadedAt: new Date().toISOString(),
         extractedData: finalized,
+        portionProfiles,
       });
       navigate("/app/this-week");
     } catch (err: any) {

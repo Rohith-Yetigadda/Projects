@@ -212,7 +212,7 @@ Analyze this food item: "${payload.foodName}".
 Determine the most natural, user-friendly portion unit type and provide 4-6 realistic portion presets for logging.
 
 AVAILABLE CATEGORIES:
-- "piece" (for discrete items like banana, egg, chapati, dosa, idli, bread, apple, cookie, samosa)
+- "piece" (for discrete items like banana, egg, chapati, dosa, idli, bread, apple, cookie, samosa, paratha)
 - "bowl" (for curries, dal, sabzi, rice, salad, oats, curd, kheer, biryani)
 - "ladle" (for liquid curries, sambar, rasam, dal, gravies)
 - "glass" (for beverages, milk, tea, coffee, lassi, juice, buttermilk)
@@ -234,6 +234,47 @@ OUTPUT STRICTLY AS JSON:
   "defaultQuantity": "1 piece",
   "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "100g"],
   "estimatedMacros": { "calories": 105, "protein": 1.3, "carbs": 27, "fats": 0.3 }
+}`;
+        contents = [{ role: "user", parts: [{ text: prompt }] }];
+        break;
+      }
+
+      case "batch_classify_food_portions": {
+        const foods: string[] = Array.isArray(payload.foods) ? payload.foods : [payload.foodName];
+        const prompt = `You are an expert nutrition portioning classifier.
+Classify each of these food items into its natural portion unit category, realistic portion presets, and estimated macros for 1 default serving.
+
+FOODS TO CLASSIFY: ${JSON.stringify(foods)}
+
+AVAILABLE CATEGORIES:
+- "piece" (for paratha, chapati, roti, naan, puri, dosa, idli, egg, bread, banana, apple, samosa, cookie)
+- "bowl" (for dal, curry, rice, pulao, biryani, sabzi, curd, oats, salad, kheer)
+- "ladle" (for sambar, rasam, gravies, liquid dal)
+- "glass" (for milk, tea, coffee, juice, chaas, lassi)
+- "slice" (for watermelon, papaya, melon, pineapple, bread slices)
+- "scoop" (for whey protein, ice cream, powders)
+- "tsp" (for condiments, sugar, ghee, butter, peanut butter, oil, salt, pickle)
+
+RULES:
+1. "category": Pick EXACTLY one from the categories above.
+2. "defaultQuantity": The most common single serving (e.g. "1 piece", "1 bowl", "1 ladle", "200ml", "1 glass (~250ml)", "1 scoop").
+3. "presets": Array of 4-6 sensible, realistic portion options the user would select on a campus or at home.
+4. "estimatedMacros": Estimated macros for the defaultQuantity.
+
+OUTPUT STRICTLY AS A JSON OBJECT where keys are the clean food names:
+{
+  "Aloo Paratha": {
+    "category": "piece",
+    "defaultQuantity": "1 piece",
+    "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "100g"],
+    "estimatedMacros": { "calories": 260, "protein": 6, "carbs": 38, "fats": 10 }
+  },
+  "Hot Milk": {
+    "category": "glass",
+    "defaultQuantity": "1 glass (~250ml)",
+    "presets": ["100ml", "150ml", "1 cup (200ml)", "1 glass (~250ml)", "300ml"],
+    "estimatedMacros": { "calories": 160, "protein": 8, "carbs": 12, "fats": 8.5 }
+  }
 }`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
