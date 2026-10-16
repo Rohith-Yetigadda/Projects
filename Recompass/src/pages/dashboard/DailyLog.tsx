@@ -557,11 +557,11 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
             <div className="flex items-center gap-2 font-mono tabular-nums text-[11px]">
               <span className="font-bold text-white">{liveMacros.calories} kcal</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-emerald-400 font-semibold">P {liveMacros.protein}g</span>
+              <span className="text-orange-400 font-semibold">P {liveMacros.protein}g</span>
               <span className="text-white/20">&middot;</span>
               <span className="text-sky-400 font-semibold">C {liveMacros.carbs}g</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-amber-400 font-semibold">F {liveMacros.fats}g</span>
+              <span className="text-emerald-400 font-semibold">F {liveMacros.fats}g</span>
             </div>
           )}
         </div>
@@ -870,21 +870,21 @@ function EditLogItemModal({
               />
             </div>
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
-              <label className="text-[9px] font-semibold uppercase text-emerald-400/70 block mb-0.5">Carb (g)</label>
+              <label className="text-[9px] font-semibold uppercase text-sky-400/70 block mb-0.5">Carb (g)</label>
               <input
                 type="number"
                 value={carbs}
                 onChange={e => setCarbs(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-sans font-bold text-emerald-400 focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-sky-400 focus:outline-none"
               />
             </div>
             <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
-              <label className="text-[9px] font-semibold uppercase text-blue-400/70 block mb-0.5">Fat (g)</label>
+              <label className="text-[9px] font-semibold uppercase text-emerald-400/70 block mb-0.5">Fat (g)</label>
               <input
                 type="number"
                 value={fats}
                 onChange={e => setFats(e.target.value)}
-                className="w-full bg-transparent text-center text-xs font-sans font-bold text-blue-400 focus:outline-none"
+                className="w-full bg-transparent text-center text-xs font-sans font-bold text-emerald-400 focus:outline-none"
               />
             </div>
           </div>
@@ -1150,27 +1150,27 @@ function StapleMealModal({
                 />
                 <span className="text-[9px] text-orange-400/50">grams</span>
               </div>
-              <div className="bg-white/[0.02] border border-emerald-500/20 rounded-2xl p-2.5 text-center bg-emerald-500/[0.02]">
-                <label className="text-[9px] font-semibold uppercase text-emerald-400 block mb-0.5">Carbs</label>
+              <div className="bg-white/[0.02] border border-sky-500/20 rounded-2xl p-2.5 text-center bg-sky-500/[0.02]">
+                <label className="text-[9px] font-semibold uppercase text-sky-400 block mb-0.5">Carbs</label>
                 <input
                   type="number"
                   value={carbs}
                   onChange={e => setCarbs(e.target.value)}
                   placeholder="0"
-                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-emerald-400 focus:outline-none"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-sky-400 focus:outline-none"
                 />
-                <span className="text-[9px] text-emerald-400/50">grams</span>
+                <span className="text-[9px] text-sky-400/50">grams</span>
               </div>
-              <div className="bg-white/[0.02] border border-blue-500/20 rounded-2xl p-2.5 text-center bg-blue-500/[0.02]">
-                <label className="text-[9px] font-semibold uppercase text-blue-400 block mb-0.5">Fats</label>
+              <div className="bg-white/[0.02] border border-emerald-500/20 rounded-2xl p-2.5 text-center bg-emerald-500/[0.02]">
+                <label className="text-[9px] font-semibold uppercase text-emerald-400 block mb-0.5">Fats</label>
                 <input
                   type="number"
                   value={fats}
                   onChange={e => setFats(e.target.value)}
                   placeholder="0"
-                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-blue-400 focus:outline-none"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-emerald-400 focus:outline-none"
                 />
-                <span className="text-[9px] text-blue-400/50">grams</span>
+                <span className="text-[9px] text-emerald-400/50">grams</span>
               </div>
             </div>
           </div>
@@ -1785,6 +1785,16 @@ export default function DailyLog() {
       gradientEnd: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientEnd,
       trackColor: APPLE_FITNESS_MACRO_PALETTES.carbs.trackColor,
     },
+    {
+      id: "fats",
+      label: "Fats",
+      current: totals.fats,
+      target: targets.fats,
+      unit: "g",
+      gradientStart: APPLE_FITNESS_MACRO_PALETTES.fats.gradientStart,
+      gradientEnd: APPLE_FITNESS_MACRO_PALETTES.fats.gradientEnd,
+      trackColor: APPLE_FITNESS_MACRO_PALETTES.fats.trackColor,
+    },
   ], [totals, targets]);
 
   const caloriesRemaining = targets.calories - totals.calories;
@@ -1892,12 +1902,12 @@ export default function DailyLog() {
           <div className="shrink-0 flex flex-col items-center justify-center">
             <AppleActivityRing
               rings={ringData}
-              size={116}
-              strokeWidth={11}
-              ringGap={4}
+              size={120}
+              strokeWidth={10}
+              ringGap={3.5}
             />
             <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-white/35 mt-2">
-              Move &middot; Pro &middot; Carb
+              Cal &middot; Pro &middot; Carb &middot; Fat
             </span>
           </div>
 
@@ -1927,8 +1937,8 @@ export default function DailyLog() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
                 { key: "protein", label: "Protein", current: totals.protein, target: targets.protein, color: "text-orange-400", bar: "bg-orange-400" },
-                { key: "carbs",   label: "Carbs",   current: totals.carbs,   target: targets.carbs,   color: "text-emerald-400", bar: "bg-emerald-400" },
-                { key: "fats",    label: "Fats",    current: totals.fats,    target: targets.fats,    color: "text-blue-400",    bar: "bg-blue-400" },
+                { key: "carbs",   label: "Carbs",   current: totals.carbs,   target: targets.carbs,   color: "text-sky-400",    bar: "bg-sky-400" },
+                { key: "fats",    label: "Fats",    current: totals.fats,    target: targets.fats,    color: "text-emerald-400", bar: "bg-emerald-400" },
               ].map(m => {
                 const cue = getMacroStatusCue(m.key, m.current, m.target);
                 const barWidth = Math.min(100, cue.pct);

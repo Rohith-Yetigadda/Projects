@@ -472,11 +472,11 @@ export default function Home() {
           <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-white/40">
             <span>Calorie source distribution</span>
             <div className="flex items-center gap-3 font-medium tabular-nums">
-              <span className="text-emerald-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
+              <span className="text-orange-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
               <span className="text-white/20">&middot;</span>
               <span className="text-sky-400 font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-amber-400 font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
+              <span className="text-emerald-400 font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
             </div>
           </div>
         </div>

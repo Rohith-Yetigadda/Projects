@@ -259,18 +259,18 @@ export const APPLE_FITNESS_MACRO_PALETTES = {
     trackColor: "#F43F5E",
   },
   protein: {
-    gradientStart: "#10B981", // Recompass Signature Emerald
-    gradientEnd: "#047857",   // Deep Forest Emerald
-    trackColor: "#10B981",
+    gradientStart: "#F97316", // Warm Vibrant Orange
+    gradientEnd: "#EA580C",   // Deep Rust Orange
+    trackColor: "#F97316",
   },
   carbs: {
-    gradientStart: "#38BDF8", // Refined Ocean Azure
-    gradientEnd: "#0369A1",   // Deep Sapphire
+    gradientStart: "#38BDF8", // Refined Ocean Azure / Sky Blue
+    gradientEnd: "#0284C7",   // Deep Sapphire
     trackColor: "#38BDF8",
   },
   fats: {
-    gradientStart: "#F59E0B", // Warm Honey Amber
-    gradientEnd: "#B45309",   // Deep Burnished Amber
-    trackColor: "#F59E0B",
+    gradientStart: "#10B981", // Recompass Signature Emerald Green
+    gradientEnd: "#047857",   // Deep Forest Emerald
+    trackColor: "#10B981",
   },
 };

@@ -279,12 +279,12 @@ export default function Profile() {
                   <p className="font-sans font-bold text-orange-400 text-xl sm:text-2xl">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-                  <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-widest mb-1">Carbs</p>
-                  <p className="font-sans font-bold text-emerald-400 text-xl sm:text-2xl">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
+                  <p className="text-[10px] text-sky-400/70 font-semibold uppercase tracking-widest mb-1">Carbs</p>
+                  <p className="font-sans font-bold text-sky-400 text-xl sm:text-2xl">{autoCarbs}<span className="text-xs text-sky-400/50 ml-0.5">g</span></p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-                  <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-1">Fats</p>
-                  <p className="font-sans font-bold text-blue-400 text-xl sm:text-2xl">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
+                  <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-widest mb-1">Fats</p>
+                  <p className="font-sans font-bold text-emerald-400 text-xl sm:text-2xl">{autoFats}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
                 </div>
               </div>
             </div>
@@ -318,22 +318,22 @@ export default function Profile() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-widest block mb-1.5">Carbs (g)</label>
+                  <label className="text-[10px] font-semibold text-sky-400/70 uppercase tracking-widest block mb-1.5">Carbs (g)</label>
                   <input 
                     type="number" 
                     value={data.customCarbs} 
                     onChange={e=>setData({...data, customCarbs: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-emerald-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-sky-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="200"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-blue-400/70 uppercase tracking-widest block mb-1.5">Fats (g)</label>
+                  <label className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-widest block mb-1.5">Fats (g)</label>
                   <input 
                     type="number" 
                     value={data.customFats} 
                     onChange={e=>setData({...data, customFats: e.target.value})} 
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-blue-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-emerald-400 font-sans font-bold text-base focus:outline-none focus:border-white/30" 
                     placeholder="60"
                   />
                 </div>
@@ -363,12 +363,12 @@ export default function Profile() {
               />
               <div 
                 style={{ width: `${Math.max(5, carbsPct)}%` }} 
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-500 transition-all duration-300"
                 title={`Carbs: ${carbsPct}%`}
               />
               <div 
                 style={{ width: `${Math.max(5, fatsPct)}%` }} 
-                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
                 title={`Fats: ${fatsPct}%`}
               />
             </div>
@@ -379,12 +379,12 @@ export default function Profile() {
                 <p className="text-[10px] font-bold text-orange-400 tracking-wider uppercase">Protein</p>
                 <p className="text-xs font-bold text-white mt-0.5">{proteinPct}% <span className="text-[10px] text-white/40 font-normal">({activeProtein}g)</span></p>
               </div>
-              <div className="p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                <p className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Carbs</p>
+              <div className="p-2 rounded-xl bg-sky-500/5 border border-sky-500/10">
+                <p className="text-[10px] font-bold text-sky-400 tracking-wider uppercase">Carbs</p>
                 <p className="text-xs font-bold text-white mt-0.5">{carbsPct}% <span className="text-[10px] text-white/40 font-normal">({activeCarbs}g)</span></p>
               </div>
-              <div className="p-2 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                <p className="text-[10px] font-bold text-blue-400 tracking-wider uppercase">Fats</p>
+              <div className="p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <p className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Fats</p>
                 <p className="text-xs font-bold text-white mt-0.5">{fatsPct}% <span className="text-[10px] text-white/40 font-normal">({activeFats}g)</span></p>
               </div>
             </div>

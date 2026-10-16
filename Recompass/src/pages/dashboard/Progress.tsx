@@ -70,7 +70,16 @@ export default function Progress() {
           targetPro = Math.round(userProfile.goal === "muscle_gain" ? w * 2.2 : w * 1.6);
         }
 
-        const targetCarbs = Math.round((targetCals - targetPro * 4 - (targetCals * 0.25)) / 4);
+        let targetFats = 55;
+        if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.fats) {
+          targetFats = Number(userProfile.targetOverrides.fats);
+        } else {
+          targetFats = Math.round((targetCals * 0.25) / 9);
+        }
+
+        const targetCarbs = userProfile?.targetOverrides?.enabled && userProfile.targetOverrides.carbs
+          ? Number(userProfile.targetOverrides.carbs)
+          : Math.round((targetCals - targetPro * 4 - targetFats * 9) / 4);
 
         if (isMounted) {
           setTargetCalories(targetCals);
@@ -150,6 +159,16 @@ export default function Progress() {
                 gradientEnd: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientEnd,
                 trackColor: APPLE_FITNESS_MACRO_PALETTES.carbs.trackColor,
               },
+              {
+                id: `ring_fat_${idx}`,
+                label: "Fats",
+                current: fats,
+                target: targetFats,
+                unit: "g",
+                gradientStart: APPLE_FITNESS_MACRO_PALETTES.fats.gradientStart,
+                gradientEnd: APPLE_FITNESS_MACRO_PALETTES.fats.gradientEnd,
+                trackColor: APPLE_FITNESS_MACRO_PALETTES.fats.trackColor,
+              },
             ];
 
             return {
@@ -194,6 +213,16 @@ export default function Progress() {
                 gradientStart: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientStart,
                 gradientEnd: APPLE_FITNESS_MACRO_PALETTES.carbs.gradientEnd,
                 trackColor: APPLE_FITNESS_MACRO_PALETTES.carbs.trackColor,
+              },
+              {
+                id: `ring_fat_${idx}`,
+                label: "Fats",
+                current: 0,
+                target: targetFats,
+                unit: "g",
+                gradientStart: APPLE_FITNESS_MACRO_PALETTES.fats.gradientStart,
+                gradientEnd: APPLE_FITNESS_MACRO_PALETTES.fats.gradientEnd,
+                trackColor: APPLE_FITNESS_MACRO_PALETTES.fats.trackColor,
               },
             ];
 
@@ -302,8 +331,8 @@ export default function Progress() {
                   <AppleActivityRing
                     rings={d.rings}
                     size={46}
-                    strokeWidth={5.5}
-                    ringGap={2}
+                    strokeWidth={7}
+                    ringGap={3}
                   />
                 </div>
 
@@ -328,9 +357,9 @@ export default function Progress() {
                 </span>
               </p>
               <p className="text-[11px] text-white/45 font-sans mt-0.5">
-                P: <strong className="text-emerald-400">{chartData[selectedDayIdx].protein}g</strong> &middot; 
+                P: <strong className="text-orange-400">{chartData[selectedDayIdx].protein}g</strong> &middot; 
                 C: <strong className="text-sky-400">{chartData[selectedDayIdx].carbs}g</strong> &middot; 
-                F: <strong className="text-amber-400">{chartData[selectedDayIdx].fats}g</strong>
+                F: <strong className="text-emerald-400">{chartData[selectedDayIdx].fats}g</strong>
               </p>
             </div>
             <button
