@@ -25,10 +25,13 @@ interface AppleActivityRingProps {
 /**
  * Authentic Apple Activity Rings component.
  * Exact replication of Apple Watch / Fitness Move Goal rings:
- * - 0% to 100%: Pure circular arc with round stroke caps, zero shadow, zero dots.
- * - >100% (Overfill): Seamless second lap with round stroke cap; a smooth tangential
- *   drop shadow is cast strictly beneath the advancing cap onto the underlying track.
- * - Fixes inverted clipPath bounds bursting outside the viewBox area.
+ * - Under 100%: Single clean arc with strokeLinecap="round", zero shadow.
+ * - Over 100%: 
+ *     1. Base circle is a solid closed 360-degree ring (strokeLinecap="butt", zero seam at 12 o'clock).
+ *     2. Overfill arc starts flat at 12 o'clock (strokeLinecap="butt", zero lump at 12 o'clock).
+ *     3. Moving tip has a round cap circle placed at (tipX, tipY).
+ *     4. A soft tangential drop shadow is cast strictly behind the round tip cap onto the track.
+ *     5. Annular clipPath (evenodd fill rule) keeps shadow strictly inside the track.
  */
 export function AppleActivityRing({
   rings,
@@ -57,47 +60,28 @@ export function AppleActivityRing({
           {rings.map((ring, idx) => {
             const shadowFilterId = `ring-shadow-${compId}-${idx}`;
             const gradId = `ring-grad-${compId}-${idx}`;
-            const clipId = `ring-track-clip-${compId}-${idx}`;
-            
-            const radius =
-              center -
-              outerPadding -
-              strokeWidth / 2 -
-              idx * (strokeWidth + ringGap);
-
             return (
               <React.Fragment key={idx}>
+                {/* Luminous Apple Watch Linear Gradient */}
                 <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor={ring.gradientStart || "#FF2D55"} />
                   <stop offset="100%" stopColor={ring.gradientEnd || ring.gradientStart || "#FF2D55"} />
                 </linearGradient>
 
-                {/* FIX: Simplified clean circular mask clip boundary for the shadow */}
-                <clipPath id={clipId}>
-                  <circle
-                    cx={center}
-                    cy={center}
-                    r={radius}
-                    stroke="#ffffff"
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                  />
-                </clipPath>
-
+                {/* Soft Drop Shadow Filter for the advancing tip */}
                 <filter
                   id={shadowFilterId}
-                  x="-50%"
-                  y="-50%"
-                  width="200%"
-                  height="200%"
+                  x="-100%"
+                  y="-100%"
+                  width="300%"
+                  height="300%"
                 >
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="blur" />
-                  <feOffset dx="0" dy="1.5" result="offset" />
-                  <feFlood floodColor="#000000" floodOpacity="0.75" result="color" />
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3.0" result="blur" />
+                  <feOffset dx="0" dy="0" result="offset" />
+                  <feFlood floodColor="#000000" floodOpacity="0.85" result="color" />
                   <feComposite in="color" in2="offset" operator="in" result="shadow" />
                   <feMerge>
                     <feMergeNode in="shadow" />
-                    <feMergeNode in="SourceGraphic" />
                   </feMerge>
                 </filter>
               </React.Fragment>
@@ -118,7 +102,7 @@ export function AppleActivityRing({
           const clampedRatio = Math.max(0, ratio);
           const firstLap = Math.min(clampedRatio, 1.0);
 
-          const trackClipId = `ring-track-clip-${compId}-${idx}`;
+          const clipId = `ring-annular-clip-${compId}-${idx}`;
           const shadowFilterId = `url(#ring-shadow-${compId}-${idx})`;
           const gradUrl = `url(#ring-grad-${compId}-${idx})`;
           const ringColor = ring.gradientStart || "#FF2D55";
@@ -132,18 +116,31 @@ export function AppleActivityRing({
           const tipX = center + radius * Math.sin(overfillAngle);
           const tipY = center - radius * Math.cos(overfillAngle);
 
-          // Overlap Cushion: Backtrack the start of the overfill path slightly (-0.08 rad)
-          // to completely cover the 12 o'clock seam, eliminating any pinch or gap
-          const backtrackAngle = -0.08;
-          const startX = center + radius * Math.sin(backtrackAngle);
-          const startY = center - radius * Math.cos(backtrackAngle);
-          const largeArcFlag = overfillAngle - backtrackAngle > Math.PI ? 1 : 0;
-          const overfillArcPath = `M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${tipX.toFixed(2)} ${tipY.toFixed(2)}`;
+          // Tangential shadow placement:
+          // Positioned immediately behind the advancing round cap along the track
+          const arcBackAngle = overfillAngle - (strokeWidth * 0.42) / radius;
+          const shadowX = center + radius * Math.sin(arcBackAngle);
+          const shadowY = center - radius * Math.cos(arcBackAngle);
+          // Softly fade in shadow as overfill advances past 12 o'clock
+          const shadowFade = Math.max(0, Math.min(1, (overfillLap - 0.005) / 0.025));
 
-          const arrowY = center - radius;
+          // Annular track clip path (proper SVG evenodd fill rule)
+          // Strictly confines the shadow to this ring's channel so it never bleeds into adjacent rings
+          const outerR = radius + strokeWidth / 2;
+          const innerR = radius - strokeWidth / 2;
+          const annularClipPath = `M ${center} ${center - outerR} A ${outerR} ${outerR} 0 1 0 ${center} ${center + outerR} A ${outerR} ${outerR} 0 1 0 ${center} ${center - outerR} Z M ${center} ${center - innerR} A ${innerR} ${innerR} 0 1 0 ${center} ${center + innerR} A ${innerR} ${innerR} 0 1 0 ${center} ${center - innerR} Z`;
+
+          // Overfill Arc SVG Path: from 12 o'clock (center, center - radius) clockwise to (tipX, tipY)
+          const largeArcFlag = overfillAngle > Math.PI ? 1 : 0;
+          const overfillArcPath = `M ${center} ${center - radius} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${tipX.toFixed(2)} ${tipY.toFixed(2)}`;
 
           return (
             <g key={ring.id || idx}>
+              {/* Annular Clip Path for this ring's track groove */}
+              <clipPath id={clipId}>
+                <path d={annularClipPath} fillRule="evenodd" fill="#ffffff" />
+              </clipPath>
+
               {/* 1. Track Groove (Apple Fitness deep luminescent canal) */}
               <circle
                 cx={center}
@@ -156,61 +153,69 @@ export function AppleActivityRing({
               />
 
               {/* 2. Base Lap (0% to 100%) */}
-              <circle
-                cx={center}
-                cy={center}
-                r={radius}
-                stroke={gradUrl}
-                strokeWidth={strokeWidth}
-                strokeLinecap={hasOverfill ? "butt" : "round"}
-                fill="none"
-                strokeDasharray={circumference}
-                strokeDashoffset={
-                  loading
-                    ? circumference
-                    : hasOverfill
-                    ? 0
-                    : circumference * (1 - firstLap)
-                }
-                transform={`rotate(-90 ${center} ${center})`}
-                style={{
-                  transition: "stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              />
+              {/* Under 100%: strokeLinecap="round" */}
+              {/* Over 100%: strokeLinecap="butt", strokeDashoffset=0 (100% solid, closed, seamless circle with zero seam at 12 o'clock) */}
+              {firstLap > 0.002 && (
+                <circle
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  stroke={gradUrl}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap={hasOverfill ? "butt" : "round"}
+                  fill="none"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={
+                    loading
+                      ? circumference
+                      : hasOverfill
+                      ? 0
+                      : circumference * (1 - firstLap)
+                  }
+                  transform={`rotate(-90 ${center} ${center})`}
+                  style={{
+                    transition: "stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                  }}
+                />
+              )}
 
-              {/* 3. Overfill Lap (> 100%) with Native Shadow Injection */}
-              {/* FIX: Swapped out complex separate shadow paths for a clean SVG-filtered group layer */}
-              {hasOverfill && !loading && (
-                <g clipPath={`url(#${trackClipId})`}>
-                  <path
-                    d={overfillArcPath}
-                    stroke={ring.gradientEnd || ringColor}
-                    strokeWidth={strokeWidth}
-                    strokeLinecap="round"
-                    fill="none"
+              {/* 3. Authentic Tangential Shadow (ONLY on Overfill > 100%) */}
+              {/* Soft dark shadow trailing backwards strictly within this ring's annular track */}
+              {hasOverfill && !loading && shadowFade > 0 && (
+                <g clipPath={`url(#${clipId})`}>
+                  <circle
+                    cx={shadowX}
+                    cy={shadowY}
+                    r={strokeWidth * 0.48}
+                    fill="#000000"
                     filter={shadowFilterId}
+                    opacity={0.82 * shadowFade}
                   />
                 </g>
               )}
 
-              {/* 5. Authentic Apple Watch Directional Icon at 12 o'clock */}
-              {firstLap > 0.05 && (
-                <g
-                  transform={`translate(${center}, ${arrowY})`}
-                  className="pointer-events-none select-none opacity-50"
-                >
-                  {idx === 0 && (
-                    // Move Ring Arrow: →
-                    <path
-                      d="M -2.5 0 L 2.5 0 M 0.5 -2 L 2.5 0 L 0.5 2"
-                      stroke="#000000"
-                      strokeWidth={1}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                    />
-                  )}
-                </g>
+              {/* 4. Overfill Lap (> 100%) */}
+              {/* Flat stroke starting at 12 o'clock with strokeLinecap="butt" */}
+              {/* NO round cap at 12 o'clock, completely flush and seamless! */}
+              {hasOverfill && !loading && (
+                <path
+                  d={overfillArcPath}
+                  stroke={gradUrl}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="butt"
+                  fill="none"
+                />
+              )}
+
+              {/* 5. Moving Round Tip Cap (> 100%) */}
+              {/* A single clean round cap circle placed at (tipX, tipY) on top of the shadow */}
+              {hasOverfill && !loading && (
+                <circle
+                  cx={tipX}
+                  cy={tipY}
+                  r={strokeWidth / 2}
+                  fill={ring.gradientEnd || ringColor}
+                />
               )}
             </g>
           );
