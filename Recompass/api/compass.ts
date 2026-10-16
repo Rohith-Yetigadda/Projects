@@ -14,17 +14,18 @@ export const config = {
 
 const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
-async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[]) {
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {
+  const models = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+  const config = isJson ? { responseMimeType: "application/json" } : {};
   for (const m of models) {
     try {
-      const model = genAI.getGenerativeModel({ model: m });
+      const model = genAI.getGenerativeModel({ model: m, generationConfig: config });
       return await model.generateContent({ contents });
     } catch (err: any) {
       console.warn(`[compass] Model ${m} failed: ${err.message}. Trying next fallback...`);
     }
   }
-  const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const fallbackModel = genAI.getGenerativeModel({ model: "gemini-3.8-flash", generationConfig: config });
   return await fallbackModel.generateContent({ contents });
 }
 
@@ -128,18 +129,23 @@ OUTPUT STRICTLY AS JSON (no markdown formatting, no commentary):
       case "estimate_macros": {
         const prompt = `Estimate accurate, realistic nutritional macronutrients for: "${payload.foodName}".
 
-RULES:
-1. "name": Return a clean, concise, UPPERCASE food title without raw sentence fragments or parentheticals (e.g. "CHICKEN BIRYANI", "BANANA", "BOILED EGGS", "DAL TADKA", "PANEER TIKKA").
-2. Calculate realistic macros based on the full portion or description provided:
-   - For Indian restaurant or mess food, account for realistic cooking oil, ghee, and standard portion sizes.
-   - Example "2 bananas": ~210 kcal, ~2.5g protein, ~54g carbs, ~0.6g fat.
-   - Example "2 boiled eggs": ~156 kcal, ~12.6g protein, ~1.2g carbs, ~10.6g fat.
-   - Example "1 bowl dal tadka (~200g)": ~180 kcal, ~9g protein, ~22g carbs, ~6g fat.
-   - Example "2 chapatis": ~200 kcal, ~6g protein, ~36g carbs, ~2g fat.
+CRITICAL SCALING RULES:
+1. "name": Return a clean, concise, UPPERCASE food title without raw sentence fragments or parentheticals (e.g. "DAL MAKHANI", "HOT MILK", "CHICKEN BIRYANI", "BANANA", "BOILED EGGS").
+2. QUANTITY & PORTION SCALING MUST BE PROPORTIONATE:
+   - Carefully read the requested portion size and scale macros accordingly!
+   - Example "1 small ladle dal makhani": ~110 kcal, ~3.5g protein, ~11g carbs, ~6g fat.
+   - Example "1 ladle (~150ml) dal makhani": ~190 kcal, ~6.5g protein, ~19g carbs, ~10g fat.
+   - Example "2 ladles dal makhani": ~380 kcal, ~13g protein, ~38g carbs, ~20g fat.
+   - Example "100ml milk": ~65 kcal, ~3.3g protein, ~5g carbs, ~3.5g fat.
+   - Example "150ml milk": ~95 kcal, ~5g protein, ~7.5g carbs, ~5g fat.
+   - Example "200ml milk": ~130 kcal, ~6.5g protein, ~10g carbs, ~7g fat.
+   - Example "1 glass (~250ml) milk": ~165 kcal, ~8.2g protein, ~12.5g carbs, ~8.5g fat.
+   - Example "300ml milk": ~195 kcal, ~10g protein, ~15g carbs, ~10.5g fat.
+   - Example "half bowl": ~50% of a full bowl.
 3. If the input describes any food, meal, snack, or drink, calculate its macros. ONLY return {"error": "INVALID_FOOD"} if input is purely gibberish (e.g. "asdfg123") or non-food.
 
-OUTPUT STRICTLY AS JSON (no markdown formatting):
-{"name":"UPPERCASE_NAME","calories":350,"protein":14,"carbs":48,"fats":8}`;
+OUTPUT STRICTLY AS JSON:
+{"name":"UPPERCASE_NAME","calories":190,"protein":6.5,"carbs":19,"fats":10}`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
       }
@@ -286,7 +292,8 @@ OUTPUT STRICTLY AS JSON:
         return res.status(400).json({ error: "Unknown action" });
     }
 
-    const result = await generateWithFallback(genAI, contents);
+    const isJsonAction = action !== "chat";
+    const result = await generateWithFallback(genAI, contents, isJsonAction);
     let responseText = result.response.text();
     
     if (action === "chat") {
@@ -313,6 +320,12 @@ OUTPUT STRICTLY AS JSON:
         const normalized: any = {};
         for (const k in responseData) {
           normalized[k.toLowerCase()] = responseData[k];
+        }
+        // Flatten macronutrients if nested
+        if (normalized.macronutrients && typeof normalized.macronutrients === 'object') {
+          normalized.protein = normalized.macronutrients.protein_g ?? normalized.macronutrients.protein ?? normalized.protein;
+          normalized.carbs = normalized.macronutrients.carbohydrates_g ?? normalized.macronutrients.carbs ?? normalized.carbs;
+          normalized.fats = normalized.macronutrients.total_fat_g ?? normalized.macronutrients.fat_g ?? normalized.macronutrients.fat ?? normalized.macronutrients.fats ?? normalized.fats;
         }
         responseData = normalized;
       }

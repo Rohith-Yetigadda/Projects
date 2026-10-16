@@ -172,10 +172,11 @@ const COMMON_FOOD_BASE_MACROS: Record<string, { calories: number; protein: numbe
   "masala dosa": { calories: 280, protein: 5.5, carbs: 42, fats: 9 },
 
   // Dals & Curries
+  "dal makhni": { calories: 250, protein: 9, carbs: 26, fats: 12 },
+  "dal makhani": { calories: 250, protein: 9, carbs: 26, fats: 12 },
   "dal": { calories: 140, protein: 7.5, carbs: 20, fats: 3.5 },
   "dal fry": { calories: 155, protein: 7.5, carbs: 21, fats: 4.5 },
   "dal tadka": { calories: 165, protein: 7.5, carbs: 21, fats: 5.5 },
-  "dal makhani": { calories: 260, protein: 9, carbs: 26, fats: 13 },
   "sambar": { calories: 95, protein: 3.5, carbs: 16, fats: 1.8 },
   "rasam": { calories: 60, protein: 1.8, carbs: 10, fats: 1.2 },
   "chole": { calories: 230, protein: 10, carbs: 34, fats: 6 },
@@ -225,33 +226,70 @@ const COMMON_FOOD_BASE_MACROS: Record<string, { calories: number; protein: numbe
   "peanut butter": { calories: 95, protein: 4, carbs: 3.5, fats: 8 },
 };
 
-function fallbackEstimate(foodName: string, quantity: string) {
-  const n = cleanFoodName(foodName).toLowerCase();
-  
-  // Calculate quantity multiplier
-  let multiplier = 1.0;
-  const numMatch = quantity.match(/\b(\d+(?:\.\d+)?)\b/);
-  if (numMatch) {
-    const val = parseFloat(numMatch[1]);
-    if (/\b(ml)\b/i.test(quantity)) {
-      multiplier = Math.max(0.2, val / 200); // 200ml glass base
-    } else if (/\b(g|gm|grams)\b/i.test(quantity)) {
-      multiplier = Math.max(0.2, val / 150); // 150g portion base
-    } else if (val > 0 && val <= 10) {
-      multiplier = val;
+export function parseQuantityMultiplier(quantity: string, foodName = ""): number {
+  const q = quantity.toLowerCase().trim();
+  const f = cleanFoodName(foodName).toLowerCase().trim();
+  const isLiquidDish = /\b(dal|sambar|rasam|curry|gravy|soup|chole|rajma)\b/.test(f);
+
+  // 1. Explicit ml (e.g. 100ml, 150ml, 200ml, 250ml, '1 glass (~250ml)', '1 ladle (~150ml)', '1 bowl (~200ml)')
+  const mlMatch = q.match(/(\d+(?:\.\d+)?)\s*ml/);
+  if (mlMatch) {
+    const ml = parseFloat(mlMatch[1]);
+    if (isLiquidDish) {
+      return Math.max(0.2, Math.round((ml / 150) * 100) / 100); // 150ml ladle base
     }
-  } else if (/\b(half)\b/i.test(quantity)) {
-    multiplier = 0.5;
+    return Math.max(0.2, Math.round((ml / 200) * 100) / 100); // 200ml glass base
   }
 
-  // Find best match in database
-  for (const [key, base] of Object.entries(COMMON_FOOD_BASE_MACROS)) {
+  // 2. Explicit grams (e.g. 150g, 100g, 200g)
+  const gMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|grams)\b/);
+  if (gMatch) {
+    const g = parseFloat(gMatch[1]);
+    const baseG = /\b(rice|biryani|pulao|khichdi|oats|poha|upma|salad|curd|dahi)\b/.test(f) ? 150 : 100;
+    return Math.max(0.2, Math.round((g / baseG) * 100) / 100);
+  }
+
+  // 3. Small / Half / Large qualifiers
+  if (/small\s+ladle/i.test(q)) return 0.65;
+  if (/small\s+bowl/i.test(q)) return 0.65;
+  if (/half\s+bowl/i.test(q) || /half\s+ladle/i.test(q) || /half\s+glass/i.test(q) || /half\s+piece/i.test(q) || /half\s+scoop/i.test(q)) return 0.5;
+  if (/large\s+bowl/i.test(q) || /big\s+bowl/i.test(q)) return 1.5;
+  if (/plate/i.test(q)) return 1.5;
+  if (/1\s*tsp/i.test(q)) return 0.33;
+  if (/1\s*tbsp/i.test(q)) return 0.67;
+  if (/2\s*tbsp/i.test(q)) return 1.33;
+
+  // 4. Numeric count of pieces, ladles, bowls, glasses, scoops
+  const countMatch = q.match(/^(\d+(?:\.\d+)?)\s*(?:nos?|pcs?|pieces?|ladles?|bowls?|glasses?|cups?|slices?|scoops?|rotis?|chapatis?|eggs?|servings?)?\b/);
+  if (countMatch) {
+    const count = parseFloat(countMatch[1]);
+    if (count > 0 && count <= 50) return count;
+  }
+
+  // 5. General fractional or word counts
+  if (/\bhalf\b/i.test(q) || /\b1\/2\b/.test(q)) return 0.5;
+  if (/\bquarter\b/i.test(q) || /\b1\/4\b/.test(q)) return 0.25;
+  if (/\bsmall\b/i.test(q)) return 0.7;
+  if (/\blarge\b/i.test(q)) return 1.4;
+
+  return 1.0;
+}
+
+function fallbackEstimate(foodName: string, quantity: string) {
+  const n = cleanFoodName(foodName).toLowerCase();
+  const multiplier = parseQuantityMultiplier(quantity, foodName);
+
+  // Sort keys longest first so specific dishes match before general ones (e.g. "dal makhni" before "dal")
+  const sortedKeys = Object.keys(COMMON_FOOD_BASE_MACROS).sort((a, b) => b.length - a.length);
+
+  for (const key of sortedKeys) {
     if (n === key || n.includes(key) || key.includes(n)) {
+      const base = COMMON_FOOD_BASE_MACROS[key];
       return {
-        calories: Math.round(base.calories * multiplier),
-        protein: Math.round(base.protein * multiplier * 10) / 10,
-        carbs: Math.round(base.carbs * multiplier * 10) / 10,
-        fats: Math.round(base.fats * multiplier * 10) / 10,
+        calories: Math.max(10, Math.round(base.calories * multiplier)),
+        protein: Math.max(0, Math.round(base.protein * multiplier * 10) / 10),
+        carbs: Math.max(0, Math.round(base.carbs * multiplier * 10) / 10),
+        fats: Math.max(0, Math.round(base.fats * multiplier * 10) / 10),
         name: cleanFoodName(foodName).toUpperCase()
       };
     }
@@ -259,10 +297,10 @@ function fallbackEstimate(foodName: string, quantity: string) {
 
   // Safe default for any uncatalogued mess dishes
   return {
-    calories: Math.round(180 * multiplier),
-    protein: Math.round(6 * multiplier * 10) / 10,
-    carbs: Math.round(24 * multiplier * 10) / 10,
-    fats: Math.round(6 * multiplier * 10) / 10,
+    calories: Math.max(10, Math.round(180 * multiplier)),
+    protein: Math.max(0, Math.round(6 * multiplier * 10) / 10),
+    carbs: Math.max(0, Math.round(24 * multiplier * 10) / 10),
+    fats: Math.max(0, Math.round(6 * multiplier * 10) / 10),
     name: cleanFoodName(foodName).toUpperCase()
   };
 }
@@ -271,7 +309,7 @@ function fallbackEstimate(foodName: string, quantity: string) {
 async function estimateMacros(foodName: string, quantity: string, isCustom = false) {
   const cleanedName = cleanFoodName(foodName);
   const queryStr = (quantity ? `${quantity} ${cleanedName}` : cleanedName).trim();
-  const cacheKey = "recompass_macros_v2_" + queryStr.toLowerCase();
+  const cacheKey = "recompass_macros_v3_" + queryStr.toLowerCase();
   
   try {
     const cached = sessionStorage.getItem(cacheKey);
@@ -290,12 +328,17 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     
     if (res.ok) {
       const data = await res.json();
-      if (data && !data.error && (data.calories || data.calories === 0)) {
+      if (data && !data.error && (data.calories !== undefined || data.kcal !== undefined || data.macronutrients || data.energy_kcal !== undefined)) {
+        const rawCals = Number(data.calories ?? data.kcal ?? data.energy_kcal ?? data.macronutrients?.calories ?? 0);
+        const rawProt = Number(data.protein ?? data.protein_g ?? data.macronutrients?.protein_g ?? data.macronutrients?.protein ?? 0);
+        const rawCarb = Number(data.carbs ?? data.carbohydrates ?? data.carbohydrates_g ?? data.carbs_g ?? data.macronutrients?.carbohydrates_g ?? 0);
+        const rawFat  = Number(data.fats ?? data.fat ?? data.total_fat_g ?? data.fat_g ?? data.macronutrients?.total_fat_g ?? 0);
+
         const sanitized = sanitizeMacros({
-          calories: Number(data.calories),
-          protein:  Number(data.protein) || 0,
-          carbs:    Number(data.carbs) || 0,
-          fats:     Number(data.fats) || 0,
+          calories: rawCals,
+          protein:  rawProt,
+          carbs:    rawCarb,
+          fats:     rawFat,
         });
         const result = {
           ...sanitized,
@@ -318,7 +361,7 @@ async function estimateMacros(foodName: string, quantity: string, isCustom = fal
     throw new Error("INVALID_FOOD");
   }
 
-  // 3. Fallback: Guaranteed instant calculation for mess menu items and common foods
+  // 3. Fallback: Guaranteed instant accurate calculation for mess menu items and common foods
   const fallback = fallbackEstimate(cleanedName, quantity);
   try {
     sessionStorage.setItem(cacheKey, JSON.stringify(fallback));
@@ -352,26 +395,36 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
   const portionInfo = getQuickPortionPresets(cleaned);
   const presets = portionInfo.presets;
   const [custom, setCustom] = useState("");
-  const [selected, setSelected] = useState<string>(presets[1] || presets[0] || "1 serving");
-  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number } | null>(null);
+  const initialQty = presets[1] || presets[0] || "1 serving";
+  const [selected, setSelected] = useState<string>(initialQty);
+  // Instant baseline calculation so the modal NEVER displays outdated or empty values:
+  const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number }>(() =>
+    fallbackEstimate(cleaned, initialQty)
+  );
   const [estimating, setEstimating] = useState(false);
 
-  // Debounced live macro estimation preview
+  // Live macro estimation preview: instant local calculation + debounced AI refinement
   useEffect(() => {
     const activeQty = custom.trim() || selected;
     if (!activeQty) return;
+
+    // 1. Instantly calculate locally in 0ms so clicking pills scales macros immediately
+    const instant = fallbackEstimate(cleaned, activeQty);
+    setLiveMacros(instant);
+
+    // 2. Concurrently refine via Gemini AI
     let isCurrent = true;
     const timer = setTimeout(async () => {
       setEstimating(true);
       try {
         const macros = await estimateMacros(cleaned, activeQty);
-        if (isCurrent) setLiveMacros(macros);
+        if (isCurrent && macros) setLiveMacros(macros);
       } catch {
-        // Ignore live preview errors
+        // Fallback is already displayed
       } finally {
         if (isCurrent) setEstimating(false);
       }
-    }, 250);
+    }, 150);
 
     return () => {
       isCurrent = false;
@@ -405,16 +458,16 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
             <span>AI Macro Estimate</span>
           </span>
           {estimating ? (
-            <span className="text-[11px] text-white/40 animate-pulse font-mono">Calculating...</span>
+            <span className="text-[11px] text-white/40 animate-pulse font-mono">Refining...</span>
           ) : liveMacros ? (
             <div className="flex items-center gap-2 font-mono tabular-nums text-[11px]">
               <span className="font-bold text-white">{liveMacros.calories} kcal</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-[#A1FF00] font-semibold">P {liveMacros.protein}g</span>
+              <span className="text-emerald-400 font-semibold">P {liveMacros.protein}g</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-[#00F0FF] font-semibold">C {liveMacros.carbs}g</span>
+              <span className="text-sky-400 font-semibold">C {liveMacros.carbs}g</span>
               <span className="text-white/20">&middot;</span>
-              <span className="text-[#FFD600] font-semibold">F {liveMacros.fats}g</span>
+              <span className="text-amber-400 font-semibold">F {liveMacros.fats}g</span>
             </div>
           ) : (
             <span className="text-[11px] text-white/40">Select portion below</span>
