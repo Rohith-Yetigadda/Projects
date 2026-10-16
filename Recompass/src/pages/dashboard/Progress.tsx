@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { TrendingUp, Activity, Flame, Sparkles, CheckCircle2 } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
+import { getLocalDateStr } from "@/lib/dateUtils";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
@@ -76,12 +77,12 @@ export default function Progress() {
           setTargetProtein(targetPro);
         }
 
-        // Build list of last 7 dates
+        // Build list of last 7 dates using local date utility
         const dateItems: { dateStr: string; displayDate: string; dayName: string }[] = [];
         for (let i = 6; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+          const dateStr = getLocalDateStr(d);
           const displayDate = d.toLocaleDateString("en-US", { weekday: 'short', month: 'numeric', day: 'numeric' });
           const dayName = d.toLocaleDateString("en-US", { weekday: 'short' });
           dateItems.push({ dateStr, displayDate, dayName });
@@ -102,10 +103,16 @@ export default function Progress() {
           const { displayDate, dayName, dateStr } = dateItems[idx];
           if (snap.exists()) {
             const lData = snap.data();
-            const cals = lData.totals?.calories || 0;
-            const pro = lData.totals?.protein || 0;
-            const carbs = lData.totals?.carbs || 0;
-            const fats = lData.totals?.fats || 0;
+            const allMeals = [
+              ...(lData.breakfast || []),
+              ...(lData.lunch || []),
+              ...(lData.dinner || []),
+              ...(lData.snacks || []),
+            ];
+            const cals = Number(lData.totals?.calories) || allMeals.reduce((s: number, it: any) => s + (Number(it.calories) || 0), 0);
+            const pro = Number(lData.totals?.protein) || allMeals.reduce((s: number, it: any) => s + (Number(it.protein) || 0), 0);
+            const carbs = Number(lData.totals?.carbs) || allMeals.reduce((s: number, it: any) => s + (Number(it.carbs) || 0), 0);
+            const fats = Number(lData.totals?.fats) || allMeals.reduce((s: number, it: any) => s + (Number(it.fats) || 0), 0);
             if (cals > 0) {
               totalCals += cals;
               totalPro += pro;
@@ -236,7 +243,7 @@ export default function Progress() {
   const calPercent = Math.round((stats.avgCals / targetCalories) * 100);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-28 md:pb-8">
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-6">
       
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

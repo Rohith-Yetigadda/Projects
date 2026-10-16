@@ -107,7 +107,7 @@ export default function Profile() {
   const fatsPct = Math.max(0, 100 - proteinPct - carbsPct);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-36 md:pb-12">
+    <div className="max-w-2xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-24 md:pb-6">
       
       {/* Editorial Header */}
       <header className="flex items-end justify-between">

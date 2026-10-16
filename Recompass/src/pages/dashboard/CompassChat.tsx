@@ -9,6 +9,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { clearCachedData } from "@/lib/dataCache";
+import { getLocalDateStr } from "@/lib/dateUtils";
 
 export type AgentAction = {
   id: string;
@@ -191,7 +192,7 @@ export default function CompassChat() {
   useEffect(() => {
     if (!currentUser) return;
     const loadCtx = async () => {
-      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const today = getLocalDateStr();
       const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
       // Daily Logs
@@ -630,7 +631,7 @@ Instructions:
 
           // 5. LOG_DATE_MEAL (Any past/future date)
           if (actionType === "LOG_DATE_MEAL") {
-            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            const targetDate = actionData.date || getLocalDateStr();
             const logRef = doc(db, "users", currentUser.uid, "logs", targetDate);
             const logSnap = await getDoc(logRef);
             const d = logSnap.exists() ? logSnap.data() : { breakfast: [], lunch: [], dinner: [], snacks: [] };
@@ -679,7 +680,7 @@ Instructions:
 
           // 6. REMOVE_DATE_MEAL
           if (actionType === "REMOVE_DATE_MEAL") {
-            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            const targetDate = actionData.date || getLocalDateStr();
             const logRef = doc(db, "users", currentUser.uid, "logs", targetDate);
             const logSnap = await getDoc(logRef);
             if (logSnap.exists()) {
@@ -712,7 +713,7 @@ Instructions:
 
           // 7. CLEAR_DATE_LOGS
           if (actionType === "CLEAR_DATE_LOGS") {
-            const targetDate = actionData.date || new Date().toISOString().split("T")[0];
+            const targetDate = actionData.date || getLocalDateStr();
             await setDoc(doc(db, "users", currentUser.uid, "logs", targetDate), {
               breakfast: [], lunch: [], dinner: [], snacks: [],
               totals: { calories: 0, protein: 0, carbs: 0, fats: 0 }

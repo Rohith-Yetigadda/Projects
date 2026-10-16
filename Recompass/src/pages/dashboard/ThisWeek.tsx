@@ -9,6 +9,8 @@ import { getCachedData, setCachedData } from "@/lib/dataCache";
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 type SavedMenu = { uploadedAt: string; extractedData: MealPlan[]; };
 
+import { getCurrentMealIndex } from "@/lib/dateUtils";
+
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const DAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const meals = [
@@ -16,15 +18,6 @@ const meals = [
   { key: "lunch"     as const, label: "Lunch",     icon: Sun,    color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20", timeRange: "12:00 PM - 2:30 PM" },
   { key: "dinner"    as const, label: "Dinner",    icon: Moon,   color: "text-blue-400",    bg: "bg-blue-400/10",    border: "border-blue-400/20",    timeRange: "7:00 PM - 9:00 PM"     },
 ];
-
-function getCurrentMealIndex() {
-  const now = new Date();
-  const time = now.getHours() + now.getMinutes() / 60;
-  if (time >= 7 && time < 9.5) return 0;
-  if (time >= 12 && time < 14.5) return 1;
-  if (time >= 19 && time < 21) return 2;
-  return -1;
-}
 
 export default function ThisWeek() {
   const { currentUser } = useAuth();
@@ -87,7 +80,7 @@ export default function ThisWeek() {
   const dayPlan = sortedMenu[selectedDay] || sortedMenu[0];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-8 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto space-y-6 pb-20 md:pb-6 animate-in fade-in duration-500">
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -112,16 +105,17 @@ export default function ThisWeek() {
         </Link>
       </div>
 
-      {/* Apple Health Day Selector Capsules */}
-      <div className="flex gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+      {/* Responsive Day Selector Capsules - Exactly fits mobile view without cut-off */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full py-1">
         {DAYS.map((day, i) => {
           const isToday = i === todayIndex;
           const isSelected = i === selectedDay;
           return (
             <button 
               key={day} 
+              type="button"
               onClick={() => setSelectedDay(i)}
-              className={`flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-2xl transition-all duration-200 min-w-[64px] border ${
+              className={`flex flex-col items-center justify-center py-2 sm:py-3 rounded-2xl transition-all duration-200 border min-w-0 w-full ${
                 isSelected 
                   ? "bg-white text-black border-white shadow-sm font-bold" 
                   : isToday 
@@ -129,9 +123,9 @@ export default function ThisWeek() {
                   : "bg-white/[0.02] border-white/[0.04] text-white/50 hover:bg-white/[0.05] hover:text-white"
               }`}
             >
-              <span className="text-[11px] font-bold uppercase tracking-wider">{DAY_SHORT[i]}</span>
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">{DAY_SHORT[i]}</span>
               {isToday && (
-                <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-black" : "bg-emerald-400"}`} />
+                <span className={`mt-1 sm:mt-1.5 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-black" : "bg-emerald-400"}`} />
               )}
             </button>
           );

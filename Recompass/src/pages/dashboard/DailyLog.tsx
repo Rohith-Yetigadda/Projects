@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Bookmark, UtensilsCrossed } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
+import { getLocalDateStr } from "@/lib/dateUtils";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
@@ -50,7 +51,7 @@ export type StapleMeal = {
   createdAt: string;
 };
 
-const todayStr = () => new Date().toISOString().split("T")[0];
+const todayStr = () => getLocalDateStr();
 
 const mealConfig: { key: MealType; label: string; icon: any; color: string; bg: string; border: string }[] = [
   { key: "breakfast", label: "Breakfast", icon: Coffee,   color: "text-amber-400",   bg: "bg-amber-400/10",   border: "border-amber-400/20"   },
@@ -1426,7 +1427,7 @@ export default function DailyLog() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin"/></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-24">
+    <div className="max-w-3xl mx-auto space-y-5 pb-20 md:pb-6">
       {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
       {editingEntry && (

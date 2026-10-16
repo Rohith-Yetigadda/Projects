@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, setDoc } from "firebase/firestore";
 import { Compass, ArrowRight, Sparkles, ChefHat, Check, Zap } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
+import { getLocalDateStr, getCurrentUpcomingMeal } from "@/lib/dateUtils";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
@@ -37,14 +38,6 @@ function calcTargets(profile: any) {
   return { calories: Math.round(kcal), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats) };
 }
 
-function getCurrentMeal(): "breakfast" | "lunch" | "dinner" {
-  const now = new Date();
-  const time = now.getHours() + now.getMinutes() / 60;
-  if (time >= 5 && time < 11) return "breakfast";
-  if (time >= 11 && time < 17) return "lunch";
-  return "dinner";
-}
-
 const mealLabels: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };
 
 export default function Home() {
@@ -53,7 +46,7 @@ export default function Home() {
   const firstName = userProfile?.name?.split(" ")[0] || "User";
   const targets = calcTargets(userProfile);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateStr();
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   const cachedLog = getCachedData<DayLog>("daily_log_" + today);
@@ -69,7 +62,7 @@ export default function Home() {
   const [loggingCombo, setLoggingCombo] = useState(false);
   const [comboLogged, setComboLogged] = useState(false);
 
-  const currentMeal = getCurrentMeal();
+  const currentMeal = getCurrentUpcomingMeal();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
