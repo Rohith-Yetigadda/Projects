@@ -145,6 +145,13 @@ export default function CompassChat() {
         if (todayMenu) menuStr = JSON.stringify(todayMenu);
       }
 
+      // Load Pantry
+      const pantrySnap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
+      const pantryItems = pantrySnap.exists() ? (pantrySnap.data().items || []) : [];
+      const pantryStr = pantryItems.length > 0
+        ? pantryItems.map((p: any) => `${p.name}: ${p.quantity} ${p.unit} (${p.category})`).join(", ")
+        : "No items currently logged in dorm pantry.";
+
       const pData = `Goal: ${userProfile?.goal}\nWeight: ${userProfile?.weight}kg\nTargets: ${JSON.stringify(userProfile?.targetOverrides || "Auto")}`;
       
       const formatMealItems = (items: any[]) => {
@@ -160,7 +167,7 @@ Snacks: ${formatMealItems(logData.snacks)}
 Totals Today: ${JSON.stringify(logData.totals || { calories: 0, protein: 0, carbs: 0, fats: 0 })}
 ` : "Nothing logged yet today.";
       
-      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, and what the mess is serving today.
+      setContextStr(`You are Compass, a highly intelligent, practical AI nutrition assistant for an Indian student. You have access to their profile, what they ate today, what the mess is serving today, and what they currently have stocked in their dorm pantry.
 
 PROFILE:
 ${pData}
@@ -171,12 +178,15 @@ ${lData}
 TODAY'S MENU:
 ${menuStr}
 
+DORM PANTRY STOCK:
+${pantryStr}
+
 AGENTIC CAPABILITIES (CRITICAL):
-You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, or manage groceries, you MUST output a JSON command block at the end of your message.
+You have the power to make changes in the app. If the user asks you to log a meal, modify/update an existing logged item, delete an item, update their weight, change their goal, manage groceries, or update their dorm pantry, you MUST output a JSON command block at the end of your message.
 Format:
 \`\`\`command
 {
-  "action": "LOG_MEAL" | "UPDATE_MEAL" | "REMOVE_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "UPDATE_PROFILE" | "CLEAR_TODAY_LOGS" | "ADD_GROCERIES" | "REMOVE_GROCERIES" | "CHECK_GROCERIES",
+  "action": "LOG_MEAL" | "UPDATE_MEAL" | "REMOVE_MEAL" | "UPDATE_GOAL" | "UPDATE_WEIGHT" | "UPDATE_PROFILE" | "CLEAR_TODAY_LOGS" | "ADD_GROCERIES" | "REMOVE_GROCERIES" | "CHECK_GROCERIES" | "ADD_PANTRY" | "CONSUME_PANTRY",
   "data": { ... }
 }
 \`\`\`
@@ -202,6 +212,19 @@ EXAMPLES:
   {"action":"ADD_GROCERIES","data":{"items":[{"name":"Milk","category":"Dairy"},{"name":"Eggs","category":"Protein"}]}}
   \`\`\`
 
+- User: "I bought 6 eggs, add them to my pantry"
+  Response: "I've added 6 eggs to your dorm pantry stash." + \`\`\`command
+  {"action":"ADD_PANTRY","data":{"name":"Eggs","quantity":6,"unit":"pcs","category":"Protein"}}
+  \`\`\`
+
+- User: "I just had a scoop of whey protein"
+  Response: "Logged 1 scoop of whey to snacks and deducted 1 scoop from your pantry." + \`\`\`command
+  {"action":"LOG_MEAL","data":{"foodName":"WHEY PROTEIN","quantity":"1 scoop","mealType":"snacks","calories":120,"protein":24,"carbs":2,"fats":1}}
+  \`\`\`
+  \`\`\`command
+  {"action":"CONSUME_PANTRY","data":{"name":"Whey Protein","quantity":1}}
+  \`\`\`
+
 - User: "Set my goal to bulk"
   Response: "Updated your goal to bulk." + \`\`\`command
   {"action":"UPDATE_GOAL","data":{"goal":"muscle_gain"}}
@@ -225,6 +248,8 @@ Valid actions:
 - "REMOVE_GROCERIES" (data: { "items": string[] })
 - "CLEAR_GROCERIES" (data: {})
 - "CHECK_GROCERIES" (data: { "items": string[] })
+- "ADD_PANTRY" (data: { "name": string, "quantity": number, "unit"?: string, "category"?: string })
+- "CONSUME_PANTRY" (data: { "name": string, "quantity": number })
 
 Instructions: Be concise. Estimate macros accurately. If the user tells you about food they ate, or asks to modify/correct a logged item, ALWAYS calculate the accurate macros and emit the command block. You have complete permission to manage their meals, groceries, and targets.
 If the user shares an image:
@@ -601,6 +626,80 @@ If the user shares an image:
                   lastUpdated: new Date().toISOString()
                 }, { merge: true });
                 sysMessages.push(`🗑️ *Removed ${currentItems.length - filtered.length} items from your grocery list.*`);
+              }
+            }
+          }
+
+          if (cmd.action === "ADD_PANTRY") {
+            const name = cmd.data.name;
+            const quantity = Number(cmd.data.quantity) || 1;
+            const unit = cmd.data.unit || "pcs";
+            const category = cmd.data.category || "Other";
+            
+            if (name) {
+              const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+              const pantrySnap = await getDoc(pantryRef);
+              let currentItems = pantrySnap.exists() ? pantrySnap.data().items || [] : [];
+              
+              const existingIdx = currentItems.findIndex(
+                (p: any) => p.name.toLowerCase() === name.toLowerCase()
+              );
+              
+              if (existingIdx >= 0) {
+                currentItems[existingIdx] = {
+                  ...currentItems[existingIdx],
+                  quantity: (currentItems[existingIdx].quantity || 0) + quantity,
+                  updatedAt: new Date().toISOString()
+                };
+              } else {
+                currentItems.push({
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                  name,
+                  category,
+                  quantity,
+                  unit,
+                  lowStockThreshold: 1,
+                  updatedAt: new Date().toISOString()
+                });
+              }
+              
+              await setDoc(pantryRef, {
+                items: currentItems,
+                lastUpdated: new Date().toISOString()
+              }, { merge: true });
+              
+              sysMessages.push(`📦 *Added ${quantity} ${unit} of "${name}" to your Dorm Pantry.*`);
+            }
+          }
+
+          if (cmd.action === "CONSUME_PANTRY") {
+            const name = cmd.data.name;
+            const quantity = Number(cmd.data.quantity) || 1;
+            
+            if (name) {
+              const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
+              const pantrySnap = await getDoc(pantryRef);
+              if (pantrySnap.exists()) {
+                let currentItems = pantrySnap.data().items || [];
+                const existingIdx = currentItems.findIndex(
+                  (p: any) => p.name.toLowerCase() === name.toLowerCase()
+                );
+                
+                if (existingIdx >= 0) {
+                  const newQty = Math.max(0, (currentItems[existingIdx].quantity || 0) - quantity);
+                  currentItems[existingIdx] = {
+                    ...currentItems[existingIdx],
+                    quantity: newQty,
+                    updatedAt: new Date().toISOString()
+                  };
+                  
+                  await setDoc(pantryRef, {
+                    items: currentItems,
+                    lastUpdated: new Date().toISOString()
+                  }, { merge: true });
+                  
+                  sysMessages.push(`📦 *Used ${quantity} ${currentItems[existingIdx].unit || 'pcs'} of "${name}" from Dorm Pantry (Remaining: ${newQty}).*`);
+                }
               }
             }
           }

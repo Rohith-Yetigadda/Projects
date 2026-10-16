@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Compass, Flame, Droplet, Wheat, Plus, ArrowRight, Coffee, Sun, Moon, Check, Sparkles } from "lucide-react";
+import { Compass, Flame, Droplet, Wheat, Plus, ArrowRight, Coffee, Sun, Moon, Check, Sparkles, Package, ChefHat } from "lucide-react";
 
 type MacroEntry = { name: string; calories: number; protein: number; carbs: number; fats: number; };
 type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; totals?: { calories: number; protein: number; carbs: number; fats: number } };
@@ -325,6 +325,49 @@ export default function Home() {
             );
           })}
         </div>
+      </section>
+
+      {/* Dorm Living & AI Cooking Bento */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          to="/app/pantry"
+          className="rounded-3xl p-5 bg-[#121418] border border-white/[0.06] hover:bg-[#161a20] hover:border-white/[0.12] transition-all duration-200 group flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white block group-hover:text-white transition-colors">
+                Dorm Stash & Pantry
+              </span>
+              <span className="text-[11px] text-white/40 font-medium">
+                Track room stock, protein & supplements
+              </span>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white group-hover:translate-x-1 transition-all" />
+        </Link>
+
+        <Link
+          to="/app/cook"
+          className="rounded-3xl p-5 bg-[#121418] border border-white/[0.06] hover:bg-[#161a20] hover:border-white/[0.12] transition-all duration-200 group flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <ChefHat className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white block group-hover:text-white transition-colors">
+                Cook with AI Stash
+              </span>
+              <span className="text-[11px] text-white/40 font-medium">
+                Generate high-protein hostel room meals
+              </span>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white group-hover:translate-x-1 transition-all" />
+        </Link>
       </section>
     </div>
   );

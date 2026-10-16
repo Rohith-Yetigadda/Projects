@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { Plus, Check, Trash2, ShoppingCart, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  Plus,
+  Check,
+  Trash2,
+  ShoppingCart,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Package,
+  ArrowRight
+} from "lucide-react";
 
 type GroceryItem = {
   id: string;
@@ -33,6 +44,12 @@ export default function Groceries() {
 
   const [sortBy, setSortBy] = useState<"name" | "category">("category");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -108,6 +125,96 @@ export default function Groceries() {
     saveItems(items.filter(item => !item.purchased));
   };
 
+  // Transfer all purchased items to Pantry
+  const transferPurchasedToPantry = async () => {
+    if (!currentUser) return;
+    const purchasedItems = items.filter(i => i.purchased);
+    if (purchasedItems.length === 0) return;
+
+    try {
+      const snap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
+      const currentPantry = snap.exists() ? (snap.data().items || []) : [];
+
+      let updatedPantry = [...currentPantry];
+      purchasedItems.forEach(pItem => {
+        const existingIdx = updatedPantry.findIndex(
+          p => p.name.toLowerCase() === pItem.name.toLowerCase()
+        );
+        if (existingIdx >= 0) {
+          updatedPantry[existingIdx] = {
+            ...updatedPantry[existingIdx],
+            quantity: (updatedPantry[existingIdx].quantity || 0) + 1,
+            updatedAt: new Date().toISOString()
+          };
+        } else {
+          updatedPantry.push({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+            name: pItem.name,
+            category: pItem.category || "Other",
+            quantity: 1,
+            unit: "pcs",
+            lowStockThreshold: 1,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      });
+
+      await updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
+        items: updatedPantry,
+        lastUpdated: new Date().toISOString()
+      });
+
+      // Remove purchased from groceries
+      const remainingGroceries = items.filter(i => !i.purchased);
+      await saveItems(remainingGroceries);
+      showNotification(`Transferred ${purchasedItems.length} purchased item(s) to Dorm Pantry!`);
+    } catch (err) {
+      console.error("Error transferring to pantry:", err);
+      showNotification("Failed to transfer to pantry.");
+    }
+  };
+
+  // Transfer a single item to Pantry
+  const transferSingleToPantry = async (item: GroceryItem) => {
+    if (!currentUser) return;
+    try {
+      const snap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
+      const currentPantry = snap.exists() ? (snap.data().items || []) : [];
+
+      let updatedPantry = [...currentPantry];
+      const existingIdx = updatedPantry.findIndex(
+        p => p.name.toLowerCase() === item.name.toLowerCase()
+      );
+      if (existingIdx >= 0) {
+        updatedPantry[existingIdx] = {
+          ...updatedPantry[existingIdx],
+          quantity: (updatedPantry[existingIdx].quantity || 0) + 1,
+          updatedAt: new Date().toISOString()
+        };
+      } else {
+        updatedPantry.push({
+          id: Date.now().toString(),
+          name: item.name,
+          category: item.category || "Other",
+          quantity: 1,
+          unit: "pcs",
+          lowStockThreshold: 1,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
+      await updateDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
+        items: updatedPantry,
+        lastUpdated: new Date().toISOString()
+      });
+
+      saveItems(items.filter(i => i.id !== item.id));
+      showNotification(`Transferred "${item.name}" to Dorm Pantry!`);
+    } catch (err) {
+      console.error("Error transferring single item to pantry:", err);
+    }
+  };
+
   const handleSort = (field: "name" | "category") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -124,6 +231,8 @@ export default function Groceries() {
   );
 
   const pendingCount = items.filter(i => !i.purchased).length;
+  const purchasedCount = items.filter(i => i.purchased).length;
+
   const sortedItems = [...items].sort((a, b) => {
     if (a.purchased !== b.purchased) return a.purchased ? 1 : -1;
 
@@ -141,6 +250,14 @@ export default function Groceries() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-28 md:pb-8">
       
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed top-18 right-4 md:right-8 z-50 px-4 py-2.5 rounded-2xl bg-white text-black font-semibold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Check className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+          <span>{notification}</span>
+        </div>
+      )}
+
       {/* Editorial Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -156,8 +273,16 @@ export default function Groceries() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          {items.filter(i => i.purchased).length > 0 && (
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link
+            to="/app/pantry"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
+          >
+            <Package className="w-3.5 h-3.5 text-orange-400" />
+            <span>Dorm Pantry</span>
+          </Link>
+
+          {purchasedCount > 0 && (
             <button 
               onClick={clearPurchased}
               className="text-xs font-semibold text-white/40 hover:text-rose-400 px-3.5 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] hover:bg-rose-500/10 hover:border-rose-500/20 transition-all"
@@ -167,6 +292,32 @@ export default function Groceries() {
           )}
         </div>
       </div>
+
+      {/* Transfer Purchased to Pantry CTA Banner */}
+      {purchasedCount > 0 && (
+        <div className="rounded-3xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">
+                {purchasedCount} {purchasedCount === 1 ? "item" : "items"} purchased
+              </p>
+              <p className="text-xs text-white/50 mt-0.5">
+                Transfer purchased groceries straight into your dorm stash.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={transferPurchasedToPantry}
+            className="px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 shadow-sm"
+          >
+            <span>Transfer to Pantry</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Main Table Bento Container */}
       <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
@@ -193,7 +344,7 @@ export default function Groceries() {
         </form>
 
         {/* Table Column Sorting Header */}
-        <div className="grid grid-cols-[48px_1fr_130px_60px] md:grid-cols-[64px_1fr_180px_80px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
+        <div className="grid grid-cols-[48px_1fr_130px_90px] md:grid-cols-[64px_1fr_180px_110px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
           <div className="text-center">Status</div>
           <button 
             onClick={() => handleSort("name")}
@@ -209,7 +360,7 @@ export default function Groceries() {
             <span>Category</span>
             {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <div className="text-center"></div>
+          <div className="text-right pr-2">Actions</div>
         </div>
 
         {/* Table Body */}
@@ -225,8 +376,8 @@ export default function Groceries() {
             sortedItems.map(item => (
               <div 
                 key={item.id} 
-                className={`group grid grid-cols-[48px_1fr_130px_60px] md:grid-cols-[64px_1fr_180px_80px] items-center px-4 min-h-[52px] transition-colors hover:bg-white/[0.02] ${
-                  item.purchased ? "bg-black/20 opacity-45" : ""
+                className={`group grid grid-cols-[48px_1fr_130px_90px] md:grid-cols-[64px_1fr_180px_110px] items-center px-4 min-h-[52px] transition-colors hover:bg-white/[0.02] ${
+                  item.purchased ? "bg-black/20 opacity-60" : ""
                 }`}
               >
                 {/* Checkbox Col */}
@@ -257,8 +408,19 @@ export default function Groceries() {
                   </span>
                 </div>
                 
-                {/* Action Col */}
-                <div className="flex justify-center">
+                {/* Actions Col */}
+                <div className="flex items-center justify-end gap-1.5 pr-2">
+                  {/* Single Transfer to Pantry */}
+                  {item.purchased && (
+                    <button
+                      onClick={() => transferSingleToPantry(item)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                      title="Move directly to Pantry stash"
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
                   <button 
                     onClick={() => deleteItem(item.id)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"

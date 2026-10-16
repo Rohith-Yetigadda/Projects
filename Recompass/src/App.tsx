@@ -11,6 +11,8 @@ import Profile from "./pages/dashboard/Profile"
 import CompassChat from "./pages/dashboard/CompassChat"
 import Progress from './pages/dashboard/Progress';
 import Groceries from "./pages/dashboard/Groceries"
+import Pantry from "./pages/dashboard/Pantry"
+import Cook from "./pages/dashboard/Cook"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { AppShell } from "./components/layout/AppShell"
 import { Sparkles, ArrowRight } from "lucide-react"
@@ -126,6 +128,12 @@ function App() {
           } />
           <Route path="/app/groceries" element={
             <AppRoute><Groceries /></AppRoute>
+          } />
+          <Route path="/app/pantry" element={
+            <AppRoute><Pantry /></AppRoute>
+          } />
+          <Route path="/app/cook" element={
+            <AppRoute><Cook /></AppRoute>
           } />
           <Route path="/app/progress" element={
             <AppRoute><Progress /></AppRoute>

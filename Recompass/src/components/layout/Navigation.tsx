@@ -10,6 +10,8 @@ import {
   BookOpen,
   Compass,
   ShoppingCart,
+  Package,
+  ChefHat,
   TrendingUp,
   User,
   LogOut,
@@ -23,6 +25,8 @@ const navItems = [
   { to: "/app/log",        label: "Daily Log",  icon: BookOpen },
   { to: "/app/compass",    label: "Compass",    icon: Compass },
   { to: "/app/groceries",  label: "Groceries",  icon: ShoppingCart },
+  { to: "/app/pantry",     label: "Dorm Pantry", icon: Package },
+  { to: "/app/cook",       label: "Cook AI",    icon: ChefHat },
   { to: "/app/progress",   label: "Progress",   icon: TrendingUp },
   { to: "/app/profile",    label: "Profile",    icon: User },
 ];
