@@ -14,6 +14,21 @@ export const config = {
 
 const apiKey = process.env.AI_API_KEY;
 
+async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[]) {
+  const models = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.7-flash"];
+  let lastErr;
+  for (const m of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: m });
+      return await model.generateContent({ contents });
+    } catch (err: any) {
+      lastErr = err;
+      console.warn(`[compass] Model ${m} failed: ${err.message}. Trying next fallback...`);
+    }
+  }
+  throw lastErr;
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: "Method not allowed" });
@@ -32,11 +47,9 @@ export default async function handler(req: any, res: any) {
     const fileManager = new GoogleAIFileManager(apiKey);
     let prompt = "";
     let contents: any[] = [];
-    let modelInstance;
     
     switch(action) {
       case "chat":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         
         // Map history to Gemini format
         contents = (payload.history || []).map((msg: any) => ({
@@ -62,7 +75,6 @@ export default async function handler(req: any, res: any) {
         break;
         
       case "extract_menu":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `
           Extract the FULL WEEKLY MESS MENU from the provided image(s) or PDF.
           
@@ -119,7 +131,6 @@ export default async function handler(req: any, res: any) {
         break;
         
       case "estimate_macros":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `Estimate accurate, realistic nutritional macronutrients for the meal or item described as: "${payload.foodName}".
 
 RULES:
@@ -139,7 +150,6 @@ OUTPUT STRICTLY AS JSON (no markdown formatting, no extra commentary):
         break;
 
       case "generate_recipes":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `You are an expert student chef creating practical hostel recipes.
 The student has these available ingredients in their pantry: ${JSON.stringify(payload.ingredients || [])}.
 Their fitness goal is: ${payload.goal || "healthy nutrition"}.
@@ -169,7 +179,6 @@ OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
         break;
 
       case "analyze_plate":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         prompt = `Analyze this photo of a food plate/tray, meal, snack, or beverage.
 Identify each food or beverage item visible and estimate its quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
 For each item estimate realistic macros based on the visible portion.
@@ -189,7 +198,6 @@ CRITICAL INSTRUCTIONS:
         break;
 
       case "parse_and_classify_food":
-        modelInstance = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
         prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${payload.input}".
 
@@ -219,11 +227,7 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
         return res.status(400).json({ error: "Unknown action" });
     }
 
-    if (!modelInstance) {
-        return res.status(500).json({ error: "Model instantiation failed" });
-    }
-
-    const result = await modelInstance.generateContent({ contents });
+    const result = await generateWithFallback(genAI, contents);
     let responseText = result.response.text();
     
     // If it's chat, just return raw text

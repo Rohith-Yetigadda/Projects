@@ -3,13 +3,25 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle } from "lucide-react";
+import { Coffee, Sun, Moon, Plus, Trash2, Loader2, Sparkles, Camera, X, Check, Pencil, AlertCircle, Zap, Bookmark } from "lucide-react";
 
-type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
+type MacroEntry = { id: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt: string; };
 type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; };
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 type FoodCategory = "liquid" | "piece" | "slice" | "ladle" | "tsp" | "generic";
+
+export type StapleMeal = {
+  id: string;
+  name: string;
+  recipe: string;
+  mealType: MealType | "any";
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  createdAt: string;
+};
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -653,6 +665,305 @@ function EditLogItemModal({
   );
 }
 
+// ─── Staple Meal Modal ──────────────────────────────────────────────
+function StapleMealModal({
+  staple,
+  isOpen,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  staple: StapleMeal | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (staple: StapleMeal) => void;
+  onDelete?: (id: string) => void;
+}) {
+  const [name, setName] = useState(staple?.name || "");
+  const [recipe, setRecipe] = useState(staple?.recipe || "");
+  const [mealType, setMealType] = useState<MealType | "any">(staple?.mealType || "any");
+  const [calories, setCalories] = useState(staple?.calories !== undefined ? staple.calories.toString() : "");
+  const [protein, setProtein] = useState(staple?.protein !== undefined ? staple.protein.toString() : "");
+  const [carbs, setCarbs] = useState(staple?.carbs !== undefined ? staple.carbs.toString() : "");
+  const [fats, setFats] = useState(staple?.fats !== undefined ? staple.fats.toString() : "");
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (staple) {
+      setName(staple.name);
+      setRecipe(staple.recipe);
+      setMealType(staple.mealType);
+      setCalories(staple.calories.toString());
+      setProtein(staple.protein.toString());
+      setCarbs(staple.carbs.toString());
+      setFats(staple.fats.toString());
+    } else {
+      setName("");
+      setRecipe("");
+      setMealType("any");
+      setCalories("");
+      setProtein("");
+      setCarbs("");
+      setFats("");
+    }
+    setError(null);
+  }, [staple, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleCalculateWithAI = async () => {
+    const query = recipe.trim() || name.trim();
+    if (!query) {
+      setError("Please describe the ingredients or recipe first.");
+      return;
+    }
+    setIsCalculating(true);
+    setError(null);
+    try {
+      const macros = await estimateMacros(query, "", true);
+      setCalories(macros.calories.toString());
+      setProtein(macros.protein.toString());
+      setCarbs(macros.carbs.toString());
+      setFats(macros.fats.toString());
+      if (!name.trim() && (macros as any).name) {
+        setName((macros as any).name);
+      }
+    } catch (err: any) {
+      console.error("[StapleMealModal] AI estimation error:", err);
+      setError(
+        err?.message === "INVALID_FOOD"
+          ? "Couldn't identify foods in this recipe. Try including specific ingredients & weights (e.g. 50g oats, 250ml milk)."
+          : "AI calculation failed. You can enter or adjust the macros manually below."
+      );
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      setError("Please provide a name for this custom food.");
+      return;
+    }
+    const finalStaple: StapleMeal = {
+      id: staple?.id || ("staple_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6)),
+      name: name.trim().toUpperCase(),
+      recipe: recipe.trim() || name.trim(),
+      mealType,
+      calories: Math.max(0, parseInt(calories) || 0),
+      protein: Math.max(0, parseFloat(protein) || 0),
+      carbs: Math.max(0, parseFloat(carbs) || 0),
+      fats: Math.max(0, parseFloat(fats) || 0),
+      createdAt: staple?.createdAt || new Date().toISOString(),
+    };
+    onSave(finalStaple);
+  };
+
+  const mealOptions: { key: MealType | "any"; label: string }[] = [
+    { key: "any", label: "Any Meal" },
+    { key: "breakfast", label: "Breakfast" },
+    { key: "lunch", label: "Lunch" },
+    { key: "snacks", label: "Snacks" },
+    { key: "dinner", label: "Dinner" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-[#121418] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">
+              <Sparkles className="w-3 h-3" />
+              <span>Custom Food / Recipe</span>
+            </div>
+            <p className="text-base font-bold text-white">
+              {staple ? "Edit Daily Staple" : "New Daily Staple"}
+            </p>
+            <p className="text-[11px] text-white/40">
+              Saved permanently across all weekly menus & loggable in 1 tap.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-3.5">
+          {/* Recipe / Ingredients */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                Ingredients & Quantities
+              </label>
+              <span className="text-[10px] text-emerald-400 font-medium">Gemini AI Powered</span>
+            </div>
+            <textarea
+              rows={3}
+              value={recipe}
+              onChange={e => setRecipe(e.target.value)}
+              placeholder="e.g. 1 banana shake with 20g plant protein, 20g peanut butter, 15g honey, 250ml milk"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-all resize-none"
+            />
+            <button
+              type="button"
+              onClick={handleCalculateWithAI}
+              disabled={isCalculating || !recipe.trim()}
+              className="mt-1.5 w-full py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-40 text-xs font-bold transition-all flex items-center justify-center gap-2"
+            >
+              {isCalculating ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Calculating with Gemini AI...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Calculate Nutrition with AI</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Food Name */}
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+              Food / Shake Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. BANANA PROTEIN SHAKE"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+            />
+          </div>
+
+          {/* Preferred Meal */}
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1.5">
+              Preferred Meal Category
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {mealOptions.map(opt => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setMealType(opt.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    mealType === opt.key
+                      ? "bg-white text-black border-white shadow-sm font-bold"
+                      : "bg-white/[0.03] text-white/60 border-white/[0.06] hover:bg-white/[0.08] hover:text-white"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Macro Inputs */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                Nutritional Breakdown (Per Serving)
+              </label>
+              <span className="text-[10px] text-white/30">Manual override available</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-2.5 text-center">
+                <label className="text-[9px] font-semibold uppercase text-white/40 block mb-0.5">Calories</label>
+                <input
+                  type="number"
+                  value={calories}
+                  onChange={e => setCalories(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-white focus:outline-none"
+                />
+                <span className="text-[9px] text-white/30">kcal</span>
+              </div>
+              <div className="bg-white/[0.02] border border-orange-500/20 rounded-2xl p-2.5 text-center bg-orange-500/[0.02]">
+                <label className="text-[9px] font-semibold uppercase text-orange-400 block mb-0.5">Protein</label>
+                <input
+                  type="number"
+                  value={protein}
+                  onChange={e => setProtein(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-orange-400 focus:outline-none"
+                />
+                <span className="text-[9px] text-orange-400/50">grams</span>
+              </div>
+              <div className="bg-white/[0.02] border border-emerald-500/20 rounded-2xl p-2.5 text-center bg-emerald-500/[0.02]">
+                <label className="text-[9px] font-semibold uppercase text-emerald-400 block mb-0.5">Carbs</label>
+                <input
+                  type="number"
+                  value={carbs}
+                  onChange={e => setCarbs(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-emerald-400 focus:outline-none"
+                />
+                <span className="text-[9px] text-emerald-400/50">grams</span>
+              </div>
+              <div className="bg-white/[0.02] border border-blue-500/20 rounded-2xl p-2.5 text-center bg-blue-500/[0.02]">
+                <label className="text-[9px] font-semibold uppercase text-blue-400 block mb-0.5">Fats</label>
+                <input
+                  type="number"
+                  value={fats}
+                  onChange={e => setFats(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-transparent text-center text-sm font-sans font-bold text-blue-400 focus:outline-none"
+                />
+                <span className="text-[9px] text-blue-400/50">grams</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2.5 pt-2">
+          {staple && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(staple.id)}
+              className="px-4 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-colors"
+            >
+              Delete
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 hover:text-white text-xs font-semibold transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!name.trim()}
+            className="flex-1 py-2.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-white/90 active:scale-[0.99] transition-all shadow-sm"
+          >
+            {staple ? "Update Staple" : "Save Staple"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
   const { currentUser } = useAuth();
@@ -667,6 +978,13 @@ export default function DailyLog() {
   const [editingEntry, setEditingEntry] = useState<{ mealType: MealType; item: MacroEntry } | null>(null);
   const [customInput, setCustomInput] = useState<{ [k in MealType]?: string }>({});
   const [toast, setToast] = useState<string | null>(null);
+
+  // Staples / Custom Foods State
+  const [staples, setStaples] = useState<StapleMeal[]>([]);
+  const [staplesLoading, setStaplesLoading] = useState(true);
+  const [isStapleModalOpen, setIsStapleModalOpen] = useState(false);
+  const [editingStaple, setEditingStaple] = useState<StapleMeal | null>(null);
+  const [loggingStapleKey, setLoggingStapleKey] = useState<string | null>(null);
 
   const bfRef  = useRef<HTMLInputElement>(null);
   const lRef   = useRef<HTMLInputElement>(null);
@@ -699,7 +1017,122 @@ export default function DailyLog() {
     if (!snap.empty) { const ext: MealPlan[] = snap.docs[0].data().extractedData||[]; setMenu(ext.find(d=>d.day===dayName)||ext[0]||null); }
   }, [currentUser, dayName]);
 
-  useEffect(() => { Promise.all([loadLog(), loadMenu()]).finally(()=>setLoading(false)); }, [loadLog, loadMenu]);
+  const loadStaples = useCallback(async () => {
+    if (!currentUser) return;
+    setStaplesLoading(true);
+    try {
+      const staplesDocRef = doc(db, "users", currentUser.uid, "staples", "current");
+      const snap = await getDoc(staplesDocRef);
+      if (snap.exists()) {
+        setStaples(snap.data().items || []);
+      } else {
+        // First-time setup: calculate nutrition dynamically with Gemini AI for the user's two exact daily recipes!
+        const defaultSeeds = [
+          {
+            recipe: "1 banana shake with 20g plant protein, 20g peanut butter, 15g honey, 250ml milk",
+            mealType: "breakfast" as const,
+          },
+          {
+            recipe: "50g oats with 15g protein powder, 10g honey, 5g chia seeds, 250ml milk",
+            mealType: "breakfast" as const,
+          },
+        ];
+
+        try {
+          const seededStaples: StapleMeal[] = [];
+          for (let i = 0; i < defaultSeeds.length; i++) {
+            const s = defaultSeeds[i];
+            const aiMacros = await estimateMacros(s.recipe, "", true);
+            seededStaples.push({
+              id: "staple_seed_" + (i + 1) + "_" + Date.now(),
+              name: (aiMacros as any).name || (i === 0 ? "BANANA PROTEIN SHAKE" : "PROTEIN OATS BOWL"),
+              recipe: s.recipe,
+              mealType: s.mealType,
+              calories: aiMacros.calories,
+              protein: aiMacros.protein,
+              carbs: aiMacros.carbs,
+              fats: aiMacros.fats,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          await setDoc(staplesDocRef, {
+            items: seededStaples,
+            lastUpdated: new Date().toISOString(),
+          });
+          setStaples(seededStaples);
+        } catch (seedErr) {
+          console.error("[loadStaples] Dynamic seed error:", seedErr);
+        }
+      }
+    } catch (err) {
+      console.error("[loadStaples] Error fetching staples:", err);
+    } finally {
+      setStaplesLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => { Promise.all([loadLog(), loadMenu(), loadStaples()]).finally(()=>setLoading(false)); }, [loadLog, loadMenu, loadStaples]);
+
+  const persistStaples = async (newStaples: StapleMeal[]) => {
+    if (!currentUser) return;
+    const staplesDocRef = doc(db, "users", currentUser.uid, "staples", "current");
+    await setDoc(staplesDocRef, { items: newStaples, lastUpdated: new Date().toISOString() });
+  };
+
+  const handleSaveStaple = async (stapleToSave: StapleMeal) => {
+    const exists = staples.some(s => s.id === stapleToSave.id);
+    const updated = exists
+      ? staples.map(s => s.id === stapleToSave.id ? stapleToSave : s)
+      : [stapleToSave, ...staples];
+    setStaples(updated);
+    await persistStaples(updated);
+    setIsStapleModalOpen(false);
+    setEditingStaple(null);
+    setToast(exists ? `Updated "${stapleToSave.name}"` : `Saved "${stapleToSave.name}" to Daily Staples!`);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleDeleteStaple = async (id: string) => {
+    const updated = staples.filter(s => s.id !== id);
+    setStaples(updated);
+    await persistStaples(updated);
+    setIsStapleModalOpen(false);
+    setEditingStaple(null);
+    setToast("Staple deleted");
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const logStaple = async (targetMeal: MealType, staple: StapleMeal) => {
+    const logKey = `${targetMeal}:${staple.id}`;
+    setLoggingStapleKey(logKey);
+    try {
+      const entry: MacroEntry = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+        name: staple.name,
+        quantity: staple.recipe || "1 serving",
+        calories: staple.calories,
+        protein: staple.protein,
+        carbs: staple.carbs,
+        fats: staple.fats,
+        loggedAt: new Date().toISOString(),
+      };
+      const newLog = {
+        ...log,
+        [targetMeal]: [...(log[targetMeal] || []), entry],
+      };
+      setLog(newLog);
+      await persist(newLog);
+      const mealLabel = mealConfig.find(m => m.key === targetMeal)?.label || targetMeal;
+      setToast(`Logged ${staple.name} to ${mealLabel}!`);
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      console.error("[logStaple] Error:", err);
+      setToast("Failed to log staple. Please try again.");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setLoggingStapleKey(null);
+    }
+  };
 
   // Smooth scroll to hash when loading finishes
   useEffect(() => {
@@ -809,6 +1242,18 @@ export default function DailyLog() {
           onCancel={() => setEditingEntry(null)}
         />
       )}
+      {isStapleModalOpen && (
+        <StapleMealModal
+          staple={editingStaple}
+          isOpen={isStapleModalOpen}
+          onClose={() => {
+            setIsStapleModalOpen(false);
+            setEditingStaple(null);
+          }}
+          onSave={handleSaveStaple}
+          onDelete={handleDeleteStaple}
+        />
+      )}
 
       {/* Custom Toast */}
       {toast && (
@@ -860,6 +1305,141 @@ export default function DailyLog() {
             <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider mt-1">{m.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* My Daily Staples Section */}
+      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 md:p-6 space-y-4 group hover:border-white/[0.12] transition-all">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-[10px] font-bold tracking-wider uppercase text-amber-400 mb-1">
+              <Zap className="w-3 h-3 text-amber-400" />
+              <span>Permanent Custom Foods</span>
+            </div>
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">
+              My Daily Staples
+            </h2>
+            <p className="text-xs text-white/40">
+              Your recurring recipes saved permanently across all weekly menus &bull; 1-tap log anytime
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setEditingStaple(null);
+              setIsStapleModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm self-start sm:self-auto shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Custom Food</span>
+          </button>
+        </div>
+
+        {staplesLoading ? (
+          <div className="flex items-center justify-center py-6 gap-2 text-xs text-white/40">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+            <span>Loading custom staples...</span>
+          </div>
+        ) : staples.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/[0.08] p-6 text-center space-y-2">
+            <p className="text-xs text-white/50">No daily staples added yet.</p>
+            <p className="text-[11px] text-white/30 max-w-sm mx-auto">
+              Add your daily banana shake, protein oatmeal, or recurring snacks once. They stay saved forever even when new mess menus are uploaded.
+            </p>
+            <button
+              onClick={() => {
+                setEditingStaple(null);
+                setIsStapleModalOpen(true);
+              }}
+              className="mt-2 px-3.5 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] transition-all"
+            >
+              + Create First Staple
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {staples.map(staple => (
+              <div
+                key={staple.id}
+                className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 flex flex-col justify-between hover:border-white/[0.12] hover:bg-white/[0.03] transition-all group/card"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs font-bold text-white group-hover/card:text-amber-300 transition-colors truncate">
+                          {staple.name}
+                        </p>
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/40">
+                          {staple.mealType === "any" ? "Any Meal" : staple.mealType}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/45 line-clamp-2 mt-1 leading-relaxed">
+                        {staple.recipe}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setEditingStaple(staple);
+                        setIsStapleModalOpen(true);
+                      }}
+                      title="Edit staple & recipe"
+                      className="text-white/30 hover:text-white p-1 rounded-lg hover:bg-white/[0.05] transition-colors shrink-0"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Macro Strip */}
+                  <div className="flex items-center gap-2 mt-3 text-[11px] font-sans">
+                    <span className="font-bold text-white">
+                      {Math.round(staple.calories)} <span className="text-[9px] font-normal text-white/40">kcal</span>
+                    </span>
+                    <span className="text-orange-400 font-semibold bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20">
+                      P {staple.protein}g
+                    </span>
+                    <span className="text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                      C {staple.carbs}g
+                    </span>
+                    <span className="text-blue-400 font-semibold bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
+                      F {staple.fats}g
+                    </span>
+                  </div>
+                </div>
+
+                {/* 1-Tap Quick Log Actions */}
+                <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-white/[0.04]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 mr-1">Log:</span>
+                  {(["breakfast", "lunch", "snacks", "dinner"] as MealType[]).map(mKey => {
+                    const isPreferred = staple.mealType === mKey;
+                    const isLogging = loggingStapleKey === `${mKey}:${staple.id}`;
+                    return (
+                      <button
+                        key={mKey}
+                        onClick={() => logStaple(mKey, staple)}
+                        disabled={!!loggingStapleKey}
+                        title={`1-tap log to ${mKey}`}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                          isPreferred
+                            ? "bg-amber-400/15 border border-amber-400/30 text-amber-300 hover:bg-amber-400/25 shadow-sm"
+                            : "bg-white/[0.03] border border-white/[0.06] text-white/50 hover:bg-white/[0.08] hover:text-white"
+                        }`}
+                      >
+                        {isLogging ? (
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        ) : (
+                          <Plus className="w-2.5 h-2.5" />
+                        )}
+                        <span>{mKey === "breakfast" ? "B'fast" : mKey.charAt(0).toUpperCase() + mKey.slice(1)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Meal Sections */}
@@ -934,6 +1514,27 @@ export default function DailyLog() {
 
                     <div className="flex items-center gap-1 opacity-60 group-hover/item:opacity-100 transition-opacity">
                       <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingStaple({
+                            id: "staple_" + Date.now(),
+                            name: item.name,
+                            recipe: item.quantity ? `${item.quantity} ${item.name}` : item.name,
+                            mealType: key,
+                            calories: item.calories,
+                            protein: item.protein,
+                            carbs: item.carbs,
+                            fats: item.fats,
+                            createdAt: new Date().toISOString(),
+                          });
+                          setIsStapleModalOpen(true);
+                        }}
+                        title="Save as permanent daily staple"
+                        className="text-white/30 hover:text-amber-400 transition-colors p-1.5 rounded-lg hover:bg-amber-400/10"
+                      >
+                        <Bookmark className="w-3.5 h-3.5"/>
+                      </button>
+                      <button
                         onClick={() => setEditingEntry({ mealType: key, item })}
                         title="Edit item or macros"
                         className="text-white/30 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/[0.05]"
@@ -950,6 +1551,34 @@ export default function DailyLog() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Quick Staples Chips for this meal */}
+            {staples.filter(s => s.mealType === "any" || s.mealType === key).length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400/80 mr-1 shrink-0">
+                  <Zap className="w-3 h-3 text-amber-400 fill-amber-400/30" />
+                  <span>Staples:</span>
+                </div>
+                {staples
+                  .filter(s => s.mealType === "any" || s.mealType === key)
+                  .map(staple => {
+                    const isLogging = loggingStapleKey === `${key}:${staple.id}`;
+                    return (
+                      <button
+                        key={staple.id}
+                        onClick={() => logStaple(key, staple)}
+                        disabled={!!loggingStapleKey}
+                        title={staple.recipe}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
+                      >
+                        {isLogging ? <Loader2 className="w-3 h-3 animate-spin text-amber-300" /> : <Plus className="w-3 h-3 text-amber-400" />}
+                        <span>{staple.name}</span>
+                        <span className="text-[10px] text-amber-300/60 font-normal">({staple.protein}g P)</span>
+                      </button>
+                    );
+                  })}
               </div>
             )}
 

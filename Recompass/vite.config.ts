@@ -80,6 +80,37 @@ OUTPUT STRICTLY AS JSON (no markdown formatting):
                     return;
                   }
 
+                  if (action === "estimate_macros") {
+                    const prompt = `Estimate accurate, realistic nutritional macronutrients for the meal or item described as: "${payload.foodName}".
+RULES:
+1. "name": Return a clean, concise, UPPERCASE food title (e.g. "BANANA PROTEIN SHAKE", "PROTEIN OATS BOWL").
+2. CALCULATE ACCURATE MACROS based on the full portion or description provided.
+OUTPUT STRICTLY AS JSON (no markdown formatting, no extra commentary):
+{"name":"UPPERCASE_NAME","calories":1000,"protein":50,"carbs":95,"fats":30}`;
+
+                    let result;
+                    try {
+                      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
+                      result = await model.generateContent(prompt);
+                    } catch {
+                      const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+                      result = await model.generateContent(prompt);
+                    }
+
+                    const responseText = result.response.text().trim();
+                    const firstCurly = responseText.indexOf("{");
+                    const lastCurly = responseText.lastIndexOf("}");
+                    const jsonStr =
+                      firstCurly !== -1 && lastCurly !== -1
+                        ? responseText.substring(firstCurly, lastCurly + 1)
+                        : responseText;
+
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "application/json");
+                    res.end(jsonStr);
+                    return;
+                  }
+
                   next();
                 } catch (err: any) {
                   res.statusCode = 500;
