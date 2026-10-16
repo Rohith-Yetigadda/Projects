@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, addDoc, setDoc, serverTimestamp, where, writeBatch, Timestamp, deleteDoc } from "firebase/firestore";
-import { Send, Compass, Sparkles, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Send, Compass, User as UserIcon, ImagePlus, X, History, Plus, MessageSquare, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -684,36 +684,44 @@ If the user shares an image:
       )}
 
       {/* Main Header */}
-      <header className="sticky top-0 z-30 bg-black pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/10 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] shrink-0">
-            <Compass className="w-7 h-7" />
+      <header className="sticky top-0 z-30 bg-[#0a0b0e]/90 backdrop-blur-xl pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-sm shrink-0">
+            <Compass className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Compass AI</h1>
-            <p className="text-muted-foreground font-medium text-sm flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-400" /> Powered by Gemini
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">Compass AI</h1>
+            <p className="text-white/40 font-medium text-xs flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Nutrition Intelligence</span>
             </p>
           </div>
         </div>
         
         {/* History Toggle Button */}
-        <button onClick={() => setShowHistory(true)} className="w-10 h-10 rounded-full glass flex items-center justify-center text-white/70 hover:text-white transition-colors relative">
-          <History className="w-5 h-5" />
-          {sessions.length > 0 && <div className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black" />}
+        <button 
+          onClick={() => setShowHistory(true)} 
+          className="w-9 h-9 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all relative"
+        >
+          <History className="w-4 h-4" />
+          {sessions.length > 0 && <div className="absolute top-0 right-0 w-2 h-2 bg-emerald-400 rounded-full" />}
         </button>
       </header>
 
       <div className="flex-1 space-y-6">
         {messages.length === 0 && (
-          <div className="glass-card rounded-3xl p-6 md:p-8 space-y-6">
-            <h2 className="text-xl font-bold text-white leading-snug">
+          <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight leading-snug">
               Hey, {userProfile?.name?.split(" ")[0] || "there"}.<br/>
-              <span className="text-white/60">Upload a plate photo or ask me anything about your diet. I'll remember this conversation.</span>
+              <span className="text-white/45 font-normal text-sm">Upload a plate photo or ask me anything about your nutritional targets.</span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((s, i) => (
-                <button key={i} onClick={() => handleSend(s)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold text-white/80 hover:bg-white/10 transition-colors text-left">
+                <button 
+                  key={i} 
+                  onClick={() => handleSend(s)} 
+                  className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white transition-all text-left"
+                >
                   {s}
                 </button>
               ))}
@@ -724,28 +732,32 @@ If the user shares an image:
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`flex max-w-[85%] md:max-w-[75%] gap-3 ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-              <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-auto ${m.role === "user" ? "bg-emerald-500/20" : "bg-white"}`}>
-                {m.role === "user" ? <UserIcon className="w-4 h-4 text-emerald-400" /> : <Compass className="w-4 h-4 text-black" />}
+              <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-auto ${m.role === "user" ? "bg-white/[0.08] text-white" : "bg-white text-black shadow-sm"}`}>
+                {m.role === "user" ? <UserIcon className="w-4 h-4" /> : <Compass className="w-4 h-4 stroke-[2]" />}
               </div>
-              <div className={`p-4 rounded-2xl space-y-2 ${m.role === "user" ? "bg-emerald-500/10 border border-emerald-500/20 text-white rounded-tr-sm" : "glass border-white/10 text-white/90 rounded-tl-sm"}`}>
-                {m.image && <img src={m.image} alt="User upload" className="rounded-xl max-h-48 object-cover shadow-lg" />}
+              <div className={`p-4 rounded-3xl space-y-2 ${
+                m.role === "user" 
+                  ? "bg-white/[0.08] border border-white/[0.1] text-white rounded-br-md" 
+                  : "bg-[#121418] border border-white/[0.06] text-white/90 rounded-bl-md shadow-sm"
+              }`}>
+                {m.image && <img src={m.image} alt="User upload" className="rounded-2xl max-h-48 object-cover shadow-lg border border-white/10" />}
                 {m.text && (
-                  <div className="text-sm md:text-base leading-relaxed break-words">
+                  <div className="text-xs md:text-sm leading-relaxed break-words font-sans">
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
-                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-4 mb-2" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-3 mb-2 text-emerald-400" {...props} />,
-                        h4: ({node, ...props}) => <h4 className="text-base font-bold mt-2 mb-1" {...props} />,
-                        p: ({node, ...props}) => <p className="mb-3 whitespace-pre-wrap last:mb-0" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-1" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-1" {...props} />,
-                        li: ({node, ...props}) => <li className="marker:text-emerald-500" {...props} />,
-                        strong: ({node, ...props}) => <strong className="font-bold text-emerald-300" {...props} />,
+                        h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-3 mb-1 text-white tracking-tight" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-1 text-white tracking-tight" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-base font-bold mt-2 mb-1 text-white tracking-tight" {...props} />,
+                        h4: ({node, ...props}) => <h4 className="text-sm font-bold mt-2 mb-1 text-white" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2.5 whitespace-pre-wrap last:mb-0 text-white/85" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1 text-white/80" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1 text-white/80" {...props} />,
+                        li: ({node, ...props}) => <li className="marker:text-white/40" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
                         em: ({node, ...props}) => <em className="italic opacity-90" {...props} />,
-                        hr: ({node, ...props}) => <hr className="border-white/10 my-4" {...props} />,
-                        a: ({node, ...props}) => <a className="text-blue-400 underline" target="_blank" rel="noopener noreferrer" {...props} />
+                        hr: ({node, ...props}) => <hr className="border-white/[0.06] my-3" {...props} />,
+                        a: ({node, ...props}) => <a className="text-blue-400 underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />
                       }}
                     >
                       {m.text}
@@ -760,10 +772,10 @@ If the user shares an image:
         {loading && (
           <div className="flex justify-start">
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full shrink-0 bg-white flex items-center justify-center mt-auto">
+              <div className="w-8 h-8 rounded-full shrink-0 bg-white flex items-center justify-center mt-auto shadow-sm">
                 <Compass className="w-4 h-4 text-black animate-spin" />
               </div>
-              <div className="p-4 rounded-2xl glass border-white/10 rounded-tl-sm flex items-center gap-2">
+              <div className="p-4 rounded-3xl bg-[#121418] border border-white/[0.06] rounded-bl-md flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" />
                 <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse delay-75" />
                 <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse delay-150" />
@@ -771,26 +783,28 @@ If the user shares an image:
             </div>
           </div>
         )}
-        {/* Extra tall spacer to ensure the last message scrolls past the fixed input bar */}
         <div ref={endRef} className="h-40 md:h-32 shrink-0" />
       </div>
 
-      <div className="fixed bottom-[88px] md:bottom-6 left-0 md:left-72 right-0 px-4 md:px-0 z-40 pointer-events-none">
+      <div className="fixed bottom-[76px] md:bottom-6 left-0 md:left-64 right-0 px-4 md:px-0 z-40 pointer-events-none">
         <div className="max-w-3xl mx-auto pointer-events-auto relative">
           
           {selectedImage && (
-            <div className="absolute -top-24 left-4 p-2 glass-card rounded-xl border border-white/20 shadow-2xl animate-in fade-in zoom-in-95 duration-200 group">
-              <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
-              <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute -top-24 left-4 p-2 rounded-2xl bg-[#121418] border border-white/20 shadow-2xl animate-in fade-in zoom-in-95 duration-200 group">
+              <img src={selectedImage} alt="Preview" className="w-16 h-16 object-cover rounded-xl" />
+              <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                 <X className="w-3 h-3" />
               </button>
             </div>
           )}
 
-          <div className="glass-card rounded-2xl p-2 flex items-end gap-2 shadow-2xl border-white/20 relative bg-black/95 backdrop-blur-3xl">
+          <div className="rounded-full p-2 flex items-center gap-2 shadow-2xl border border-white/[0.08] bg-[#121418]/90 backdrop-blur-2xl">
             <input type="file" accept="image/*" ref={fileRef} onChange={handleImagePick} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors mb-1 ml-1">
-              <ImagePlus className="w-5 h-5" />
+            <button 
+              onClick={() => fileRef.current?.click()} 
+              className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors ml-1"
+            >
+              <ImagePlus className="w-4 h-4" />
             </button>
             
             <textarea
@@ -798,15 +812,15 @@ If the user shares an image:
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(input); } }}
               placeholder="Ask anything or upload a meal..."
-              className="flex-1 bg-transparent border-0 resize-none max-h-32 min-h-[44px] p-3 text-white placeholder-white/40 focus:outline-none focus:ring-0 text-sm"
+              className="flex-1 bg-transparent border-0 resize-none max-h-32 min-h-[38px] py-2 px-1 text-white placeholder-white/35 focus:outline-none focus:ring-0 text-xs font-sans"
               rows={1}
             />
             <button
               onClick={() => handleSend(input)}
               disabled={(!input.trim() && !selectedImage) || loading}
-              className="w-11 h-11 shrink-0 bg-white rounded-xl flex items-center justify-center text-black disabled:opacity-50 disabled:bg-white/20 disabled:text-white transition-colors mb-1 mr-1"
+              className="w-9 h-9 shrink-0 bg-white rounded-full flex items-center justify-center text-black disabled:opacity-40 disabled:bg-white/20 disabled:text-white transition-all mr-1 shadow-sm"
             >
-              <Send className="w-5 h-5 ml-0.5" />
+              <Send className="w-4 h-4 ml-0.5" />
             </button>
           </div>
         </div>

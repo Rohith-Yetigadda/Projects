@@ -38,67 +38,69 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-72 h-full border-r border-white/5 bg-black/40 backdrop-blur-3xl px-6 py-8 relative">
-      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
-
-      {/* Logo */}
-      <div className="mb-10 px-2 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-          <Compass className="w-5 h-5 text-black" />
+    <aside className="hidden md:flex flex-col w-64 h-full border-r border-white/[0.06] bg-[#0c0e12]/95 backdrop-blur-2xl px-4 py-6 relative z-30 select-none">
+      {/* Brand Header */}
+      <div className="mb-8 px-2 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-black shadow-sm">
+          <Compass className="w-4 h-4 stroke-[2.2]" />
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">RECOMPASS</h1>
+          <h1 className="text-base font-bold tracking-tight text-white font-sans">RECOMPASS</h1>
+          <p className="text-[10px] font-semibold text-white/35 tracking-wider uppercase">Health & Macros</p>
         </div>
       </div>
 
-      {/* User pill */}
+      {/* User Card */}
       {userProfile && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl glass mb-8 group cursor-pointer hover:bg-white/5 transition-colors">
-          <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white font-bold shadow-inner">
+        <Link
+          to="/app/profile"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6 hover:bg-white/[0.06] hover:border-white/10 transition-all duration-200 group"
+        >
+          <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white text-xs font-bold">
             {userProfile.name?.[0]?.toUpperCase() ?? "U"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate text-white">{userProfile.name}</p>
-            <p className="text-xs text-muted-foreground capitalize font-medium">
-              {userProfile.goal?.replace("_", " ") ?? "Set your goal"}
+            <p className="text-xs font-semibold truncate text-white group-hover:text-white/90">{userProfile.name}</p>
+            <p className="text-[10px] text-white/40 capitalize font-medium truncate">
+              {userProfile.goal?.replace(/_/g, " ") ?? "Set your goal"}
             </p>
           </div>
-        </div>
+        </Link>
       )}
 
-      {/* Nav links */}
-      <nav className="flex-1 space-y-1.5">
-        <div className="px-3 text-xs font-bold tracking-wider text-muted-foreground uppercase mb-4 mt-2">Menu</div>
+      {/* Nav Links */}
+      <nav className="flex-1 space-y-1">
+        <div className="px-3 text-[10px] font-bold tracking-widest text-white/30 uppercase mb-2">Menu</div>
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/app"}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+              `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                 isActive
-                  ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] scale-[1.02]"
-                  : "text-muted-foreground hover:text-white hover:bg-white/10"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-white/50 hover:text-white hover:bg-white/[0.05]"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                {label}
+                <Icon size={17} strokeWidth={isActive ? 2.3 : 1.8} />
+                <span>{label}</span>
               </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Sign out */}
+      {/* Sign Out */}
       <button
         onClick={() => setShowSignOutConfirm(true)}
-        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-white hover:bg-white/10 transition-all duration-300 mt-auto"
+        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white/40 hover:text-rose-400 hover:bg-rose-500/[0.06] transition-all duration-200 mt-auto"
       >
-        <LogOut size={20} />
-        Sign out
+        <LogOut size={16} />
+        <span>Sign out</span>
       </button>
 
       <ConfirmDialog
@@ -118,11 +120,11 @@ export function Sidebar() {
 
 // --- Mobile Navigation -------------------------------------------
 const mobileNav = [
-  { to: "/app",           label: "Home",    icon: Home },
-  { to: "/app/log",       label: "Log",     icon: BookOpen },
-  { to: "/app/compass",   label: "Compass", icon: Compass },
+  { to: "/app",           label: "Home",      icon: Home },
+  { to: "/app/log",       label: "Log",       icon: BookOpen },
+  { to: "/app/compass",   label: "Compass",   icon: Compass },
   { to: "/app/groceries", label: "Groceries", icon: ShoppingCart },
-  { to: "/app/progress",  label: "Progress",icon: TrendingUp },
+  { to: "/app/progress",  label: "Trends",    icon: TrendingUp },
 ];
 
 export function MobileHeader() {
@@ -138,63 +140,79 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="md:hidden flex items-center justify-between h-16 px-4 bg-[#0a0a0a] border-b border-white/5 shrink-0 z-40 relative">
-        <button onClick={() => setMenuOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white">
-          <Menu className="w-5 h-5" />
+      <header className="md:hidden flex items-center justify-between h-14 px-4 bg-[#0a0b0e]/90 backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-40 sticky top-0">
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/70 hover:text-white transition-colors"
+        >
+          <Menu className="w-4 h-4" />
         </button>
-        
-        <div className="font-black text-lg tracking-tight flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-          <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-            <Compass className="w-4 h-4 text-black"/>
+
+        <div className="font-bold text-sm tracking-tight flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shadow-sm">
+            <Compass className="w-3.5 h-3.5 text-black stroke-[2.2]" />
           </div>
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">Recompass</span>
+          <span className="text-white font-sans">RECOMPASS</span>
         </div>
 
-        <Link to="/app/profile" className="w-10 h-10 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 overflow-hidden hover:border-emerald-500/50 transition-colors">
-          <User className="w-5 h-5 text-emerald-400" />
+        <Link
+          to="/app/profile"
+          className="w-8 h-8 flex items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05] text-white/80 hover:border-white/20 transition-colors"
+        >
+          <User className="w-4 h-4" />
         </Link>
       </header>
 
       {/* Side Drawer Menu Overlay */}
       <div className={`md:hidden fixed inset-0 z-[100] flex justify-start transition-all duration-300 ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
-        {/* Backdrop */}
         <div 
-          className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} 
+          className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} 
           onClick={() => setMenuOpen(false)} 
         />
         
-        {/* Drawer Panel */}
-        <div className={`relative w-64 h-full bg-[#050505] border-r border-white/10 shadow-2xl transition-transform duration-300 flex flex-col pb-safe ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
-          <div className="p-6 border-b border-white/5 flex flex-col gap-1 bg-white/5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3">
-              <button onClick={() => setMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/50 hover:text-white transition-colors">
-                <X className="w-4 h-4"/>
-              </button>
+        <div className={`relative w-72 h-full bg-[#0d0f14] border-r border-white/[0.08] shadow-2xl transition-transform duration-300 flex flex-col pb-safe ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="p-5 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.02]">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-white font-bold text-sm">
+                {userProfile?.name?.charAt(0) || "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-bold text-white truncate">{userProfile?.name || "User"}</h2>
+                <p className="text-[11px] text-white/40 capitalize truncate">{userProfile?.goal?.replace(/_/g, " ") || "Health"}</p>
+              </div>
             </div>
-            <div className="w-12 h-12 mb-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-black font-bold text-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-              {userProfile?.name?.charAt(0) || "U"}
-            </div>
-            <h2 className="text-lg font-bold text-white truncate">{userProfile?.name || "User"}</h2>
-            <p className="text-xs text-white/50 capitalize truncate">{userProfile?.goal?.replace(/_/g, " ") || "Welcome"}</p>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.05] text-white/50 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
             {navItems.map(item => (
               <NavLink 
                 key={item.to} 
                 to={item.to} 
                 end={item.to === "/app"}
                 onClick={() => setMenuOpen(false)} 
-                className={({isActive}) => `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${isActive ? 'bg-emerald-500/10 text-emerald-400 font-bold' : 'text-white/60 hover:text-white hover:bg-white/5 font-medium'}`}
+                className={({isActive}) =>
+                  `flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all ${
+                    isActive ? "bg-white text-black shadow-sm font-bold" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                  }`
+                }
               >
-                <item.icon className="w-5 h-5" />
-                {item.label}
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
               </NavLink>
             ))}
           </div>
 
-          <div className="p-4 border-t border-white/5">
-            <button onClick={() => setShowSignOutConfirm(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-colors">
+          <div className="p-4 border-t border-white/[0.06]">
+            <button
+              onClick={() => setShowSignOutConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-semibold text-xs hover:bg-rose-500/20 transition-colors"
+            >
               <LogOut className="w-4 h-4" /> Sign out
             </button>
           </div>
@@ -218,27 +236,25 @@ export function MobileHeader() {
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[90] bg-[#050505] border-t border-white/10 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-      <div className="flex items-center justify-around h-20 px-2 pb-2">
+    <nav className="md:hidden fixed bottom-3 inset-x-4 max-w-md mx-auto z-50 bg-[#121418]/90 backdrop-blur-2xl border border-white/[0.08] rounded-full px-2 py-1.5 shadow-2xl shadow-black/80">
+      <div className="flex items-center justify-around">
         {mobileNav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/app"}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1.5 flex-1 py-2 rounded-2xl transition-all duration-300 relative ${
-                isActive ? "text-white" : "text-muted-foreground hover:text-white/70"
+              `flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-full transition-all duration-200 relative ${
+                isActive ? "text-white" : "text-white/40 hover:text-white/70"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                {isActive && (
-                  <div className="absolute top-0 w-8 h-1 bg-white rounded-b-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
-                )}
-                <Icon className={`w-6 h-6 mb-1 transition-transform duration-300 ${isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : "scale-100"}`} />
-                <span className={`text-[10px] font-medium tracking-wide transition-all duration-300 ${isActive ? "opacity-100" : "opacity-70"}`}>
+                <div className={`p-1 rounded-xl transition-all ${isActive ? "bg-white/10" : ""}`}>
+                  <Icon className="w-4 h-4 stroke-[2]" />
+                </div>
+                <span className={`text-[9px] tracking-tight font-medium ${isActive ? "text-white font-semibold" : "text-white/40"}`}>
                   {label}
                 </span>
               </>

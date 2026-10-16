@@ -4,13 +4,14 @@ import { db, auth } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { User, Target, Activity, LogOut, Check, Loader2 } from "lucide-react";
+import { User, Target, Activity, LogOut, Check, Loader2, Sparkles } from "lucide-react";
 
 export default function Profile() {
   const { userProfile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   
   const [data, setData] = useState({
     name: "",
@@ -45,6 +46,7 @@ export default function Profile() {
   const handleSave = async () => {
     if (!auth.currentUser) return;
     setSaving(true);
+    setSaveSuccess(false);
     try {
       const updates = {
         name: data.name,
@@ -62,6 +64,8 @@ export default function Profile() {
       };
       await setDoc(doc(db, "users", auth.currentUser.uid, "profile", "main"), updates, { merge: true });
       await refreshProfile();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error(e);
     } finally {
@@ -88,14 +92,28 @@ export default function Profile() {
   const autoCarbs = Math.round((autoCalories - (autoProtein * 4) - (autoFats * 9)) / 4);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-28 md:pb-0">
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500 pb-28 md:pb-8">
       
-      <header className="flex items-center justify-between">
+      {/* Editorial Header */}
+      <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Profile</h1>
-          <p className="text-muted-foreground font-medium text-sm">Manage your goals and body metrics</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            <span>Profile & Preferences</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
+            Account Settings
+          </h1>
+          <p className="text-sm font-normal text-white/45 mt-1.5">
+            Manage your physical stats, fitness goals, and metabolic targets.
+          </p>
         </div>
-        <button onClick={handleLogout} className="w-10 h-10 rounded-full glass flex items-center justify-center text-white/50 hover:text-white transition-colors">
+
+        <button 
+          onClick={handleLogout} 
+          title="Sign out"
+          className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all"
+        >
           <LogOut className="w-4 h-4" />
         </button>
       </header>
@@ -103,53 +121,91 @@ export default function Profile() {
       <div className="space-y-6">
         
         {/* Personal Details */}
-        <section className="glass-card rounded-3xl p-6 md:p-8 space-y-8">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-emerald-400" />
-              <h2 className="font-bold text-white">Personal Details</h2>
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/80">
+              <User className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight">Personal Details</h2>
+              <p className="text-[11px] text-white/40">Basic physical stats used to derive energy expenditure</p>
             </div>
           </div>
           
-          <div className="group relative">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1 transition-colors group-focus-within:text-emerald-400">Display Name</label>
-            <input type="text" value={data.name} onChange={e=>setData({...data, name: e.target.value})} className="w-full bg-transparent border-b border-white/10 group-focus-within:border-emerald-500 pb-2 text-white font-sans font-semibold text-xl focus:outline-none transition-colors" placeholder="Your Name" />
+          <div>
+            <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Display Name</label>
+            <input 
+              type="text" 
+              value={data.name} 
+              onChange={e=>setData({...data, name: e.target.value})} 
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-sans font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+              placeholder="Your Name" 
+            />
           </div>
           
-          <div className="grid grid-cols-3 gap-6 md:gap-8">
-            <div className="group relative">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1 transition-colors group-focus-within:text-emerald-400">Age</label>
-              <input type="number" value={data.age} onChange={e=>setData({...data, age: e.target.value})} className="w-full bg-transparent border-b border-white/10 group-focus-within:border-emerald-500 pb-2 text-white font-sans font-semibold text-xl focus:outline-none transition-colors" placeholder="18" />
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Age</label>
+              <input 
+                type="number" 
+                value={data.age} 
+                onChange={e=>setData({...data, age: e.target.value})} 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                placeholder="20" 
+              />
             </div>
-            <div className="group relative">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1 transition-colors group-focus-within:text-emerald-400">Weight (kg)</label>
-              <input type="number" value={data.weight} onChange={e=>setData({...data, weight: e.target.value})} className="w-full bg-transparent border-b border-white/10 group-focus-within:border-emerald-500 pb-2 text-white font-sans font-semibold text-xl focus:outline-none transition-colors" placeholder="70" />
+            <div>
+              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Weight (kg)</label>
+              <input 
+                type="number" 
+                value={data.weight} 
+                onChange={e=>setData({...data, weight: e.target.value})} 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                placeholder="70" 
+              />
             </div>
-            <div className="group relative">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-1 transition-colors group-focus-within:text-emerald-400">Height (cm)</label>
-              <input type="number" value={data.height} onChange={e=>setData({...data, height: e.target.value})} className="w-full bg-transparent border-b border-white/10 group-focus-within:border-emerald-500 pb-2 text-white font-sans font-semibold text-xl focus:outline-none transition-colors" placeholder="170" />
+            <div>
+              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Height (cm)</label>
+              <input 
+                type="number" 
+                value={data.height} 
+                onChange={e=>setData({...data, height: e.target.value})} 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 text-white font-mono font-medium text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                placeholder="175" 
+              />
             </div>
           </div>
         </section>
 
         {/* Goal Settings */}
-        <section className="glass-card rounded-3xl p-6 md:p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <div className="flex items-center gap-3">
-              <Target className="w-5 h-5 text-blue-400" />
-              <h2 className="font-bold text-white">Fitness Goal</h2>
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+          <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <Target className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight">Primary Fitness Goal</h2>
+              <p className="text-[11px] text-white/40">Directs the automated macro distribution formula</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {[
-              { id: "fat_loss", label: "Lose Fat" },
+              { id: "fat_loss", label: "Fat Loss" },
               { id: "muscle_gain", label: "Build Muscle" },
               { id: "recomp", label: "Recomposition" },
-              { id: "maintain", label: "Maintain" }
+              { id: "maintain", label: "Maintenance" }
             ].map(g => (
-              <button key={g.id} onClick={() => setData({...data, goal: g.id})}
-                className={`p-3 rounded-xl border text-sm font-semibold transition-all ${data.goal === g.id ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}>
+              <button 
+                key={g.id} 
+                type="button"
+                onClick={() => setData({...data, goal: g.id})}
+                className={`py-3 px-3 rounded-2xl text-xs font-semibold transition-all duration-200 border text-center ${
+                  data.goal === g.id 
+                    ? "bg-white text-black border-white shadow-sm font-bold" 
+                    : "bg-white/[0.03] border-white/[0.06] text-white/60 hover:text-white hover:bg-white/[0.06]"
+                }`}
+              >
                 {g.label}
               </button>
             ))}
@@ -157,122 +213,132 @@ export default function Profile() {
         </section>
 
         {/* Nutrition Targets */}
-        <section className="glass-card rounded-3xl p-6 md:p-8 space-y-8">
-          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 md:p-8 space-y-6">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
             <div className="flex items-center gap-3">
-              <Activity className="w-5 h-5 text-orange-400" />
-              <h2 className="font-bold text-white">Daily Targets</h2>
+              <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight">Daily Nutritional Targets</h2>
+                <p className="text-[11px] text-white/40">Caloric and macronutrient limits</p>
+              </div>
             </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <span className="text-sm font-semibold text-white/60">Override limits manually</span>
+            
+            {/* Apple iOS Style Toggle */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <span className="text-xs font-medium text-white/50 hidden sm:inline">Manual Override</span>
               <div className="relative">
-                <input type="checkbox" className="sr-only" checked={data.customTargetsEnabled} onChange={e=>setData({...data, customTargetsEnabled: e.target.checked})} />
-                <div className={`block w-10 h-6 rounded-full transition-colors ${data.customTargetsEnabled ? 'bg-orange-500' : 'bg-white/20'}`}></div>
-                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${data.customTargetsEnabled ? 'translate-x-4' : ''}`}></div>
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={data.customTargetsEnabled} 
+                  onChange={e=>setData({...data, customTargetsEnabled: e.target.checked})} 
+                />
+                <div className={`w-11 h-6 rounded-full transition-colors duration-200 ${
+                  data.customTargetsEnabled ? "bg-white" : "bg-white/15"
+                }`} />
+                <div className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full transition-transform duration-200 ${
+                  data.customTargetsEnabled ? "translate-x-5 bg-black" : "bg-white"
+                }`} />
               </div>
             </label>
           </div>
 
           {!data.customTargetsEnabled ? (
             <div className="pt-2 animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80">Auto-Calculated Profile Active</p>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
+                  Auto-Calculated Profile Active
+                </p>
               </div>
-              <div className="grid grid-cols-4 gap-4 px-2">
+              <div className="grid grid-cols-4 gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                 <div>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-2">Cals</p>
-                  <p className="font-sans font-semibold text-white tracking-tight text-2xl">{autoCalories}</p>
+                  <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest mb-1">Calories</p>
+                  <p className="font-mono font-bold text-white text-xl md:text-2xl tabular-nums">{autoCalories}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-2">Pro</p>
-                  <p className="font-sans font-semibold text-white tracking-tight text-2xl">{Math.round(autoProtein)}<span className="text-white/20 text-sm ml-1 font-bold">g</span></p>
+                  <p className="text-[10px] text-orange-400/70 font-semibold uppercase tracking-widest mb-1">Protein</p>
+                  <p className="font-mono font-bold text-orange-400 text-xl md:text-2xl tabular-nums">{Math.round(autoProtein)}<span className="text-xs text-orange-400/50 ml-0.5">g</span></p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-2">Carbs</p>
-                  <p className="font-sans font-semibold text-white tracking-tight text-2xl">{autoCarbs}<span className="text-white/20 text-sm ml-1 font-bold">g</span></p>
+                  <p className="text-[10px] text-emerald-400/70 font-semibold uppercase tracking-widest mb-1">Carbs</p>
+                  <p className="font-mono font-bold text-emerald-400 text-xl md:text-2xl tabular-nums">{autoCarbs}<span className="text-xs text-emerald-400/50 ml-0.5">g</span></p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-2">Fats</p>
-                  <p className="font-sans font-semibold text-white tracking-tight text-2xl">{autoFats}<span className="text-white/20 text-sm ml-1 font-bold">g</span></p>
+                  <p className="text-[10px] text-blue-400/70 font-semibold uppercase tracking-widest mb-1">Fats</p>
+                  <p className="font-mono font-bold text-blue-400 text-xl md:text-2xl tabular-nums">{autoFats}<span className="text-xs text-blue-400/50 ml-0.5">g</span></p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="pt-2 animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500/80">Manual Override Active</p>
+            <div className="pt-2 animate-in fade-in duration-300 space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">
+                  Custom Targets Active
+                </p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6 px-2">
-                
-                {/* Calories */}
-                <div className="group relative">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-1 transition-colors group-focus-within:text-orange-400">Calories</label>
-                  <div className="flex items-baseline gap-1 border-b border-white/10 group-focus-within:border-orange-500 transition-colors pb-1">
-                    <input 
-                      type="number" 
-                      value={data.customCalories} 
-                      onChange={e=>setData({...data, customCalories: e.target.value})} 
-                      className="w-full bg-transparent text-white font-sans font-semibold tracking-tight text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
-                      placeholder="2000"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-white/40 uppercase tracking-widest block mb-1.5">Calories</label>
+                  <input 
+                    type="number" 
+                    value={data.customCalories} 
+                    onChange={e=>setData({...data, customCalories: e.target.value})} 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-white font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    placeholder="2000"
+                  />
                 </div>
-
-                {/* Protein */}
-                <div className="group relative">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-1 transition-colors group-focus-within:text-orange-400">Protein</label>
-                  <div className="flex items-baseline gap-1 border-b border-white/10 group-focus-within:border-orange-500 transition-colors pb-1">
-                    <input 
-                      type="number" 
-                      value={data.customProtein} 
-                      onChange={e=>setData({...data, customProtein: e.target.value})} 
-                      className="w-full bg-transparent text-white font-sans font-semibold tracking-tight text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
-                      placeholder="120"
-                    />
-                    <span className="text-white/20 text-sm font-bold">g</span>
-                  </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-orange-400/70 uppercase tracking-widest block mb-1.5">Protein (g)</label>
+                  <input 
+                    type="number" 
+                    value={data.customProtein} 
+                    onChange={e=>setData({...data, customProtein: e.target.value})} 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-orange-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    placeholder="120"
+                  />
                 </div>
-
-                {/* Carbs */}
-                <div className="group relative">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-1 transition-colors group-focus-within:text-orange-400">Carbs</label>
-                  <div className="flex items-baseline gap-1 border-b border-white/10 group-focus-within:border-orange-500 transition-colors pb-1">
-                    <input 
-                      type="number" 
-                      value={data.customCarbs} 
-                      onChange={e=>setData({...data, customCarbs: e.target.value})} 
-                      className="w-full bg-transparent text-white font-sans font-semibold tracking-tight text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
-                      placeholder="200"
-                    />
-                    <span className="text-white/20 text-sm font-bold">g</span>
-                  </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-emerald-400/70 uppercase tracking-widest block mb-1.5">Carbs (g)</label>
+                  <input 
+                    type="number" 
+                    value={data.customCarbs} 
+                    onChange={e=>setData({...data, customCarbs: e.target.value})} 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-emerald-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    placeholder="200"
+                  />
                 </div>
-
-                {/* Fats */}
-                <div className="group relative">
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest block mb-1 transition-colors group-focus-within:text-orange-400">Fats</label>
-                  <div className="flex items-baseline gap-1 border-b border-white/10 group-focus-within:border-orange-500 transition-colors pb-1">
-                    <input 
-                      type="number" 
-                      value={data.customFats} 
-                      onChange={e=>setData({...data, customFats: e.target.value})} 
-                      className="w-full bg-transparent text-white font-sans font-semibold tracking-tight text-2xl outline-none p-0 focus:ring-0 placeholder:text-white/10" 
-                      placeholder="60"
-                    />
-                    <span className="text-white/20 text-sm font-bold">g</span>
-                  </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-blue-400/70 uppercase tracking-widest block mb-1.5">Fats (g)</label>
+                  <input 
+                    type="number" 
+                    value={data.customFats} 
+                    onChange={e=>setData({...data, customFats: e.target.value})} 
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-blue-400 font-mono font-bold text-base focus:outline-none focus:border-white/30" 
+                    placeholder="60"
+                  />
                 </div>
-
               </div>
             </div>
           )}
         </section>
 
-        {/* Save Button */}
-        <button onClick={handleSave} disabled={saving} className="w-full h-12 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-sm hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 text-emerald-400" /> Save Changes</>}
+        {/* Action Button */}
+        <button 
+          onClick={handleSave} 
+          disabled={saving} 
+          className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saveSuccess ? (
+            <><Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> Saved Successfully</>
+          ) : (
+            "Save Changes"
+          )}
         </button>
 
       </div>

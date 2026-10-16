@@ -305,31 +305,50 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
   const confirm = () => { const qty = custom.trim() || selected; if (qty) onConfirm(qty); };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/40">How much did you have?</p>
-            <p className="text-lg font-bold text-white mt-1">{foodName}</p>
-            <p className="text-xs text-white/30 mt-0.5 capitalize">{category === "tsp" ? "small addition" : category}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Select Portion</p>
+            <p className="text-base font-bold text-white mt-0.5">{foodName}</p>
+            <p className="text-[11px] text-white/30 capitalize">{category === "tsp" ? "condiment / small portion" : category}</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap gap-2 pt-1">
           {presets.map(p => (
-            <button key={p} onClick={() => { setSelected(p); setCustom(""); }}
-              className={"px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border " +
-                (selected === p && !custom ? "bg-white text-black border-white" : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white")}>
+            <button 
+              key={p} 
+              type="button"
+              onClick={() => { setSelected(p); setCustom(""); }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                selected === p && !custom 
+                  ? "bg-white text-black border-white shadow-sm font-bold" 
+                  : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+              }`}
+            >
               {p}
             </button>
           ))}
         </div>
-        <input type="text" placeholder="Or type custom amount..." value={custom}
+
+        <input 
+          type="text" 
+          placeholder="Or type custom amount (e.g. 150g, 2 pieces)..." 
+          value={custom}
           onChange={e => { setCustom(e.target.value); setSelected(null); }}
           onKeyDown={e => e.key === "Enter" && confirm()}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-white/30" />
-        <button onClick={confirm} disabled={!custom.trim() && !selected}
-          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors">
+          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-all" 
+        />
+
+        <button 
+          onClick={confirm} 
+          disabled={!custom.trim() && !selected}
+          className="w-full h-11 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.99] transition-all shadow-sm"
+        >
           Confirm Quantity
         </button>
       </div>
@@ -378,52 +397,99 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/40">Detected from photo</p>
-            <p className="text-lg font-bold text-white mt-1">Confirm items to log</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Plate Recognition</p>
+            <p className="text-base font-bold text-white mt-0.5">Confirm Detected Items</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <div className="space-y-2 overflow-y-auto flex-1">
+
+        <div className="space-y-2.5 overflow-y-auto flex-1 pr-1">
           {localItems.map((item, i) => (
-            <div key={i} className={"w-full flex items-center gap-3 p-3 rounded-xl border transition-all " + (checked[i] ? "border-white/20 bg-white/5" : "border-white/5 opacity-40")}>
-              
-              <button onClick={() => toggle(i)} className={"w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors " + (checked[i] ? "border-white bg-white" : "border-white/30")}>
-                {checked[i] && <Check className="w-3 h-3 text-black" />}
+            <div 
+              key={i} 
+              className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border transition-all ${
+                checked[i] 
+                  ? "border-white/[0.12] bg-white/[0.04]" 
+                  : "border-white/[0.04] bg-transparent opacity-40"
+              }`}
+            >
+              <button 
+                onClick={() => toggle(i)} 
+                className={`w-5 h-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${
+                  checked[i] ? "border-white bg-white text-black" : "border-white/20 bg-transparent"
+                }`}
+              >
+                {checked[i] && <Check className="w-3.5 h-3.5 stroke-[3]" />}
               </button>
               
               {editingIdx === i ? (
                 <div className="flex-1 flex flex-col gap-2 min-w-0">
-                  <input type="text" value={editVals.name} onChange={e => setEditVals(p => ({...p, name: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Name" disabled={isEstimating} />
-                  <input type="text" value={editVals.quantity} onChange={e => setEditVals(p => ({...p, quantity: e.target.value}))} className="w-full bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-white/50" placeholder="Quantity" disabled={isEstimating} />
+                  <input 
+                    type="text" 
+                    value={editVals.name} 
+                    onChange={e => setEditVals(p => ({...p, name: e.target.value}))} 
+                    className="w-full bg-white/[0.05] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white/40" 
+                    placeholder="Food name" 
+                    disabled={isEstimating} 
+                  />
+                  <input 
+                    type="text" 
+                    value={editVals.quantity} 
+                    onChange={e => setEditVals(p => ({...p, quantity: e.target.value}))} 
+                    className="w-full bg-white/[0.05] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white/40" 
+                    placeholder="Quantity" 
+                    disabled={isEstimating} 
+                  />
                   <div className="flex justify-end gap-2 mt-1">
-                    <button onClick={(e) => { e.stopPropagation(); setEditingIdx(null); }} className="px-3 py-1 rounded-lg bg-white/10 text-xs font-bold text-white/70 hover:text-white disabled:opacity-50" disabled={isEstimating}>Cancel</button>
-                    <button onClick={(e) => saveEdit(e, i)} className="px-3 py-1 rounded-lg bg-white text-xs font-bold text-black disabled:opacity-50" disabled={isEstimating}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditingIdx(null); }} 
+                      className="px-3 py-1 rounded-full bg-white/[0.06] text-xs font-semibold text-white/70 hover:text-white" 
+                      disabled={isEstimating}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={(e) => saveEdit(e, i)} 
+                      className="px-3 py-1 rounded-full bg-white text-xs font-bold text-black" 
+                      disabled={isEstimating}
+                    >
                       {isEstimating ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(i)}>
-                  <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                  <p className="text-xs text-white/40 truncate">{item.quantity} &middot; {item.calories} kcal &middot; P {item.protein}g C {item.carbs}g F {item.fats}g</p>
+                  <p className="text-xs font-bold text-white truncate">{item.name}</p>
+                  <p className="text-[11px] text-white/40 font-mono truncate mt-0.5">
+                    {item.quantity ? `${item.quantity} · ` : ""}{item.calories} kcal · P {item.protein}g · C {item.carbs}g · F {item.fats}g
+                  </p>
                 </div>
               )}
 
               {editingIdx !== i && (
-                <button onClick={(e) => startEdit(e, i)} className="p-2 shrink-0 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-lg">
-                  <Pencil className="w-4 h-4" />
+                <button 
+                  onClick={(e) => startEdit(e, i)} 
+                  className="p-1.5 shrink-0 text-white/30 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
           ))}
         </div>
-        <button onClick={() => onConfirm(selected)} disabled={selected.length === 0 || isEstimating}
-          className="w-full h-12 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-30 hover:bg-white/90 transition-colors flex-shrink-0 flex items-center justify-center gap-2">
-          {isEstimating ? <Loader2 className="w-5 h-5 animate-spin" /> : `Log ${selected.length} item${selected.length !== 1 ? "s" : ""}`}
+
+        <button 
+          onClick={() => onConfirm(selected)} 
+          disabled={selected.length === 0 || isEstimating}
+          className="w-full h-11 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.99] transition-all flex-shrink-0 flex items-center justify-center gap-2 shadow-sm"
+        >
+          {isEstimating ? <Loader2 className="w-4 h-4 animate-spin" /> : `Log ${selected.length} item${selected.length !== 1 ? "s" : ""}`}
         </button>
       </div>
     </div>
@@ -482,37 +548,37 @@ function EditLogItemModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
-      <div className="w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" onClick={onCancel}>
+      <div className="w-full max-w-sm bg-[#121418] border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/40">Edit Logged Item</p>
-            <p className="text-lg font-bold text-white mt-0.5 capitalize">{mealType}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Edit Food Record</p>
+            <p className="text-base font-bold text-white mt-0.5 capitalize">{mealType}</p>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white">
+          <button onClick={onCancel} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <div>
-            <label className="text-[10px] font-bold uppercase text-white/40 block mb-1">Item Description / Name</label>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">Item Description</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase text-white/40 block mb-1">Portion / Serving</label>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">Portion / Serving</label>
             <input
               type="text"
               value={quantity}
               onChange={e => setQuantity(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              placeholder="e.g. 1 bowl, 4 chicken pieces"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"
+              placeholder="e.g. 1 bowl, 2 pieces"
             />
           </div>
 
@@ -521,63 +587,63 @@ function EditLogItemModal({
             type="button"
             onClick={handleRecalculate}
             disabled={recalculating}
-            className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-semibold hover:bg-white/[0.08] hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
           >
-            {recalculating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Recalculate Macros with AI
+            {recalculating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" /> : <Sparkles className="w-3.5 h-3.5 text-emerald-400" />}
+            Recalculate with AI
           </button>
 
           {/* Macro inputs */}
           <div className="grid grid-cols-4 gap-2 pt-1">
-            <div>
-              <label className="text-[10px] font-bold uppercase text-white/40 block mb-1 text-center">Kcal</label>
+            <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
+              <label className="text-[9px] font-semibold uppercase text-white/40 block mb-0.5">Kcal</label>
               <input
                 type="number"
                 value={calories}
                 onChange={e => setCalories(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-transparent text-center text-xs font-mono font-bold text-white focus:outline-none"
               />
             </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase text-orange-400/60 block mb-1 text-center">Pro (g)</label>
+            <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
+              <label className="text-[9px] font-semibold uppercase text-orange-400/70 block mb-0.5">Pro (g)</label>
               <input
                 type="number"
                 value={protein}
                 onChange={e => setProtein(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-orange-400 focus:outline-none focus:border-orange-500/50"
+                className="w-full bg-transparent text-center text-xs font-mono font-bold text-orange-400 focus:outline-none"
               />
             </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase text-emerald-400/60 block mb-1 text-center">Carb (g)</label>
+            <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
+              <label className="text-[9px] font-semibold uppercase text-emerald-400/70 block mb-0.5">Carb (g)</label>
               <input
                 type="number"
                 value={carbs}
                 onChange={e => setCarbs(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500/50"
+                className="w-full bg-transparent text-center text-xs font-mono font-bold text-emerald-400 focus:outline-none"
               />
             </div>
-            <div>
-              <label className="text-[10px] font-bold uppercase text-blue-400/60 block mb-1 text-center">Fat (g)</label>
+            <div className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-2 text-center">
+              <label className="text-[9px] font-semibold uppercase text-blue-400/70 block mb-0.5">Fat (g)</label>
               <input
                 type="number"
                 value={fats}
                 onChange={e => setFats(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 text-center text-xs font-bold text-blue-400 focus:outline-none focus:border-blue-500/50"
+                className="w-full bg-transparent text-center text-xs font-mono font-bold text-blue-400 focus:outline-none"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2.5 pt-2">
           <button
             onClick={onDelete}
-            className="px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-colors"
+            className="px-4 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition-colors"
           >
             Delete
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors shadow-lg"
+            className="flex-1 py-2.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider hover:bg-white/90 active:scale-[0.99] transition-all shadow-sm"
           >
             Save Changes
           </button>
@@ -758,23 +824,40 @@ export default function DailyLog() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Daily Log</h1>
-          <p className="text-white/40 text-sm font-medium mt-1">{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})}</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
+            <Sparkles className="w-3 h-3 text-emerald-400" />
+            <span>Daily Intake</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
+            Nutrition Log
+          </h1>
+          <p className="text-sm font-normal text-white/45 mt-1.5">
+            {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
         </div>
-        <div className="glass-card rounded-2xl px-4 py-2 text-right">
-          <p className="text-2xl font-bold text-white">{Math.round(totals.calories)}</p>
-          <p className="text-xs text-white/40 font-medium">kcal logged</p>
+        
+        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] px-5 py-3 text-right">
+          <p className="text-2xl md:text-3xl font-bold font-mono text-white tabular-nums tracking-tight">
+            {Math.round(totals.calories)}
+          </p>
+          <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider">kcal logged</p>
         </div>
       </div>
 
       {/* Macro Strip */}
-      <div className="grid grid-cols-3 gap-3">
-        {[{label:"Protein",value:totals.protein,color:"text-orange-400"},{label:"Carbs",value:totals.carbs,color:"text-emerald-400"},{label:"Fats",value:totals.fats,color:"text-blue-400"}].map(m=>(
-          <div key={m.label} className="glass-card rounded-2xl p-4 text-center">
-            <p className={"text-xl font-bold "+m.color}>{Math.round(m.value)}<span className="text-sm font-medium text-white/40">g</span></p>
-            <p className="text-xs text-white/40 font-medium mt-1">{m.label}</p>
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
+        {[
+          { label: "Protein", value: totals.protein, color: "text-orange-400" },
+          { label: "Carbs",   value: totals.carbs,   color: "text-emerald-400" },
+          { label: "Fats",    value: totals.fats,    color: "text-blue-400" },
+        ].map(m => (
+          <div key={m.label} className="rounded-3xl bg-[#121418] border border-white/[0.06] p-4 text-center group hover:border-white/[0.12] transition-all">
+            <p className={`text-xl md:text-2xl font-bold font-mono ${m.color} tabular-nums`}>
+              {Math.round(m.value)}<span className="text-xs font-normal text-white/40 ml-0.5">g</span>
+            </p>
+            <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider mt-1">{m.label}</p>
           </div>
         ))}
       </div>
@@ -788,48 +871,79 @@ export default function DailyLog() {
         const mealKcal = loggedItems.reduce((s,i)=>s+i.calories,0);
 
         return (
-          <div key={key} id={key} className="glass-card rounded-2xl p-5 space-y-4 scroll-mt-24">
+          <div key={key} id={key} className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 md:p-6 space-y-5 scroll-mt-24 group hover:border-white/[0.12] transition-all">
+            {/* Meal Header */}
             <div className="flex items-center gap-3">
-              <div className={"w-9 h-9 rounded-xl flex items-center justify-center border "+bg+" "+border}><Icon className={"w-4 h-4 "+color}/></div>
-              <p className="text-sm font-bold text-white">{label}</p>
-              <div className="ml-auto flex items-center gap-3">
-                {mealKcal>0 && <span className="text-xs font-bold text-white/30">{Math.round(mealKcal)} kcal</span>}
-                <button onClick={()=>fileRefs[key].current?.click()} disabled={analyzing===key}
-                  className={"flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all "+(analyzing===key?"border-white/10 text-white/30":"border-white/10 text-white/50 hover:bg-white/10 hover:text-white")}>
-                  {analyzing===key?<Loader2 className="w-3 h-3 animate-spin"/>:<Camera className="w-3 h-3"/>}
-                  {analyzing===key?"Analyzing...":"Photo"}
+              <div className={`w-9 h-9 rounded-2xl flex items-center justify-center border ${bg} ${border}`}>
+                <Icon className={`w-4 h-4 ${color}`} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white tracking-tight">{label}</p>
+                {mealKcal > 0 && (
+                  <p className="text-[11px] font-mono text-white/40">{Math.round(mealKcal)} kcal</p>
+                )}
+              </div>
+              
+              <div className="ml-auto flex items-center gap-2">
+                <button 
+                  onClick={()=>fileRefs[key].current?.click()} 
+                  disabled={analyzing===key}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+                    analyzing===key 
+                      ? "border-white/10 text-white/30 bg-transparent" 
+                      : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:text-white"
+                  }`}
+                >
+                  {analyzing===key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  <span>{analyzing===key ? "Analyzing..." : "Photo"}</span>
                 </button>
-                <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileRefs[key]}
-                  onChange={e=>{const f=e.target.files?.[0];if(f)handlePhotoSelect(key,f);e.target.value="";}}/>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  className="hidden" 
+                  ref={fileRefs[key]}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(key, f); e.target.value = ""; }}
+                />
               </div>
             </div>
 
-            {loggedItems.length>0&&(
-              <div className="space-y-2">
-                {loggedItems.map(item=>(
-                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 group">
+            {/* Logged Items List */}
+            {loggedItems.length > 0 && (
+              <div className="space-y-1 pt-1">
+                {loggedItems.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/[0.02] border-b border-white/[0.04] last:border-0 transition-colors group/item">
                     <div
                       onClick={() => setEditingEntry({ mealType: key, item })}
-                      className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+                      className="flex-1 cursor-pointer min-w-0"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-white group-hover:text-amber-300 transition-colors">{item.name}</p>
-                        {item.quantity&&<span className="text-xs text-white/30 font-medium bg-white/5 px-2 py-0.5 rounded-full">{item.quantity}</span>}
+                        <p className="text-xs font-semibold text-white group-hover/item:text-emerald-400 transition-colors truncate">
+                          {item.name}
+                        </p>
+                        {item.quantity && (
+                          <span className="text-[10px] text-white/40 font-medium bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded-full">
+                            {item.quantity}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-white/40 mt-0.5">{item.calories} kcal &middot; P {item.protein}g &middot; C {item.carbs}g &middot; F {item.fats}g</p>
+                      <p className="text-[11px] text-white/40 font-mono mt-0.5">
+                        {item.calories} kcal &middot; P {item.protein}g &middot; C {item.carbs}g &middot; F {item.fats}g
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1">
+
+                    <div className="flex items-center gap-1 opacity-60 group-hover/item:opacity-100 transition-opacity">
                       <button
-                        onClick={()=>setEditingEntry({ mealType: key, item })}
+                        onClick={() => setEditingEntry({ mealType: key, item })}
                         title="Edit item or macros"
-                        className="text-white/20 hover:text-amber-400 transition-colors p-1"
+                        className="text-white/30 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/[0.05]"
                       >
                         <Pencil className="w-3.5 h-3.5"/>
                       </button>
                       <button
-                        onClick={()=>removeItem(key,item.id)}
+                        onClick={() => removeItem(key, item.id)}
                         title="Delete item"
-                        className="text-white/20 hover:text-red-400 transition-colors p-1"
+                        className="text-white/30 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10"
                       >
                         <Trash2 className="w-3.5 h-3.5"/>
                       </button>
@@ -839,25 +953,38 @@ export default function DailyLog() {
               </div>
             )}
 
-            {quickChips.length>0&&(
-              <div className="flex flex-wrap gap-2">
-                {quickChips.map(item=>{
-                  const chipKey=key+":"+item; const isLoading=estimating===chipKey;
+            {/* Quick Chips from Mess Menu */}
+            {quickChips.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {quickChips.map(item => {
+                  const chipKey = key + ":" + item; 
+                  const isLoading = estimating === chipKey;
                   return (
-                    <button key={item} onClick={()=>setPicker({mealType:key,foodName:item})} disabled={!!estimating}
-                      className={"flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-medium transition-all "+(isLoading?"border-white/10 text-white/30":"border-white/10 text-white/70 hover:bg-white/10 hover:text-white")}>
-                      {isLoading?<Loader2 className="w-3 h-3 animate-spin"/>:<Plus className="w-3 h-3"/>}
-                      {item}
+                    <button 
+                      key={item} 
+                      onClick={() => setPicker({ mealType: key, foodName: item })} 
+                      disabled={!!estimating}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                        isLoading 
+                          ? "border-white/10 text-white/30" 
+                          : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:border-white/20 hover:text-white"
+                      }`}
+                    >
+                      {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      <span>{item}</span>
                     </button>
                   );
                 })}
               </div>
             )}
 
-            <div className="flex gap-2">
-              <input type="text" placeholder="Add custom item or describe what you ate..."
+            {/* Custom Input */}
+            <div className="flex gap-2 pt-1">
+              <input 
+                type="text" 
+                placeholder="Add custom item or describe what you ate..."
                 value={customInput[key]||""}
-                onChange={e=>setCustomInput(prev=>({...prev,[key]:e.target.value}))}
+                onChange={e => setCustomInput(prev => ({...prev, [key]: e.target.value}))}
                 onKeyDown={e => {
                   if (e.key === "Enter" && customInput[key]?.trim()) {
                     const text = customInput[key]!.trim();
@@ -874,27 +1001,30 @@ export default function DailyLog() {
                     setCustomInput(prev => ({ ...prev, [key]: "" }));
                   }
                 }}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"/>
-              <button onClick={() => {
-                if (customInput[key]?.trim()) {
-                  const text = customInput[key]!.trim();
-                  const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
-                  const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
-                  const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
-                  const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
+                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-full px-4 py-2.5 text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/25 transition-all"
+              />
+              <button 
+                onClick={() => {
+                  if (customInput[key]?.trim()) {
+                    const text = customInput[key]!.trim();
+                    const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
+                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
+                    const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
+                    const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
 
-                  if (isDirectAI) {
-                    logWithQuantity(key, text, "", true);
-                  } else {
-                    setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
+                    if (isDirectAI) {
+                      logWithQuantity(key, text, "", true);
+                    } else {
+                      setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
+                    }
+                    setCustomInput(prev => ({ ...prev, [key]: "" }));
                   }
-                  setCustomInput(prev => ({ ...prev, [key]: "" }));
-                }
-              }}
-              disabled={!!estimating}
-              className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors flex items-center gap-1.5">
-                {estimating?.startsWith(key + ":") ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Add
+                }}
+                disabled={!!estimating}
+                className="px-5 py-2.5 bg-white text-black rounded-full text-xs font-bold uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                {estimating?.startsWith(key + ":") ? <Loader2 className="w-3.5 h-3.5 animate-spin text-black" /> : null}
+                <span>Add</span>
               </button>
             </div>
           </div>
