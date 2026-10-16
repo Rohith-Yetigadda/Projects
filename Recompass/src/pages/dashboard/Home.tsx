@@ -43,6 +43,83 @@ function getCurrentMeal(): "breakfast" | "lunch" | "dinner" | null {
 
 const mealLabels: any = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };
 
+// ─── Apple Activity Ring Component with Smooth 3D Overfilling ───────
+function AppleRing({
+  cx,
+  cy,
+  radius,
+  strokeWidth,
+  ratio,
+  color,
+  trackColor,
+  shadowId,
+  loading,
+}: {
+  cx: number;
+  cy: number;
+  radius: number;
+  strokeWidth: number;
+  ratio: number;
+  color: string;
+  trackColor: string;
+  shadowId: string;
+  loading: boolean;
+}) {
+  const circ = 2 * Math.PI * radius;
+  const clampedFirstLap = Math.min(ratio, 1.0);
+  const firstLapOffset = circ * (1 - clampedFirstLap);
+
+  const hasOverfill = ratio > 1.0;
+  const overfillRatio = hasOverfill ? Math.min(ratio - 1.0, 1.0) : 0;
+  const overfillOffset = circ * (1 - overfillRatio);
+
+  return (
+    <g>
+      {/* Background Track */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        stroke={trackColor}
+        strokeWidth={strokeWidth}
+        fill="none"
+        opacity={0.25}
+      />
+
+      {/* 1st Lap Circle (0 - 100%) */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        fill="none"
+        strokeDasharray={circ}
+        strokeDashoffset={loading ? circ : firstLapOffset}
+        className="transition-all duration-1000 ease-out"
+      />
+
+      {/* 2nd Lap Overfill Circle with Apple-style Drop Shadow on the end-cap */}
+      {hasOverfill && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={circ}
+          strokeDashoffset={loading ? circ : overfillOffset}
+          filter={`url(#${shadowId})`}
+          className="transition-all duration-1000 ease-out"
+        />
+      )}
+    </g>
+  );
+}
+
 export default function Home() {
   const { userProfile, currentUser } = useAuth();
   const firstName = userProfile?.name?.split(" ")[0] || "User";
@@ -101,10 +178,10 @@ export default function Home() {
     fats: a.fats + i.fats 
   }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
-  const caloriePercent = Math.min((logged.calories / targets.calories) * 100, 100);
-  const radius = 68;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (caloriePercent / 100) * circumference;
+  const proteinRatio = logged.protein / (targets.protein || 1);
+  const carbsRatio = logged.carbs / (targets.carbs || 1);
+  const fatsRatio = logged.fats / (targets.fats || 1);
+  const budgetDiff = Math.round(logged.calories - targets.calories);
 
   const currentMealItems = currentMeal && todayMenu ? todayMenu[currentMeal] || [] : [];
   const remaining = { 
@@ -197,50 +274,127 @@ export default function Home() {
         </section>
       )}
 
-      {/* Main Nutrition Bento Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        
-        {/* Apple Health Calorie Ring */}
-        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-white/[0.12] transition-all">
-          <div className="w-full flex items-center justify-between mb-4">
-            <span className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">Energy Intake</span>
-            <span className="text-xs font-sans font-bold text-white/40">{Math.round(caloriePercent)}%</span>
-          </div>
+      {/* 1. Mobile Unified Compact Nutrition Card (<180px tall, keeps Quick Log directly above the fold) */}
+      <section className="block md:hidden rounded-3xl bg-[#121418] border border-white/[0.08] p-5 shadow-lg relative overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Nutrition Rings</span>
+          <span className="text-[10px] text-white/40 font-mono">
+            {Math.round(logged.calories)} / {targets.calories} kcal
+          </span>
+        </div>
 
-          <div className="relative flex items-center justify-center my-3">
-            <svg viewBox="0 0 160 160" className="w-40 h-40 md:w-44 md:h-44 transform -rotate-90">
-              <circle 
-                cx="80" 
-                cy="80" 
-                r={radius} 
-                className="stroke-white/[0.06]" 
-                strokeWidth="10" 
-                fill="none" 
-              />
-              <circle 
-                cx="80" 
-                cy="80" 
-                r={radius}
-                className="stroke-white transition-all duration-1000 ease-out"
-                strokeWidth="10" 
-                strokeLinecap="round" 
-                fill="none"
-                strokeDasharray={circumference} 
-                strokeDashoffset={loading ? circumference : strokeDashoffset} 
-              />
+        <div className="flex items-center gap-4">
+          {/* Concentric Rings Viewport */}
+          <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
+            <svg viewBox="0 0 200 200" className="w-36 h-36 transform -rotate-90">
+              <defs>
+                <filter id="apple-ring-shadow-mobile" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#000000" floodOpacity="0.85" />
+                </filter>
+              </defs>
+              <AppleRing cx={100} cy={100} radius={82} strokeWidth={12} ratio={proteinRatio} color="#fbbf24" trackColor="#78350f" shadowId="apple-ring-shadow-mobile" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={66} strokeWidth={12} ratio={carbsRatio} color="#34d399" trackColor="#064e3b" shadowId="apple-ring-shadow-mobile" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={50} strokeWidth={12} ratio={fatsRatio} color="#60a5fa" trackColor="#1e3a8a" shadowId="apple-ring-shadow-mobile" loading={loading} />
             </svg>
-            
-            <div className="absolute flex flex-col items-center justify-center text-center">
-              <span className="text-4xl md:text-5xl font-extrabold font-sans text-white tracking-tightest">
+
+            {/* Center Calorie Label */}
+            <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+              <span className="text-2xl font-extrabold text-white tracking-tight leading-none font-sans">
                 {Math.round(logged.calories)}
               </span>
-              <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mt-0.5">
-                / {targets.calories} kcal
-              </span>
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider mt-0.5">kcal</span>
+              {budgetDiff > 0 ? (
+                <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full mt-1 bg-rose-500/15 text-rose-300 border border-rose-500/25">
+                  +{budgetDiff} over
+                </span>
+              ) : (
+                <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full mt-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                  {Math.abs(budgetDiff)} left
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="w-full pt-4 mt-2 border-t border-white/[0.06] flex items-center justify-between text-xs">
+          {/* Compact Macro Legend */}
+          <div className="flex-1 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-white/80 font-semibold">Protein</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold font-mono text-amber-400">{Math.round(logged.protein)}g</span>
+                <span className="text-[10px] text-white/35">/{targets.protein}g</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                <span className="text-white/80 font-semibold">Carbs</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold font-mono text-emerald-400">{Math.round(logged.carbs)}g</span>
+                <span className="text-[10px] text-white/35">/{targets.carbs}g</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0" />
+                <span className="text-white/80 font-semibold">Fats</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold font-mono text-blue-400">{Math.round(logged.fats)}g</span>
+                <span className="text-[10px] text-white/35">/{targets.fats}g</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Desktop Grid Bento Matrix (hidden on mobile, visible on md+) */}
+      <div className="hidden md:grid md:grid-cols-3 gap-6">
+        
+        {/* Apple Activity Concentric Rings Card */}
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 flex flex-col items-center justify-center relative overflow-hidden group hover:border-white/[0.12] transition-all">
+          <div className="w-full flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold text-white/40 uppercase tracking-widest">Nutrition Rings</span>
+            <span className="text-xs font-sans font-bold text-emerald-400">Activity Engine</span>
+          </div>
+
+          <div className="relative flex items-center justify-center my-3">
+            <svg viewBox="0 0 200 200" className="w-44 h-44 transform -rotate-90">
+              <defs>
+                <filter id="apple-ring-shadow-desktop" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#000000" floodOpacity="0.85" />
+                </filter>
+              </defs>
+              <AppleRing cx={100} cy={100} radius={82} strokeWidth={12} ratio={proteinRatio} color="#fbbf24" trackColor="#78350f" shadowId="apple-ring-shadow-desktop" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={66} strokeWidth={12} ratio={carbsRatio} color="#34d399" trackColor="#064e3b" shadowId="apple-ring-shadow-desktop" loading={loading} />
+              <AppleRing cx={100} cy={100} radius={50} strokeWidth={12} ratio={fatsRatio} color="#60a5fa" trackColor="#1e3a8a" shadowId="apple-ring-shadow-desktop" loading={loading} />
+            </svg>
+            
+            <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
+              <span className="text-3xl font-extrabold font-sans text-white tracking-tightest leading-none">
+                {Math.round(logged.calories)}
+              </span>
+              <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mt-1">
+                / {targets.calories} kcal
+              </span>
+              {budgetDiff > 0 ? (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full mt-1.5 bg-rose-500/15 text-rose-300 border border-rose-500/25">
+                  +{budgetDiff} over
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full mt-1.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                  {Math.abs(budgetDiff)} kcal left
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full pt-4 mt-1 border-t border-white/[0.06] flex items-center justify-between text-xs">
             <span className="text-white/40 font-medium">Budget Remaining</span>
             <span className="text-white font-sans font-bold">
               {Math.max(0, Math.round(targets.calories - logged.calories))} kcal
@@ -257,7 +411,7 @@ export default function Home() {
 
           <div className="space-y-6">
             {[
-              { icon: Flame,   label: "Protein", current: logged.protein, target: targets.protein, color: "bg-orange-400",  textColor: "text-orange-400", unit: "g" },
+              { icon: Flame,   label: "Protein", current: logged.protein, target: targets.protein, color: "bg-amber-400",  textColor: "text-amber-400", unit: "g" },
               { icon: Wheat,   label: "Carbohydrates", current: logged.carbs,   target: targets.carbs,   color: "bg-emerald-400", textColor: "text-emerald-400", unit: "g" },
               { icon: Droplet, label: "Fats",    current: logged.fats,    target: targets.fats,    color: "bg-blue-400",    textColor: "text-blue-400", unit: "g" },
             ].map(m => {
@@ -287,7 +441,7 @@ export default function Home() {
           <div className="pt-6 mt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-white/40">
             <span>Calorie source distribution</span>
             <div className="flex items-center gap-3">
-              <span className="text-orange-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
+              <span className="text-amber-400 font-sans font-semibold">{Math.round(((logged.protein * 4) / (logged.calories || 1)) * 100)}% P</span>
               <span className="text-emerald-400 font-sans font-semibold">{Math.round(((logged.carbs * 4) / (logged.calories || 1)) * 100)}% C</span>
               <span className="text-blue-400 font-sans font-semibold">{Math.round(((logged.fats * 9) / (logged.calories || 1)) * 100)}% F</span>
             </div>
