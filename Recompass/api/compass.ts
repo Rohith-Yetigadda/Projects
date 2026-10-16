@@ -12,10 +12,10 @@ export const config = {
   },
 };
 
-const apiKey = process.env.AI_API_KEY;
+const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[]) {
-  const models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   for (const m of models) {
     try {
       const model = genAI.getGenerativeModel({ model: m });

@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, setDoc } from "firebase/firestore";
-import { Compass, ArrowRight, Sparkles, ChefHat, Check, Zap } from "lucide-react";
+import { Compass, ArrowRight, Sparkles, ChefHat, Check, Zap, Coffee, Sun, Moon } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { getLocalDateStr, getCurrentUpcomingMeal } from "@/lib/dateUtils";
+import { cleanFoodName } from "./DailyLog";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
@@ -112,7 +113,8 @@ export default function Home() {
   };
 
   const budgetDiff = Math.round(logged.calories - targets.calories);
-  const currentMealItems = todayMenu ? todayMenu[currentMeal] || [] : [];
+  const rawCurrentMeal = todayMenu ? todayMenu[currentMeal] || [] : [];
+  const currentMealItems = rawCurrentMeal.map(cleanFoodName).filter(Boolean);
 
   // Authentic Apple Fitness Activity Rings Data
   const activityRings: RingData[] = useMemo(() => [
@@ -504,6 +506,75 @@ export default function Home() {
           </Link>
         </section>
       )}
+
+      {/* 4 Interactive Quick Meal Cards: Breakfast, Lunch, Dinner, Snacks */}
+      <section className="space-y-3 pb-2">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-white/40">Today's Meals</p>
+          <Link to="/app/log" className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+            Open Daily Log &rarr;
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { key: "breakfast" as const, label: "Breakfast", icon: Coffee, color: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20" },
+            { key: "lunch"     as const, label: "Lunch",     icon: Sun,    color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20" },
+            { key: "dinner"    as const, label: "Dinner",    icon: Moon,   color: "text-blue-400",    bg: "bg-blue-400/10",    border: "border-blue-400/20" },
+            { key: "snacks"    as const, label: "Snacks",    icon: Sparkles, color: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20" },
+          ].map(({ key, label, icon: MealIcon, color, bg, border }) => {
+            const loggedItems = todayLog[key] || [];
+            const mealKcal = loggedItems.reduce((acc, i) => acc + (Number(i.calories) || 0), 0);
+            const rawMenuItems = key !== "snacks" && todayMenu ? (todayMenu[key as "breakfast" | "lunch" | "dinner"] || []) : [];
+            const menuPreview = rawMenuItems.map(cleanFoodName).filter(Boolean).slice(0, 3);
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => navigate(`/app/log?meal=${key}`)}
+                className="w-full text-left rounded-2xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.16] hover:bg-white/[0.03] p-4 transition-all duration-200 group active:scale-[0.99] flex flex-col justify-between space-y-3 cursor-pointer"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${bg} ${border}`}>
+                      <MealIcon className={`w-4 h-4 ${color}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">{label}</p>
+                      <p className="text-[11px] text-white/40">
+                        {loggedItems.length > 0 ? `${loggedItems.length} logged` : "Not logged yet"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-bold font-mono text-white tabular-nums">
+                      {Math.round(mealKcal)} <span className="text-[10px] font-normal text-white/40">kcal</span>
+                    </p>
+                    <span className="text-[10px] font-semibold text-emerald-400 group-hover:underline flex items-center justify-end gap-1 mt-0.5">
+                      Log meal &rarr;
+                    </span>
+                  </div>
+                </div>
+
+                {menuPreview.length > 0 && (
+                  <div className="pt-2 border-t border-white/[0.04] flex items-center gap-1.5 flex-wrap">
+                    {menuPreview.map((item, idx) => (
+                      <span key={idx} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/60">
+                        {item}
+                      </span>
+                    ))}
+                    {rawMenuItems.length > 3 && (
+                      <span className="text-[10px] text-white/30">+{rawMenuItems.length - 3} more</span>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
     </div>
   );

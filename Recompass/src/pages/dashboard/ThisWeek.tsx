@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase/config";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { ArrowRight, Coffee, Sun, Moon, Plus, Upload, Sparkles } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
+import { cleanFoodName } from "./DailyLog";
 
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 type SavedMenu = { uploadedAt: string; extractedData: MealPlan[]; };
@@ -80,7 +81,7 @@ export default function ThisWeek() {
   const dayPlan = sortedMenu[selectedDay] || sortedMenu[0];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-20 md:pb-6 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-4 md:pb-6 animate-in fade-in duration-500">
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -106,7 +107,7 @@ export default function ThisWeek() {
       </div>
 
       {/* Responsive Day Selector Capsules - Exactly fits mobile view without cut-off */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full py-1">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full py-1 min-w-0">
         {DAYS.map((day, i) => {
           const isToday = i === todayIndex;
           const isSelected = i === selectedDay;
@@ -137,7 +138,8 @@ export default function ThisWeek() {
         <div className="space-y-4">
           {meals.map(({ key, label, icon: Icon, color, bg, border, timeRange }, mealIdx) => {
             const isActive = mealIdx === currentMeal && selectedDay === todayIndex;
-            const items = dayPlan[key] || [];
+            const rawItems = dayPlan[key] || [];
+            const items = rawItems.map(cleanFoodName).filter(Boolean);
 
             return (
               <div 
