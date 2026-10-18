@@ -183,7 +183,7 @@ export default function MenuUpload() {
             // Also store directly in localStorage for instant 0ms access in Daily Log
             for (const name in pData) {
               const clean = cleanFoodName(name).toLowerCase();
-              try { localStorage.setItem("recompass_portion_v2_" + clean, JSON.stringify(pData[name])); } catch {}
+              try { localStorage.setItem("recompass_portion_v4_" + clean, JSON.stringify(pData[name])); } catch {}
             }
           }
         }

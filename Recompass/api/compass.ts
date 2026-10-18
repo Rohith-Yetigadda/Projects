@@ -215,22 +215,25 @@ AVAILABLE CATEGORIES AND EXACT UNITS:
 1. "ladle" (MANDATORY for all liquid curries, dal, sambar, rasam, gravies, kadhi, soup, curd, raita):
    - presets MUST be ladles with ml data: ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"]
    - defaultQuantity: "1 ladle (~100ml)"
-2. "glass" (MANDATORY for all beverages, milk, tea, coffee, lassi, chaas, buttermilk, juice, shakes):
-   - presets MUST be glasses/cups with ml data: ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"]
-   - defaultQuantity: "1 glass (~200ml)" (or "1 cup (~150ml)" for tea/coffee)
-3. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
+2. "paddle" (MANDATORY for all rice items, steamed rice, jeera rice, biryani, pulao, fried rice, khichdi, curd rice):
+   - presets MUST be paddles with grams data: ["1 paddle (~150g)", "2 paddles (~300g)", "3 paddles (~450g)", "half paddle (~75g)"]
+   - defaultQuantity: "1 paddle (~150g)"
+3. "cup/mug" (MANDATORY for all liquids and beverages, hot milk, milk, tea, coffee, chai, lassi, chaas, buttermilk, juice, shakes):
+   - presets MUST be cup or mug sizes WITH EXACT ML DATA: ["1 cup (150ml)", "1 mug (250ml)", "1 big mug (300ml)", "half cup (75ml)", "half mug (125ml)"]
+   - defaultQuantity: "1 cup (150ml)" (or "1 mug (250ml)" for milk/shakes)
+4. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
    - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
    - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
-4. "serving" (MANDATORY for rice, pulao, biryani, dry sabzi, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
-   - presets MUST be servings/plates with grams data: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
-   - defaultQuantity: "1 serving (~150g)" (or "1 serving (~100g)" for dry sabzi/bhurji)
-5. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
+5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
+   - presets MUST be servings/plates: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)"] or ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
+   - defaultQuantity: "1 serving (~100g)" (or "1 serving (~150g)")
+6. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
    - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
    - defaultQuantity: "1 slice"
-6. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
+7. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
    - presets: ["1 tsp (~5g)", "1 tbsp (~15g)", "2 tbsp (~30g)", "half tsp"]
    - defaultQuantity: "1 tbsp (~15g)"
-7. "scoop" (for whey protein, ice cream, powders):
+8. "scoop" (for whey protein, ice cream, powders):
    - presets: ["1 scoop (~30g)", "half scoop (~15g)", "1.5 scoops (~45g)", "2 scoops (~60g)"]
    - defaultQuantity: "1 scoop (~30g)"
 
@@ -266,22 +269,25 @@ AVAILABLE CATEGORIES AND EXACT UNITS:
 1. "ladle" (MANDATORY for all liquid curries, dal, sambar, rasam, gravies, kadhi, soup, curd, raita):
    - presets MUST be ladles with ml data: ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"]
    - defaultQuantity: "1 ladle (~100ml)"
-2. "glass" (MANDATORY for all beverages, milk, tea, coffee, lassi, chaas, buttermilk, juice, shakes):
-   - presets MUST be glasses/cups with ml data: ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"]
-   - defaultQuantity: "1 glass (~200ml)" (or "1 cup (~150ml)" for tea/coffee)
-3. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
+2. "paddle" (MANDATORY for all rice items, steamed rice, jeera rice, biryani, pulao, fried rice, khichdi, curd rice):
+   - presets MUST be paddles with grams data: ["1 paddle (~150g)", "2 paddles (~300g)", "3 paddles (~450g)", "half paddle (~75g)"]
+   - defaultQuantity: "1 paddle (~150g)"
+3. "cup/mug" (MANDATORY for all liquids and beverages, hot milk, milk, tea, coffee, chai, lassi, chaas, buttermilk, juice, shakes):
+   - presets MUST be cup or mug sizes WITH EXACT ML DATA: ["1 cup (150ml)", "1 mug (250ml)", "1 big mug (300ml)", "half cup (75ml)", "half mug (125ml)"]
+   - defaultQuantity: "1 cup (150ml)" (or "1 mug (250ml)" for milk/shakes)
+4. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
    - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
    - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
-4. "serving" (MANDATORY for rice, pulao, biryani, dry sabzi, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
-   - presets MUST be servings/plates with grams data: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
-   - defaultQuantity: "1 serving (~150g)" (or "1 serving (~100g)" for dry sabzi/bhurji)
-5. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
+5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
+   - presets MUST be servings/plates: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)"] or ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
+   - defaultQuantity: "1 serving (~100g)" (or "1 serving (~150g)")
+6. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
    - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
    - defaultQuantity: "1 slice"
-6. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
+7. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
    - presets: ["1 tsp (~5g)", "1 tbsp (~15g)", "2 tbsp (~30g)", "half tsp"]
    - defaultQuantity: "1 tbsp (~15g)"
-7. "scoop" (for whey protein, ice cream, powders):
+8. "scoop" (for whey protein, ice cream, powders):
    - presets: ["1 scoop (~30g)", "half scoop (~15g)", "1.5 scoops (~45g)", "2 scoops (~60g)"]
    - defaultQuantity: "1 scoop (~30g)"
 
@@ -306,15 +312,15 @@ OUTPUT STRICTLY AS A JSON OBJECT where keys are the clean food names:
     "estimatedMacros": { "calories": 160, "protein": 6, "carbs": 18, "fats": 8 }
   },
   "Hot Milk": {
-    "category": "glass",
-    "defaultQuantity": "1 glass (~200ml)",
-    "presets": ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"],
-    "estimatedMacros": { "calories": 130, "protein": 6.5, "carbs": 10, "fats": 6.5 }
+    "category": "cup/mug",
+    "defaultQuantity": "1 mug (250ml)",
+    "presets": ["1 cup (150ml)", "1 mug (250ml)", "1 big mug (300ml)", "half cup (75ml)", "half mug (125ml)"],
+    "estimatedMacros": { "calories": 160, "protein": 8, "carbs": 12, "fats": 8 }
   },
   "Steamed Rice": {
-    "category": "serving",
-    "defaultQuantity": "1 serving (~150g)",
-    "presets": ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"],
+    "category": "paddle",
+    "defaultQuantity": "1 paddle (~150g)",
+    "presets": ["1 paddle (~150g)", "2 paddles (~300g)", "3 paddles (~450g)", "half paddle (~75g)"],
     "estimatedMacros": { "calories": 195, "protein": 4, "carbs": 44, "fats": 0.5 }
   }
 }`;
