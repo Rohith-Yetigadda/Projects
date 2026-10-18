@@ -367,8 +367,8 @@ OUTPUT STRICTLY AS JSON:
         const skillDesc = skill === "beginner"
           ? "Beginner / Zero-effort: Minimal prep, foolproof 1-pot or dump-and-heat recipes with very few steps and zero complex techniques."
           : skill === "masterchef"
-          ? "Hostel Masterchef / Gourmet: Creative culinary techniques, complex flavor profiles, layered textures, inventive hostel hacks, and restaurant-style presentation."
-          : "Intermediate / Comfortable: Standard hostel cooking with balanced seasoning, pan searing, and creative combinations.";
+          ? "Hostel Masterchef / Skilled: Authentic techniques, proper heat control, balanced spices, and elevated restaurant-quality execution using standard comforting dishes."
+          : "Intermediate / Comfortable: Standard hostel cooking with balanced seasoning, pan searing, and solid execution.";
 
         const prompt = `You are an elite hostel culinary chef creating customized recipes for university students.
 
@@ -378,44 +378,67 @@ CONTEXT:
 - Available Cooking Gear: ${methodsStr}.
 - Student Cooking Skill: "${skill.toUpperCase()}" (${skillDesc}).
 
-GENERATION REQUIREMENTS:
-1. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN recipes so the student has a rich buffet of choices. Do not just output 3 simple ones. Include:
+ABSOLUTE CULINARY RULES (CRITICAL - ZERO TOLERANCE FOR WEIRD COMBINATIONS):
+1. STRICT SWEET VS. SAVORY SEPARATION:
+   - Understand the inherent flavor and role of every ingredient:
+     * Sweet / Fruit ingredients: Apples, bananas, guavas, berries, mangoes, raisins, honey, jam, peanut butter, vanilla/chocolate whey protein, sweet oats/muesli (e.g. "Fruit & Nuts Oats", "Chocolate Oats", "Honey Oats").
+     * Savory ingredients: Eggs, bread, onions, tomatoes, spinach, veggies, chicken, paneer, soya, rice, noodles.
+     * Savory spices: Chilli flakes, black pepper, red chilli powder, turmeric, garam masala, cumin, oregano, curry powder, salt.
+   - RULE A (NO FRUIT OMELETTES): NEVER mix fresh fruits (apples, guavas, bananas, etc.) into savory egg dishes or omelettes! NO APPLE OMLETTES. NO FRUIT SCRAMBLES.
+   - RULE B (NO SAVORY SPICES IN SWEET FOOD): NEVER put savory spices (chilli flakes, black pepper, oregano, cumin, garam masala) into sweet dishes, fruit bowls, peanut butter toasts, smoothies, sweet shakes, or dessert oats. Sweet dishes only use cinnamon, honey, or cocoa if anything.
+   - RULE C (SWEET FLAVORED OATS): Any flavored or sweet oats (like "Fruit & Nuts Oats", "Muesli", "Honey Oats") must ALWAYS be prepared as a sweet dish (cooked with milk/water, topped with fruit or peanut butter). NEVER stir fruit & nut oats into a savory egg omelette!
+   - RULE D (NO WEIRD CONTRASTS): Do NOT create "unexpected flavor contrasts" or bizarre fusion experiments. The student wants normal, classic, comforting, delicious meals!
+
+2. DO NOT DUMP ALL PANTRY ITEMS INTO ONE DISH:
+   - Just because multiple ingredients exist in the pantry does NOT mean they belong in the same recipe!
+   - Each recipe must select ONLY 3 to 6 ingredients that naturally belong together in standard cooking.
+   - Example: If the pantry has [Eggs, Bread, Apple, Peanut Butter, Black Pepper]:
+     * Recipe 1: Classic Masala Scrambled Eggs with Toast (Eggs, Bread, Black Pepper, Salt) - Savory.
+     * Recipe 2: Peanut Butter & Sliced Apple Toast (Bread, Peanut Butter, Apple) - Sweet.
+     * They are SEPARATE NORMAL DISHES. NEVER combine them into an apple egg scramble!
+
+3. SENSIBLE EQUIPMENT USAGE (NO FORCE-FITTING APPLIANCES):
+   - ONLY assign a cooking appliance to a recipe if it is genuinely, naturally suited for that dish!
+   - NEVER force-fit an appliance where it does not belong:
+     * Egg Boiler: ONLY use an Egg Boiler if the recipe actually involves boiling eggs! NEVER use an Egg Boiler for smoothies, beverages, or general water heating.
+     * Cold Preps / Shakes / Smoothies / Fruit bowls: Method must be "No-Cook / Cold Prep" or "Blender/Shaker". Do NOT force an induction cooktop or egg boiler onto a drink.
+     * Electric Kettle: Use for boiling water, plain oatmeal, tea/coffee, or boiling noodles. Do not use for pan-frying or egg scrambles.
+     * Induction / Pan: Ideal for omelettes, sautéing, french toast, fried eggs, stir-fries.
+     * Microwave: Ideal for mug cakes, reheating, steaming, or microwave oatmeal.
+   - If multiple appliances are available, let each recipe use the single best appliance for that specific dish.
+
+4. STEP-BY-STEP MECHANICAL SETTINGS IN INSTRUCTIONS:
+   - Put all exact hardware settings (wattage, temperature, timing) DIRECTLY inside the step-by-step instructions text:
+     * Example: "Set induction to 1000W (140°C) with 1 tsp oil..."
+     * Example: "Microwave on High (800W) for 90 seconds until cooked through..."
+     * Example: "Add 250ml water to kettle and bring to a rolling boil..."
+   - The user will read the settings directly from the steps.
+
+5. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN, NORMAL recipes:
    - 1 Ultra-Quick Fuel / Snack (under 5 mins)
    - 2 Hearty Protein Meals / Bowls (Savory, satisfying lunch/dinner)
    - 1 Creative Wrap / Sandwich / Toasted creation
    - 1 Sweet Protein Craving / Dessert / Mug Cake
    - 1 Signature Chef Special matching their chosen gear and skill level.
-2. EXACT GEAR SETTINGS & PARAMETERS (CRITICAL):
-   - For every recipe and step involving gear, provide the EXACT mechanical setting:
-     * Microwave: Exact power / wattage and seconds/minutes (e.g. "800W / High power for 90 seconds", "medium 500W for 2 mins").
-     * Induction Cooktop: Exact wattage / temperature (e.g. "Set induction to 1200W / 160°C for sautéing, reduce to 600W / 100°C for simmering").
-     * Electric Kettle: Exact kettle operation (e.g. "Add 250ml water, turn switch ON. Hold lid open with a fork handle for 3 minutes to maintain continuous boil without auto-shutoff").
-     * Air Fryer / Toaster / Pan: Exact preheat time, temperature, and duration (e.g. "Air Fryer: 180°C for 6 mins", "Pan: Medium heat for 3 mins each side").
-   - Populate "gearSettings" with a clean one-line hardware summary for the entire recipe.
-3. MATCH COOKING SKILL:
-   - If Beginner: Keep steps foolproof, minimal chopping, fast, forgiving.
-   - If Masterchef: Use advanced flavor layering, spices, textural contrasts, gourmet hostel techniques.
-4. INGREDIENTS FORMAT: Each ingredient string must be clear with amount and name (e.g. "2 Eggs", "1 scoop Whey Protein", "1 Banana", "50g Oats", "1 tbsp Peanut Butter").
-5. ACCURATE MACROS: Provide realistic calories, protein, carbs, and fats.
 
 OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
 [
   {
     "id": "recipe-1",
-    "title": "Masala Scrambled Egg & Pepper Toast",
+    "title": "Classic Masala Scrambled Eggs & Toast",
     "tag": "High-Protein Main",
     "time": "8 mins",
     "method": "Induction / Pan",
     "difficulty": "Easy",
-    "gearSettings": "Induction: 1000W / 140°C for sautéing, 600W for soft scramble",
-    "ingredients": ["2 Eggs", "2 slices Whole Wheat Bread", "Chilli Flakes", "Black Pepper", "1 tsp Oil"],
+    "ingredients": ["2 Eggs", "2 slices Bread", "1 pinch Black Pepper", "1 pinch Chilli Flakes", "1 tsp Oil"],
     "instructions": [
       "Set induction cooktop to 1000W (140°C) with a non-stick pan and add 1 tsp oil.",
-      "Crack 2 eggs directly into the pan, season with black pepper and chilli flakes.",
-      "Lower induction heat to 600W and stir gently for 90 seconds until creamy and soft-set.",
-      "Toast the bread slices on the pan for 1 min per side at 800W, then top with the scrambled eggs."
+      "Crack 2 eggs into a cup, beat lightly, and pour into the pan.",
+      "Season with a pinch of black pepper and chilli flakes.",
+      "Reduce induction heat to 600W and stir gently for 90 seconds until soft and creamy.",
+      "Toast bread slices on the pan for 1 min per side at 800W, then plate with the scrambled eggs."
     ],
-    "hostelHack": "Keep induction at 600W at the end—residual pan heat finishes cooking the eggs without making them rubbery.",
+    "hostelHack": "Turn off induction heat when eggs are still slightly wet—the residual pan heat finishes cooking them without drying them out.",
     "macros": { "calories": 280, "protein": 18, "carbs": 24, "fats": 12 }
   }
 ]`;

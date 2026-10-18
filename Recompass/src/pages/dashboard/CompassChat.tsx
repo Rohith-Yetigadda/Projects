@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { clearCachedData } from "@/lib/dataCache";
 import { getLocalDateStr } from "@/lib/dateUtils";
+import { getStockStatus } from "@/pages/dashboard/Pantry";
 
 export type AgentAction = {
   id: string;
@@ -990,7 +991,7 @@ Instructions:
             const pantrySnap = await getDoc(pantryRef);
             if (pantrySnap.exists()) {
               const pantryItems = pantrySnap.data().items || [];
-              const lowItems = pantryItems.filter((p: any) => (p.quantity || 0) <= (p.lowStockThreshold || 1));
+              const lowItems = pantryItems.filter((p: any) => getStockStatus(p) !== "in_stock");
               if (lowItems.length > 0) {
                 const grocRef = doc(db, "users", currentUser.uid, "groceries", "current");
                 const grocSnap = await getDoc(grocRef);

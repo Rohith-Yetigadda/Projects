@@ -204,7 +204,6 @@ export default function Groceries() {
             category: pItem.category || "Other",
             quantity: 1,
             unit: "pcs",
-            lowStockThreshold: 1,
             updatedAt: new Date().toISOString()
           });
         }
@@ -249,7 +248,6 @@ export default function Groceries() {
           category: item.category || "Other",
           quantity: 1,
           unit: "pcs",
-          lowStockThreshold: 1,
           updatedAt: new Date().toISOString()
         });
       }

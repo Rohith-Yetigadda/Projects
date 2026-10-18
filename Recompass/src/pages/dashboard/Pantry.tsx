@@ -44,15 +44,24 @@ export function getStockStatus(item: PantryItem): StockStatus {
   const unit = (item.unit || "").toLowerCase().trim();
   const category = (item.category || "").toLowerCase().trim();
 
+  // 1. Packaged bulk/containers (jar, jars, bottle, bottles, pack, packs, box, boxes, tub, tubs, can, cans, carton, cartons)
+  // 1 bottle or 1 jar (and partial containers > 0.2) is fully in stock.
+  // 1 bottle or 1 jar must NEVER be marked as low stock! Low stock only when nearly empty (<= 0.2, e.g. <= 20% left of container).
+  const isContainer = [
+    "jar", "jars", "bottle", "bottles", "pack", "packs",
+    "box", "boxes", "tub", "tubs", "can", "cans", "carton", "cartons"
+  ].includes(unit);
+
+  if (isContainer) {
+    if (item.lowStockThreshold !== undefined && item.lowStockThreshold < 1) {
+      return qty <= item.lowStockThreshold ? "low_stock" : "in_stock";
+    }
+    return qty <= 0.2 ? "low_stock" : "in_stock";
+  }
+
   // If user set an explicit custom threshold on this item:
   if (item.lowStockThreshold && item.lowStockThreshold > 0) {
     return qty <= item.lowStockThreshold ? "low_stock" : "in_stock";
-  }
-
-  // 1. Packaged bulk/containers (jar, bottle, pack, box, tub, can)
-  // 1 whole container (e.g. 1 jar of Peanut Butter, 1 bottle of oil, 1 pack of bread) is fully in stock.
-  if (["jar", "bottle", "pack", "packs", "box", "boxes", "tub", "can", "cans"].includes(unit)) {
-    return "in_stock";
   }
 
   // 2. Spices: Indian hostel/dorm spice packets are small 10-15rs sachets (20g-50g)
@@ -576,11 +585,14 @@ export default function Pantry() {
               className="appearance-none bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-white/80 text-xs font-semibold rounded-xl pl-2.5 pr-6 py-1.5 focus:outline-none cursor-pointer transition-colors"
             >
               <option value="pcs" className="bg-[#171a20]">pcs</option>
-              <option value="jar" className="bg-[#171a20]">jar</option>
-              <option value="packs" className="bg-[#171a20]">packs</option>
               <option value="g" className="bg-[#171a20]">g</option>
-              <option value="scoops" className="bg-[#171a20]">scoops</option>
+              <option value="ml" className="bg-[#171a20]">ml</option>
+              <option value="kg" className="bg-[#171a20]">kg</option>
+              <option value="l" className="bg-[#171a20]">l</option>
+              <option value="jar" className="bg-[#171a20]">jar</option>
               <option value="bottles" className="bg-[#171a20]">bottles</option>
+              <option value="packs" className="bg-[#171a20]">packs</option>
+              <option value="scoops" className="bg-[#171a20]">scoops</option>
               <option value="servings" className="bg-[#171a20]">servings</option>
             </select>
             <ChevronDown className="w-3 h-3 text-white/40 absolute right-2 pointer-events-none" />

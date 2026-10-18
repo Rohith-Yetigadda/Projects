@@ -184,9 +184,9 @@ export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: numb
     }
   }
 
-  // Spreads / Jars (e.g. Peanut Butter jar vs tbsp)
-  if (["jar", "jars", "tub", "bottle"].includes(pUnit) && ["tbsp", "tsp"].includes(rUnit)) {
-    // 1 tbsp is ~0.05 jar (typical 350g-500g jar)
+  // Spreads / Jars (e.g. Peanut Butter jar vs tbsp, oil bottle vs tbsp)
+  if (["jar", "jars", "tub", "tubs", "bottle", "bottles"].includes(pUnit) && ["tbsp", "tsp"].includes(rUnit)) {
+    // 1 tbsp is ~0.05 jar/bottle (typical 350g-500g jar or bottle)
     return Math.round((parsedQty * 0.05) * 100) / 100;
   }
 

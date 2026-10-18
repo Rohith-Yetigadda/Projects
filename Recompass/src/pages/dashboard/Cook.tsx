@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
-  Sliders,
   X
 } from "lucide-react";
 import type { PantryItem, StockStatus } from "./Pantry";
@@ -764,21 +763,6 @@ export default function Cook() {
                   <h3 className="text-base font-extrabold text-white tracking-tight font-sans mb-3 leading-snug">
                     {recipe.title}
                   </h3>
-
-                  {/* Exact Gear Settings Box */}
-                  {recipe.gearSettings && (
-                    <div className="p-3 rounded-2xl bg-cyan-500/[0.07] border border-cyan-500/20 text-cyan-300 text-xs mb-4 flex items-start gap-2.5">
-                      <Sliders className="w-4 h-4 shrink-0 text-cyan-400 mt-0.5" />
-                      <div className="min-w-0">
-                        <span className="font-bold text-[10px] uppercase tracking-wider block text-cyan-400">
-                          Exact Equipment Setting
-                        </span>
-                        <p className="text-[11px] text-cyan-100 font-mono leading-relaxed mt-0.5">
-                          {recipe.gearSettings}
-                        </p>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Macros Row */}
                   <div className="grid grid-cols-4 gap-1 p-2.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] mb-4 text-center">
