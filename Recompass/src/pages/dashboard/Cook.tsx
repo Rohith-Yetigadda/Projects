@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import type { PantryItem, StockStatus } from "./Pantry";
 import { getStockStatus } from "./Pantry";
-import { getRecipePantryImpact, applyPantryDeductions } from "@/lib/pantryDeduction";
+import { getRecipePantryImpact, applyPantryDeductions, type PantryDeduction } from "@/lib/pantryDeduction";
 import { setCachedData } from "@/lib/dataCache";
 
 type Recipe = {
@@ -34,6 +34,7 @@ type Recipe = {
   difficulty: string;
   gearSettings?: string;
   ingredients: string[];
+  pantryDeductions?: PantryDeduction[];
   instructions: string[];
   hostelHack: string;
   macros: {
@@ -227,6 +228,14 @@ export default function Cook() {
         ? ["any standard hostel equipment", ...customGearList]
         : selectedMethods;
 
+      // Prepare detailed pantry inventory for Gemini so it knows the exact units (g, ml, pcs, packs, jar)
+      const selectedPantryData = selectedIngredients.map(name => {
+        const found = pantryItems.find(p => p.name.toLowerCase() === name.toLowerCase());
+        return found
+          ? { id: found.id, name: found.name, quantity: found.quantity, unit: found.unit, category: found.category }
+          : { id: name, name, quantity: 1, unit: "pcs", category: "Other" };
+      });
+
       const res = await fetch("/api/compass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,6 +243,7 @@ export default function Cook() {
           action: "generate_recipes",
           payload: {
             ingredients: selectedIngredients,
+            pantryItems: selectedPantryData,
             goal: userProfile?.goal || "high protein nutrition",
             methods: effectiveMethods,
             skillLevel: selectedSkill
@@ -352,7 +362,7 @@ export default function Cook() {
       // Handle Pantry Deductions & Low-Stock Alerts
       let deductedSummary = "";
       if (autoDeductPantry && pantryItems.length > 0) {
-        const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems);
+        const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems, recipe.pantryDeductions);
         const updatedPantry = applyPantryDeductions(pantryItems, impacts);
         
         // Find items that are now low stock or depleted
@@ -746,7 +756,7 @@ export default function Cook() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recipes.map(recipe => {
-              const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems);
+              const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems, recipe.pantryDeductions);
               return (
               <div
                 key={recipe.id}

@@ -370,10 +370,15 @@ OUTPUT STRICTLY AS JSON:
           ? "Hostel Masterchef / Skilled: Authentic techniques, proper heat control, balanced spices, and elevated restaurant-quality execution using standard comforting dishes."
           : "Intermediate / Comfortable: Standard hostel cooking with balanced seasoning, pan searing, and solid execution.";
 
+        const pantryItemsList = Array.isArray(payload.pantryItems) && payload.pantryItems.length > 0
+          ? payload.pantryItems
+          : (Array.isArray(payload.ingredients) ? payload.ingredients.map((name: string) => ({ name, unit: "pcs", quantity: 1 })) : []);
+
         const prompt = `You are an elite hostel culinary chef creating customized recipes for university students.
 
 CONTEXT:
-- Available ingredients in pantry: ${JSON.stringify(payload.ingredients || [])}.
+- Student's Pantry Inventory (Names, Quantities & Units):
+${JSON.stringify(pantryItemsList)}
 - Fitness Goal: ${payload.goal || "healthy nutrition"}.
 - Available Cooking Gear: ${methodsStr}.
 - Student Cooking Skill: "${skill.toUpperCase()}" (${skillDesc}).
@@ -414,7 +419,18 @@ ABSOLUTE CULINARY RULES (CRITICAL - ZERO TOLERANCE FOR WEIRD COMBINATIONS):
      * Example: "Add 250ml water to kettle and bring to a rolling boil..."
    - The user will read the settings directly from the steps.
 
-5. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN, NORMAL recipes:
+5. DYNAMIC REALISTIC PANTRY DEDUCTIONS (CRITICAL - DO NOT GUESS DUMB UNITS):
+   - For every recipe, you MUST output a "pantryDeductions" array translating each ingredient to the EXACT pantry item name and amount to deduct in that pantry item's ACTUAL unit:
+     * Protein Powder: 1 scoop = 30g to 35g (if pantry is in 'g', deduct 30g, NEVER 1g! If pantry is in 'scoops', deduct 1).
+     * Creatine: 1 scoop = 5g (if pantry is in 'g', deduct 5g, NEVER 1g!).
+     * Cooking Oil / Butter: 1 tsp = 5ml (NEVER 1ml!). 1 tbsp = 15ml.
+     * Spices & Seasonings (Chilli Powder, Pepper, Oregano, Salt, Chilli Flakes, Turmeric): 1 pinch = 1g. 1/2 tsp = 2g. 1 tsp = 3-4g. Always match the pantry item's exact name (e.g. "Chilli Powder" for "1 pinch Chilli Powder").
+     * Peanut Butter / Spreads: 1 tbsp = 16g (or 0.05 jar). 2 tbsp = 32g (or 0.1 jar).
+     * Milk: 1 cup / 250ml -> 250ml (if pantry in 'ml') or 0.5 pack (if 500ml 'packs').
+     * Bread: 2 slices -> 2 slices (if pantry in 'slices') or ~0.1 pack (if pantry in 'packs').
+     * Eggs: 2 eggs -> 2 pcs.
+
+6. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN, NORMAL recipes:
    - 1 Ultra-Quick Fuel / Snack (under 5 mins)
    - 2 Hearty Protein Meals / Bowls (Savory, satisfying lunch/dinner)
    - 1 Creative Wrap / Sandwich / Toasted creation
@@ -430,11 +446,18 @@ OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
     "time": "8 mins",
     "method": "Induction / Pan",
     "difficulty": "Easy",
-    "ingredients": ["2 Eggs", "2 slices Bread", "1 pinch Black Pepper", "1 pinch Chilli Flakes", "1 tsp Oil"],
+    "ingredients": ["2 Eggs", "2 slices Bread", "1 pinch Black Pepper", "1 pinch Chilli Powder", "1 tsp Oil"],
+    "pantryDeductions": [
+      { "ingredientStr": "2 Eggs", "pantryItemName": "Eggs", "deductQuantity": 2, "unit": "pcs" },
+      { "ingredientStr": "2 slices Bread", "pantryItemName": "Bread", "deductQuantity": 2, "unit": "slices" },
+      { "ingredientStr": "1 pinch Black Pepper", "pantryItemName": "Black Pepper", "deductQuantity": 1, "unit": "g" },
+      { "ingredientStr": "1 pinch Chilli Powder", "pantryItemName": "Chilli Powder", "deductQuantity": 1, "unit": "g" },
+      { "ingredientStr": "1 tsp Oil", "pantryItemName": "Cooking Oil", "deductQuantity": 5, "unit": "ml" }
+    ],
     "instructions": [
       "Set induction cooktop to 1000W (140°C) with a non-stick pan and add 1 tsp oil.",
       "Crack 2 eggs into a cup, beat lightly, and pour into the pan.",
-      "Season with a pinch of black pepper and chilli flakes.",
+      "Season with a pinch of black pepper and chilli powder.",
       "Reduce induction heat to 600W and stir gently for 90 seconds until soft and creamy.",
       "Toast bread slices on the pan for 1 min per side at 800W, then plate with the scrambled eggs."
     ],

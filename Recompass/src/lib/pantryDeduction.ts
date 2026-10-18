@@ -71,7 +71,7 @@ export function parseRecipeIngredient(rawIngredient: string): ParsedIngredient {
 
 function extractUnitAndName(rest: string): { unit: string; name: string } {
   // Regex for known units
-  const unitMatch = rest.match(/^(nos?|pcs?|pieces?|scoops?|tbsp|tablespoons?|tsp|teaspoons?|cups?|mugs?|glasses?|slices?|packs?|packets?|jars?|bottles?|tubs?|cans?|g|gm|gms|grams?|kg|ml|l|ltr|liters?|litres?)\s+(?:of\s+)?(.*)$/i);
+  const unitMatch = rest.match(/^(nos?|pcs?|pieces?|scoops?|tbsp|tablespoons?|tsp|teaspoons?|pinch|pinches|dash|dashes|cups?|mugs?|glasses?|slices?|packs?|packets?|jars?|bottles?|tubs?|cans?|g|gm|gms|grams?|kg|ml|l|ltr|liters?|litres?)\s+(?:of\s+)?(.*)$/i);
   if (unitMatch) {
     const rawUnit = unitMatch[1].toLowerCase();
     const rawName = unitMatch[2].trim();
@@ -82,6 +82,7 @@ function extractUnitAndName(rest: string): { unit: string; name: string } {
     else if (/^(l|ltr|liters?|litres?)$/.test(rawUnit)) normUnit = "l";
     else if (/^(tbsp|tablespoons?)$/.test(rawUnit)) normUnit = "tbsp";
     else if (/^(tsp|teaspoons?)$/.test(rawUnit)) normUnit = "tsp";
+    else if (/^(pinch|pinches|dash|dashes)$/.test(rawUnit)) normUnit = "pinch";
     else if (/^(scoops?)$/.test(rawUnit)) normUnit = "scoop";
     else if (/^(cups?|mugs?|glasses?)$/.test(rawUnit)) normUnit = "cup";
     else if (/^(slices?)$/.test(rawUnit)) normUnit = "slice";
@@ -95,10 +96,11 @@ function extractUnitAndName(rest: string): { unit: string; name: string } {
 
 /**
  * Cleans ingredient names by stripping generic preparation adjectives (ripe, chopped, fresh, diced).
+ * Note: 'powder' is kept intact because foods like 'Chilli Powder' or 'Protein Powder' need it to match.
  */
 export function cleanIngredientName(name: string): string {
   return name
-    .replace(/\b(ripe|unripe|fresh|raw|cooked|boiled|chopped|sliced|diced|grated|crushed|powder|optional|to taste|warm|cold|hot|large|medium|small)\b/gi, "")
+    .replace(/\b(pinch|pinches|dash|dashes|ripe|unripe|fresh|raw|cooked|boiled|chopped|sliced|diced|grated|crushed|optional|to taste|warm|cold|hot|large|medium|small)\b/gi, "")
     .replace(/[(),]/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -144,12 +146,25 @@ export function matchPantryItem(ingredientName: string, pantryItems: PantryItem[
   return null;
 }
 
+export type PantryDeduction = {
+  ingredientStr?: string;
+  pantryItemName?: string;
+  deductQuantity: number;
+  unit?: string;
+};
+
 /**
  * Normalizes deduction amounts based on pantry unit vs recipe parsed unit.
  */
-export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: number, parsedUnit: string): number {
+export function calculateDeductionAmount(
+  pantryItem: PantryItem,
+  parsedQty: number,
+  parsedUnit: string,
+  ingredientName?: string
+): number {
   const pUnit = (pantryItem.unit || "pcs").toLowerCase().trim();
   const rUnit = (parsedUnit || "pcs").toLowerCase().trim();
+  const name = (ingredientName || pantryItem.name || "").toLowerCase().trim();
 
   // Same unit: direct deduction
   if (pUnit === rUnit || (pUnit.startsWith("scoop") && rUnit.startsWith("scoop")) || (pUnit.startsWith("pc") && rUnit.startsWith("pc"))) {
@@ -172,6 +187,40 @@ export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: numb
     return parsedQty * 1000;
   }
 
+  // Scoops to grams
+  if (pUnit === "g" && (rUnit === "scoop" || rUnit === "scoops")) {
+    if (name.includes("creatine")) return parsedQty * 5; // 1 scoop creatine is ~5g
+    if (name.includes("protein") || name.includes("whey")) return parsedQty * 30; // 1 scoop protein is ~30-35g
+    return parsedQty * 30;
+  }
+  if ((pUnit === "scoop" || pUnit === "scoops") && rUnit === "g") {
+    if (name.includes("creatine")) return Math.round((parsedQty / 5) * 10) / 10;
+    return Math.round((parsedQty / 30) * 10) / 10;
+  }
+
+  // Teaspoons (tsp)
+  if (rUnit === "tsp" || rUnit === "teaspoon" || rUnit === "teaspoons") {
+    if (pUnit === "ml") return parsedQty * 5; // 1 tsp = 5ml
+    if (pUnit === "l") return Math.round((parsedQty * 0.005) * 1000) / 1000;
+    if (pUnit === "g") return parsedQty * 3; // 1 tsp spice/salt = ~3g
+    if (["bottle", "bottles", "jar", "jars"].includes(pUnit)) return Math.round((parsedQty * 0.01) * 100) / 100;
+  }
+
+  // Tablespoons (tbsp)
+  if (rUnit === "tbsp" || rUnit === "tablespoon" || rUnit === "tablespoons") {
+    if (pUnit === "ml") return parsedQty * 15; // 1 tbsp = 15ml
+    if (pUnit === "l") return Math.round((parsedQty * 0.015) * 1000) / 1000;
+    if (pUnit === "g") return name.includes("peanut") || name.includes("jam") ? parsedQty * 16 : parsedQty * 10;
+    if (["jar", "jars", "tub", "tubs", "bottle", "bottles"].includes(pUnit)) return Math.round((parsedQty * 0.05) * 100) / 100;
+  }
+
+  // Pinches & Dashes
+  if (rUnit === "pinch" || rUnit === "pinches" || rUnit === "dash" || rUnit === "dashes") {
+    if (pUnit === "g") return parsedQty * 1; // 1 pinch = ~1g
+    if (pUnit === "kg") return parsedQty * 0.001;
+    if (pUnit === "ml") return parsedQty * 1;
+  }
+
   // Fluid containers (e.g. Pantry in "packs" or "bottle", recipe in "ml" or "cup")
   if (["pack", "packs", "bottle", "bottles", "carton"].includes(pUnit)) {
     if (rUnit === "ml") {
@@ -179,8 +228,8 @@ export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: numb
       return Math.round((parsedQty / 500) * 100) / 100;
     }
     if (rUnit === "cup") {
-      // 1 cup ~ 200ml -> ~0.4 pack
-      return Math.round(parsedQty * 0.4 * 10) / 10;
+      // 1 cup ~ 250ml -> ~0.5 pack
+      return Math.round(parsedQty * 0.5 * 10) / 10;
     }
   }
 
@@ -210,13 +259,33 @@ export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: numb
 
 /**
  * Analyzes a full recipe against pantry items to compute the before/after impact of cooking.
+ * Uses Gemini AI's dynamic recipe deductions if available, with intelligent fallback.
  */
-export function getRecipePantryImpact(ingredients: string[], pantryItems: PantryItem[]): PantryImpactItem[] {
+export function getRecipePantryImpact(
+  ingredients: string[],
+  pantryItems: PantryItem[],
+  aiDeductions?: PantryDeduction[]
+): PantryImpactItem[] {
   if (!ingredients || ingredients.length === 0) return [];
 
   return ingredients.map(ingStr => {
     const parsed = parseRecipeIngredient(ingStr);
-    const matched = matchPantryItem(parsed.name, pantryItems);
+
+    // 1. Try to find AI-computed deduction first
+    const aiDeduction = aiDeductions?.find(d => {
+      if (d.ingredientStr && d.ingredientStr.trim().toLowerCase() === ingStr.trim().toLowerCase()) return true;
+      if (d.pantryItemName) {
+        const dClean = cleanIngredientName(d.pantryItemName).toLowerCase();
+        const pClean = cleanIngredientName(parsed.name).toLowerCase();
+        return dClean === pClean || dClean.includes(pClean) || pClean.includes(dClean);
+      }
+      return false;
+    });
+
+    // 2. Match pantry item
+    const matched = aiDeduction?.pantryItemName
+      ? matchPantryItem(aiDeduction.pantryItemName, pantryItems) || matchPantryItem(parsed.name, pantryItems)
+      : matchPantryItem(parsed.name, pantryItems);
 
     if (!matched) {
       return {
@@ -232,7 +301,11 @@ export function getRecipePantryImpact(ingredients: string[], pantryItems: Pantry
       };
     }
 
-    const deductQty = calculateDeductionAmount(matched, parsed.quantity, parsed.unit);
+    // 3. Use AI deduction if available, else compute with unit-aware rules
+    const deductQty = (aiDeduction && typeof aiDeduction.deductQuantity === "number" && aiDeduction.deductQuantity > 0)
+      ? aiDeduction.deductQuantity
+      : calculateDeductionAmount(matched, parsed.quantity, parsed.unit, parsed.name);
+
     const remaining = Math.max(0, Math.round((matched.quantity - deductQty) * 100) / 100);
 
     const statusBefore = getStockStatus(matched);
