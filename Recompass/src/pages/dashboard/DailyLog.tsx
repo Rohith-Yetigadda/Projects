@@ -939,7 +939,7 @@ function PhotoConfirm({ items, onConfirm, onCancel }: { items: any[]; onConfirm:
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(i)}>
                   <p className="text-xs font-bold text-white truncate">{item.name}</p>
                   <p className="text-[11px] text-white/40 font-sans truncate mt-0.5">
-                    {item.quantity ? `${item.quantity} · ` : ""}{item.calories} kcal · P {item.protein}g · C {item.carbs}g · F {item.fats}g
+                    {item.quantity ? `${item.quantity.length > 25 ? "1 serving" : item.quantity} · ` : ""}{item.calories} kcal · P {item.protein}g · C {item.carbs}g · F {item.fats}g
                   </p>
                 </div>
               )}
@@ -983,17 +983,44 @@ function EditLogItemModal({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(item.name);
-  const [quantity, setQuantity] = useState(item.quantity);
+  const cleanInitialQuantity = useMemo(() => {
+    if (!item.quantity) return "1 serving";
+    if (item.quantity.length > 25 || item.quantity.includes(",")) return "1 serving";
+    return item.quantity;
+  }, [item.quantity]);
+
+  const [quantity, setQuantity] = useState(cleanInitialQuantity);
   const [calories, setCalories] = useState(item.calories.toString());
   const [protein, setProtein] = useState(item.protein.toString());
   const [carbs, setCarbs] = useState(item.carbs.toString());
   const [fats, setFats] = useState(item.fats.toString());
   const [recalculating, setRecalculating] = useState(false);
 
+  // Instant portion presets for this food
+  const portionInfo = useMemo(() => getQuickPortionPresets(name), [name]);
+
+  const handleSelectPreset = (preset: string) => {
+    const prevMult = parseQuantityMultiplier(quantity, name) || 1;
+    const newMult = parseQuantityMultiplier(preset, name) || 1;
+    const ratio = newMult / prevMult;
+    setQuantity(preset);
+    if (item.calories > 0 && ratio > 0 && isFinite(ratio)) {
+      const curCal = parseFloat(calories) || item.calories;
+      const curPro = parseFloat(protein) || item.protein;
+      const curCar = parseFloat(carbs) || item.carbs;
+      const curFat = parseFloat(fats) || item.fats;
+      setCalories(Math.max(10, Math.round(curCal * ratio)).toString());
+      setProtein((Math.max(0, Math.round(curPro * ratio * 10) / 10)).toString());
+      setCarbs((Math.max(0, Math.round(curCar * ratio * 10) / 10)).toString());
+      setFats((Math.max(0, Math.round(curFat * ratio * 10) / 10)).toString());
+    }
+  };
+
   const handleRecalculate = async () => {
     setRecalculating(true);
     try {
-      const query = quantity.trim() ? `${quantity.trim()} ${name.trim()}` : name.trim();
+      const cleanQty = quantity.length > 25 ? "1 serving" : quantity.trim();
+      const query = cleanQty ? `${cleanQty} ${name.trim()}` : name.trim();
       const macros = await estimateMacros(query, "", true);
       setCalories(macros.calories.toString());
       setProtein(macros.protein.toString());
@@ -1011,7 +1038,7 @@ function EditLogItemModal({
     onSave({
       ...item,
       name: name.trim().toUpperCase(),
-      quantity: quantity.trim(),
+      quantity: quantity.trim().length > 25 ? "1 serving" : quantity.trim(),
       calories: Math.max(0, parseInt(calories) || 0),
       protein: Math.max(0, parseFloat(protein) || 0),
       carbs: Math.max(0, parseFloat(carbs) || 0),
@@ -1044,14 +1071,39 @@ function EditLogItemModal({
           </div>
 
           <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">Portion / Serving</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Portion / Serving</label>
+              {portionInfo.category && (
+                <span className="text-[10px] text-white/35 font-medium uppercase tracking-wider">
+                  {portionInfo.category}
+                </span>
+              )}
+            </div>
             <input
               type="text"
               value={quantity}
               onChange={e => setQuantity(e.target.value)}
               className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"
-              placeholder="e.g. 1 ladle, 2 pieces, 1 glass"
+              placeholder="e.g. 1 ladle, 1 paddle, 1 cup, 1 serving"
             />
+            {portionInfo.presets && portionInfo.presets.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {portionInfo.presets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
+                      quantity === preset
+                        ? "bg-white text-black shadow-sm"
+                        : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* AI Recalculate button */}
@@ -1634,6 +1686,22 @@ function StaplesManagerModal({
   );
 }
 
+function sanitizeLog(rawLog: DayLog): DayLog {
+  const sanitizeList = (list: MacroEntry[] = []) =>
+    (list || []).map(entry => {
+      if (entry && entry.quantity && (entry.quantity.length > 25 || entry.quantity.includes(","))) {
+        return { ...entry, quantity: "1 serving" };
+      }
+      return entry;
+    });
+  return {
+    breakfast: sanitizeList(rawLog.breakfast),
+    lunch: sanitizeList(rawLog.lunch),
+    dinner: sanitizeList(rawLog.dinner),
+    snacks: sanitizeList(rawLog.snacks),
+  };
+}
+
 // ─── Main Component ────────────────────────────────────────────────
 export default function DailyLog() {
   const { currentUser, userProfile } = useAuth();
@@ -1648,7 +1716,7 @@ export default function DailyLog() {
   const cachedMenu = getCachedData<MealPlan>("weekly_menu_" + dayName);
   const cachedStaples = getCachedData<StapleMeal[]>("user_staples");
 
-  const [log, setLog]         = useState<DayLog>(cachedLog || { breakfast: [], lunch: [], dinner: [], snacks: [] });
+  const [log, setLog]         = useState<DayLog>(() => cachedLog ? sanitizeLog(cachedLog) : { breakfast: [], lunch: [], dinner: [], snacks: [] });
   const [menu, setMenu]       = useState<MealPlan | null>(cachedMenu || null);
   const [loading, setLoading] = useState(!cachedLog);
   const [picker, setPicker]   = useState<{ mealType: MealType; foodName: string; isCustom?: boolean } | null>(null);
@@ -1705,9 +1773,16 @@ export default function DailyLog() {
       const snap = await getDoc(doc(db, "users", currentUser.uid, "logs", today));
       if (snap.exists()) {
         const d = snap.data();
-        const freshLog = { breakfast: d.breakfast||[], lunch: d.lunch||[], dinner: d.dinner||[], snacks: d.snacks||[] };
+        const raw = { breakfast: d.breakfast||[], lunch: d.lunch||[], dinner: d.dinner||[], snacks: d.snacks||[] };
+        const freshLog = sanitizeLog(raw);
         setLog(freshLog);
         setCachedData("daily_log_" + today, freshLog);
+        const hadOversized = (["breakfast", "lunch", "dinner", "snacks"] as MealType[]).some(m =>
+          (raw[m] || []).some((item: MacroEntry) => item?.quantity && (item.quantity.length > 25 || item.quantity.includes(",")))
+        );
+        if (hadOversized) {
+          setDoc(doc(db, "users", currentUser.uid, "logs", today), freshLog, { merge: true }).catch(() => {});
+        }
       }
     } catch (e) {
       console.error(e);
