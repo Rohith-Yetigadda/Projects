@@ -1973,9 +1973,6 @@ export default function DailyLog() {
       };
       setLog(newLog);
       await persist(newLog);
-      const mealLabel = mealConfig.find(m => m.key === targetMeal)?.label || targetMeal;
-      setToast(`Logged ${staple.name} to ${mealLabel}!`);
-      setTimeout(() => setToast(null), 3000);
     } catch (err) {
       console.error("[logStaple] Error:", err);
       setToast("Failed to log staple. Please try again.");
