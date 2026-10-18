@@ -425,9 +425,10 @@ ABSOLUTE CULINARY RULES (CRITICAL - ZERO TOLERANCE FOR WEIRD COMBINATIONS):
      * Creatine: 1 scoop = 5g (if pantry is in 'g', deduct 5g, NEVER 1g!).
      * Cooking Oil / Butter: 1 tsp = 5ml (NEVER 1ml!). 1 tbsp = 15ml.
      * Spices & Seasonings (Chilli Powder, Pepper, Oregano, Salt, Chilli Flakes, Turmeric): 1 pinch = 1g. 1/2 tsp = 2g. 1 tsp = 3-4g. Always match the pantry item's exact name (e.g. "Chilli Powder" for "1 pinch Chilli Powder").
-     * Peanut Butter / Spreads: 1 tbsp = 16g (or 0.05 jar). 2 tbsp = 32g (or 0.1 jar).
-     * Milk: 1 cup / 250ml -> 250ml (if pantry in 'ml') or 0.5 pack (if 500ml 'packs').
-     * Bread: 2 slices -> 2 slices (if pantry in 'slices') or ~0.1 pack (if pantry in 'packs').
+     * Peanut Butter / Spreads / Jam: 1 tbsp = 0.04 jar (if pantry in 'jar', NEVER deduct 1 whole jar! 1 tbsp is 0.04 jar). If pantry in 'g', 1 tbsp = 16g.
+     * Oats / Grains: 50g = 0.05 kg (if pantry is in 'kg', NEVER deduct 50 kg! 50g is 0.05 kg). If pantry in 'g', deduct 50g.
+     * Milk: 1 cup / 250ml -> 250ml (if pantry in 'ml') or 0.5 pack (if 500ml 'packs'). 50ml -> 0.1 pack.
+     * Bread: 2 slices -> 2 slices (if pantry in 'slices') or 0.12 pack (if pantry in 'packs', NEVER deduct 2 whole packs for 2 slices!).
      * Eggs: 2 eggs -> 2 pcs.
 
 6. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN, NORMAL recipes:

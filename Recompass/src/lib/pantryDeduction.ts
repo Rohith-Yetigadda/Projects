@@ -167,90 +167,148 @@ export function calculateDeductionAmount(
   const name = (ingredientName || pantryItem.name || "").toLowerCase().trim();
 
   // Same unit: direct deduction
-  if (pUnit === rUnit || (pUnit.startsWith("scoop") && rUnit.startsWith("scoop")) || (pUnit.startsWith("pc") && rUnit.startsWith("pc"))) {
+  if (
+    pUnit === rUnit ||
+    (pUnit.startsWith("scoop") && rUnit.startsWith("scoop")) ||
+    (pUnit.startsWith("pc") && rUnit.startsWith("pc")) ||
+    (pUnit.startsWith("slice") && rUnit.startsWith("slice"))
+  ) {
     return parsedQty;
   }
 
   // Grams to Kg or vice versa
-  if (pUnit === "kg" && rUnit === "g") {
+  if (pUnit === "kg" && (rUnit === "g" || rUnit === "gram" || rUnit === "grams")) {
     return Math.round((parsedQty / 1000) * 1000) / 1000;
   }
-  if (pUnit === "g" && rUnit === "kg") {
+  if (pUnit === "g" && (rUnit === "kg" || rUnit === "kilogram" || rUnit === "kilograms")) {
     return parsedQty * 1000;
   }
 
   // Milliliters to Liters or vice versa
-  if (pUnit === "l" && rUnit === "ml") {
+  if (pUnit === "l" && (rUnit === "ml" || rUnit === "milliliter" || rUnit === "milliliters")) {
     return Math.round((parsedQty / 1000) * 1000) / 1000;
   }
-  if (pUnit === "ml" && rUnit === "l") {
+  if (pUnit === "ml" && (rUnit === "l" || rUnit === "liter" || rUnit === "liters")) {
     return parsedQty * 1000;
   }
 
-  // Scoops to grams
+  // Scoops (Protein Powder ~30g, Creatine ~5g)
   if (pUnit === "g" && (rUnit === "scoop" || rUnit === "scoops")) {
-    if (name.includes("creatine")) return parsedQty * 5; // 1 scoop creatine is ~5g
-    if (name.includes("protein") || name.includes("whey")) return parsedQty * 30; // 1 scoop protein is ~30-35g
-    return parsedQty * 30;
+    const perScoop = name.includes("creatine") ? 5 : 30;
+    return parsedQty * perScoop;
   }
-  if ((pUnit === "scoop" || pUnit === "scoops") && rUnit === "g") {
-    if (name.includes("creatine")) return Math.round((parsedQty / 5) * 10) / 10;
-    return Math.round((parsedQty / 30) * 10) / 10;
+  if (pUnit === "kg" && (rUnit === "scoop" || rUnit === "scoops")) {
+    const perScoop = name.includes("creatine") ? 5 : 30;
+    return Math.round(((parsedQty * perScoop) / 1000) * 1000) / 1000;
+  }
+  if ((pUnit === "scoop" || pUnit === "scoops") && (rUnit === "g" || rUnit === "gram" || rUnit === "grams")) {
+    const perScoop = name.includes("creatine") ? 5 : 30;
+    return Math.round((parsedQty / perScoop) * 10) / 10;
   }
 
-  // Teaspoons (tsp)
+  // Teaspoons (tsp) - 1 tsp = 5ml, ~3g spice
   if (rUnit === "tsp" || rUnit === "teaspoon" || rUnit === "teaspoons") {
-    if (pUnit === "ml") return parsedQty * 5; // 1 tsp = 5ml
+    if (pUnit === "ml") return parsedQty * 5;
     if (pUnit === "l") return Math.round((parsedQty * 0.005) * 1000) / 1000;
-    if (pUnit === "g") return parsedQty * 3; // 1 tsp spice/salt = ~3g
+    if (pUnit === "g") return parsedQty * 3;
+    if (pUnit === "kg") return Math.round((parsedQty * 0.003) * 1000) / 1000;
     if (["bottle", "bottles", "jar", "jars"].includes(pUnit)) return Math.round((parsedQty * 0.01) * 100) / 100;
+    if (["pack", "packs"].includes(pUnit)) return Math.round((parsedQty * 0.02) * 100) / 100;
   }
 
-  // Tablespoons (tbsp)
+  // Tablespoons (tbsp) - 1 tbsp = 15ml, ~16g PB/jam, ~12g other
   if (rUnit === "tbsp" || rUnit === "tablespoon" || rUnit === "tablespoons") {
-    if (pUnit === "ml") return parsedQty * 15; // 1 tbsp = 15ml
+    if (pUnit === "ml") return parsedQty * 15;
     if (pUnit === "l") return Math.round((parsedQty * 0.015) * 1000) / 1000;
-    if (pUnit === "g") return name.includes("peanut") || name.includes("jam") ? parsedQty * 16 : parsedQty * 10;
-    if (["jar", "jars", "tub", "tubs", "bottle", "bottles"].includes(pUnit)) return Math.round((parsedQty * 0.05) * 100) / 100;
+    if (pUnit === "g") {
+      const gPerTbsp = name.includes("peanut") || name.includes("jam") || name.includes("butter") ? 16 : 12;
+      return parsedQty * gPerTbsp;
+    }
+    if (pUnit === "kg") {
+      const gPerTbsp = name.includes("peanut") || name.includes("jam") || name.includes("butter") ? 16 : 12;
+      return Math.round(((parsedQty * gPerTbsp) / 1000) * 1000) / 1000;
+    }
+    if (["jar", "jars", "tub", "tubs"].includes(pUnit)) {
+      // 1 tbsp is ~16g out of ~350g-400g jar -> ~0.04 jar
+      return Math.round((parsedQty * 0.04) * 100) / 100;
+    }
+    if (["bottle", "bottles"].includes(pUnit)) {
+      return Math.round((parsedQty * 0.03) * 100) / 100;
+    }
+    if (["pack", "packs"].includes(pUnit)) {
+      // 1 tbsp mayo/ketchup (~15g) from a 200-250g pack -> ~0.06 - 0.08 pack
+      return Math.round((parsedQty * 0.07) * 100) / 100;
+    }
   }
 
-  // Pinches & Dashes
+  // Pinches & Dashes (1 pinch = 1g)
   if (rUnit === "pinch" || rUnit === "pinches" || rUnit === "dash" || rUnit === "dashes") {
-    if (pUnit === "g") return parsedQty * 1; // 1 pinch = ~1g
-    if (pUnit === "kg") return parsedQty * 0.001;
+    if (pUnit === "g") return parsedQty * 1;
+    if (pUnit === "kg") return Math.round((parsedQty * 0.001) * 1000) / 1000;
     if (pUnit === "ml") return parsedQty * 1;
   }
 
-  // Fluid containers (e.g. Pantry in "packs" or "bottle", recipe in "ml" or "cup")
-  if (["pack", "packs", "bottle", "bottles", "carton"].includes(pUnit)) {
-    if (rUnit === "ml") {
-      // Assume typical 500ml milk packet/carton in Indian hostels
-      return Math.round((parsedQty / 500) * 100) / 100;
+  // Cups (1 cup ~ 250ml, ~100g oats/flour)
+  if (rUnit === "cup" || rUnit === "cups") {
+    if (pUnit === "ml") return parsedQty * 250;
+    if (pUnit === "l") return Math.round((parsedQty * 0.25) * 100) / 100;
+    if (pUnit === "g") return parsedQty * 100;
+    if (pUnit === "kg") return Math.round((parsedQty * 0.1) * 100) / 100;
+    if (["pack", "packs"].includes(pUnit)) return Math.round((parsedQty * 0.5) * 10) / 10;
+  }
+
+  // Jars & Tubs vs Grams / Kg (e.g. 1 jar Peanut Butter vs 16g-32g)
+  if (["jar", "jars", "tub", "tubs"].includes(pUnit)) {
+    if (rUnit === "g" || rUnit === "gram" || rUnit === "grams") {
+      // Standard peanut butter/jam jar ~ 350-400g
+      return Math.round((parsedQty / 400) * 100) / 100;
     }
-    if (rUnit === "cup") {
-      // 1 cup ~ 250ml -> ~0.5 pack
-      return Math.round(parsedQty * 0.5 * 10) / 10;
+    if (rUnit === "kg") {
+      return Math.round((parsedQty / 0.4) * 100) / 100;
     }
   }
 
-  // Spreads / Jars (e.g. Peanut Butter jar vs tbsp, oil bottle vs tbsp)
-  if (["jar", "jars", "tub", "tubs", "bottle", "bottles"].includes(pUnit) && ["tbsp", "tsp"].includes(rUnit)) {
-    // 1 tbsp is ~0.05 jar/bottle (typical 350g-500g jar or bottle)
-    return Math.round((parsedQty * 0.05) * 100) / 100;
+  // Fluid Containers (e.g. Pantry in "packs" or "bottle", recipe in "ml" or "l")
+  if (["pack", "packs", "bottle", "bottles", "carton"].includes(pUnit)) {
+    if (rUnit === "ml" || rUnit === "milliliter") {
+      // Assume typical 500ml milk packet/carton/bottle
+      return Math.round((parsedQty / 500) * 100) / 100;
+    }
+    if (rUnit === "l" || rUnit === "liter") {
+      return Math.round((parsedQty * 2) * 100) / 100;
+    }
+    if (rUnit === "g" || rUnit === "gram" || rUnit === "grams") {
+      // Standard dry pack ~ 400-500g
+      return Math.round((parsedQty / 500) * 100) / 100;
+    }
+  }
+
+  // Bread & Cheese: Pack vs Slices (e.g. 1 pack Bread vs 2 slices Bread)
+  if (["pack", "packs"].includes(pUnit) && ["slice", "slices"].includes(rUnit)) {
+    // 1 standard bread/cheese pack ~ 16 slices
+    return Math.round((parsedQty / 16) * 100) / 100;
+  }
+  if (["slice", "slices"].includes(pUnit) && ["pack", "packs"].includes(rUnit)) {
+    return parsedQty * 16;
   }
 
   // Discrete pieces vs slices (e.g. Bread slices vs pcs)
-  if (["slice", "slices", "pcs", "piece", "pieces"].includes(pUnit) && ["slice", "slices", "pcs", "piece", "pieces"].includes(rUnit)) {
+  if (
+    ["slice", "slices", "pcs", "piece", "pieces"].includes(pUnit) &&
+    ["slice", "slices", "pcs", "piece", "pieces"].includes(rUnit)
+  ) {
     return parsedQty;
   }
 
-  // Bread / Cheese Pack vs Slices (e.g. 1 pack Bread vs 2 slices Bread)
-  if (["pack", "packs"].includes(pUnit) && ["slice", "slices"].includes(rUnit)) {
-    // 1 standard bread/cheese pack ~ 15-20 slices
-    return Math.round((parsedQty / 15) * 100) / 100;
+  // Special heuristic: if pUnit is pack and item is bread/cheese, but rUnit was omitted or passed as pcs
+  if (["pack", "packs"].includes(pUnit) && (name.includes("bread") || name.includes("cheese")) && parsedQty <= 6) {
+    // Likely 1-4 slices
+    return Math.round((parsedQty / 16) * 100) / 100;
   }
-  if (["slice", "slices"].includes(pUnit) && ["pack", "packs"].includes(rUnit)) {
-    return parsedQty * 15;
+
+  // Special heuristic: if pUnit is kg and item is oats/flour/sugar and parsedQty >= 10, likely grams
+  if (pUnit === "kg" && parsedQty >= 5 && (rUnit === "pcs" || rUnit === "")) {
+    return Math.round((parsedQty / 1000) * 1000) / 1000;
   }
 
   // Default fallback: deduct parsed quantity or 1
@@ -301,11 +359,19 @@ export function getRecipePantryImpact(
       };
     }
 
-    // 3. Use AI deduction if available, else compute with unit-aware rules
-    const deductQty = (aiDeduction && typeof aiDeduction.deductQuantity === "number" && aiDeduction.deductQuantity > 0)
-      ? aiDeduction.deductQuantity
-      : calculateDeductionAmount(matched, parsed.quantity, parsed.unit, parsed.name);
+    // 3. Normalize raw quantity and unit through calculateDeductionAmount
+    // Whether from AI deduction or recipe string parsing, always convert into the matched pantry item's unit!
+    let rawQty = parsed.quantity;
+    let rawUnit = parsed.unit;
 
+    if (aiDeduction && typeof aiDeduction.deductQuantity === "number" && aiDeduction.deductQuantity > 0) {
+      rawQty = aiDeduction.deductQuantity;
+      if (aiDeduction.unit) {
+        rawUnit = aiDeduction.unit;
+      }
+    }
+
+    const deductQty = calculateDeductionAmount(matched, rawQty, rawUnit, parsed.name);
     const remaining = Math.max(0, Math.round((matched.quantity - deductQty) * 100) / 100);
 
     const statusBefore = getStockStatus(matched);
