@@ -137,7 +137,15 @@ export default function Cook() {
 
   const [activeRecipeTab, setActiveRecipeTab] = useState<"generated" | "saved">("generated");
   const [activeMobileCardIndex, setActiveMobileCardIndex] = useState(0);
-  const [mobileViewMode, setMobileViewMode] = useState<"carousel" | "list">("carousel");
+  const [isFormCollapsed, setIsFormCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem("recompass_generated_recipes");
+      return saved ? JSON.parse(saved).length > 0 : false;
+    } catch {
+      return false;
+    }
+  });
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [expandedInstructions, setExpandedInstructions] = useState<Record<string, boolean>>({});
 
   const recipesSectionRef = useRef<HTMLDivElement>(null);
@@ -362,6 +370,7 @@ export default function Cook() {
       setRecipes(received);
       setActiveRecipeTab("generated");
       setActiveMobileCardIndex(0);
+      setIsFormCollapsed(true);
       try {
         localStorage.setItem("recompass_generated_recipes", JSON.stringify(received));
       } catch (err) {
@@ -548,23 +557,69 @@ export default function Cook() {
         </Link>
       </div>
 
-      {/* Main Ingredient Selector Bento */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-6 shadow-2xl space-y-6">
-        
-        {/* Step 1: Pick Ingredients */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">1</span>
-              Select Available Ingredients
-            </h3>
+      {/* Main Ingredient Selector Bento / Collapsed Bar */}
+      {recipes.length > 0 && isFormCollapsed ? (
+        <div className="rounded-2xl bg-[#121418] border border-white/[0.08] p-3.5 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+              <ChefHat className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white truncate">
+                  {selectedIngredients.length} Ingredients Selected
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-white/60 border border-white/[0.06] uppercase tracking-wider shrink-0 font-medium">
+                  {selectedSkill}
+                </span>
+              </div>
+              <p className="text-[11px] text-white/40 truncate mt-0.5">
+                Gear: {selectedMethods.includes("any") ? "All hostel equipment" : selectedMethods.join(", ")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsFormCollapsed(false)}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all flex items-center gap-1"
+            >
+              <span>Refine</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleGenerateRecipes}
+              disabled={generating}
+              className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-white/90 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40"
+            >
+              {generating ? (
+                <div className="w-3 h-3 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+              )}
+              <span>Reroll</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-6 shadow-2xl space-y-5">
+          {/* Header of Bento */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white font-bold">1</span>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                Select Available Ingredients
+              </h3>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleSelectAll}
                 className="text-[11px] font-semibold text-white/50 hover:text-white transition-colors"
               >
-                Select All
+                All
               </button>
               <span className="text-white/20">•</span>
               <button
@@ -574,240 +629,238 @@ export default function Cook() {
               >
                 Clear
               </button>
-              <span className="text-[11px] font-medium text-orange-400/80 ml-1">
-                ({selectedIngredients.length} selected)
+              <span className="text-[11px] font-medium text-orange-400/90 ml-1">
+                ({selectedIngredients.length})
               </span>
+              {recipes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsFormCollapsed(true)}
+                  className="ml-2 text-xs text-white/40 hover:text-white flex items-center gap-0.5 border border-white/[0.08] px-2 py-0.5 rounded-lg"
+                >
+                  <span>Hide</span>
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
 
-          {loadingPantry ? (
-            <div className="py-6 flex items-center justify-center text-white/30 text-xs">
-              Loading your pantry...
-            </div>
-          ) : pantryItems.length === 0 ? (
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-              <div>
-                <p className="text-xs font-semibold text-white/80">Your pantry is empty</p>
-                <p className="text-[11px] text-white/40 mt-0.5">Add items in your Pantry or type custom ingredients below.</p>
+          {/* Step 1: Pick Ingredients */}
+          <div>
+            {loadingPantry ? (
+              <div className="py-4 flex items-center justify-center text-white/30 text-xs">
+                Loading your pantry...
               </div>
-              <Link
-                to="/app/pantry"
-                className="px-4 py-1.5 rounded-full bg-white text-black font-bold text-[11px] uppercase tracking-wider hover:bg-white/90 transition-all shrink-0"
+            ) : pantryItems.length === 0 ? (
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                <div>
+                  <p className="text-xs font-semibold text-white/80">Your pantry is empty</p>
+                  <p className="text-[11px] text-white/40 mt-0.5">Add items in your Pantry or type custom ingredients below.</p>
+                </div>
+                <Link
+                  to="/app/pantry"
+                  className="px-4 py-1.5 rounded-full bg-white text-black font-bold text-[11px] uppercase tracking-wider hover:bg-white/90 transition-all shrink-0"
+                >
+                  Stock Pantry
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {(showAllIngredients ? pantryItems : pantryItems.slice(0, 8)).map(item => {
+                    const isSelected = selectedIngredients.includes(item.name);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => toggleIngredient(item.name)}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-orange-500/15 border-orange-500/40 text-white font-semibold shadow-sm hover:bg-orange-500/20"
+                            : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white/80 hover:border-white/15"
+                        }`}
+                      >
+                        <span className="truncate max-w-[130px]">{item.name}</span>
+                        <span className={`text-[10px] ${isSelected ? "text-orange-300/80" : "text-white/35"}`}>
+                          ({item.quantity} {item.unit})
+                        </span>
+                        {isSelected && <Check className="w-3 h-3 text-orange-400 stroke-[3] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                  
+                  {pantryItems.length > 8 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllIngredients(!showAllIngredients)}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-orange-400 bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 transition-all"
+                    >
+                      {showAllIngredients ? "Show Less" : `+ ${pantryItems.length - 8} More`}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Add custom ingredient form */}
+            <form onSubmit={handleAddCustomIngredient} className="mt-3 flex items-center gap-2 max-w-md">
+              <input
+                type="text"
+                placeholder="+ Add extra item (e.g. Sriracha, Mayo, Maggi)..."
+                value={customIngredient}
+                onChange={(e) => setCustomIngredient(e.target.value)}
+                className="flex-1 h-8 px-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!customIngredient.trim()}
+                className="h-8 px-3 rounded-xl bg-white/[0.06] text-white/80 hover:text-white text-xs font-semibold disabled:opacity-30 border border-white/[0.08] transition-all"
               >
-                Stock Pantry
-              </Link>
+                Add
+              </button>
+            </form>
+          </div>
+
+          {/* Step 2: Hostel Cooking Gear + Custom Appliances */}
+          <div className="border-t border-white/[0.06] pt-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white font-bold">2</span>
+                Cooking Gear
+              </h3>
+              <span className="text-[11px] font-medium text-white/40">
+                {selectedMethods.includes("any")
+                  ? customGearList.length > 0
+                    ? `Any (includes ${customGearList.length} custom)`
+                    : "Any gear"
+                  : `${selectedMethods.length} selected`}
+              </span>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {pantryItems.map(item => {
-                const isSelected = selectedIngredients.includes(item.name);
+
+            {/* Preset Gear Grid (Compact on Mobile) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {STANDARD_COOKING_METHODS.map(method => {
+                const Icon = method.icon;
+                const isSelected = selectedMethods.includes(method.id);
                 return (
                   <button
-                    key={item.id}
+                    key={method.id}
                     type="button"
-                    onClick={() => toggleIngredient(item.name)}
-                    className={`px-3.5 py-2 rounded-2xl text-xs font-semibold border transition-all flex items-center gap-2 ${
+                    onClick={() => toggleMethod(method.id)}
+                    className={`px-3 py-2 rounded-xl border text-left transition-all flex items-center justify-between gap-2 ${
                       isSelected
-                        ? "bg-orange-500/15 border-orange-500/40 text-white font-semibold shadow-[0_0_12px_rgba(249,115,22,0.15)] hover:bg-orange-500/20"
-                        : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white/80 hover:border-white/15"
+                        ? "bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-sm shadow-orange-500/10"
+                        : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:text-white hover:border-white/15"
                     }`}
                   >
-                    <span>{item.name}</span>
-                    <span className={`text-[10px] font-mono ${isSelected ? "text-orange-300/80 font-medium" : "text-white/35"}`}>
-                      ({item.quantity} {item.unit})
-                    </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-orange-400 stroke-[3]" />}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className="w-3.5 h-3.5 shrink-0 text-orange-400/80" />
+                      <span className="text-xs font-bold tracking-tight truncate">{method.label}</span>
+                    </div>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-orange-400 stroke-[2.5] shrink-0" />}
                   </button>
                 );
               })}
             </div>
-          )}
 
-          {/* Add custom ingredient form */}
-          <form onSubmit={handleAddCustomIngredient} className="mt-3 flex items-center gap-2 max-w-md">
-            <input
-              type="text"
-              placeholder="+ Add any extra ingredient (e.g. Sriracha, Mayo, Maggi)..."
-              value={customIngredient}
-              onChange={(e) => setCustomIngredient(e.target.value)}
-              className="flex-1 h-9 px-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
-            />
-            <button
-              type="submit"
-              disabled={!customIngredient.trim()}
-              className="h-9 px-3 rounded-xl bg-white/[0.06] text-white/80 hover:text-white text-xs font-semibold disabled:opacity-30 border border-white/[0.08] transition-all"
-            >
-              Add
-            </button>
-          </form>
-        </div>
+            {/* Custom Gear Chips & Input */}
+            <div className="mt-3 pt-2.5 border-t border-white/[0.04]">
+              {customGearList.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {customGearList.map(gear => {
+                    const isDirectlySelected = selectedMethods.includes(gear);
+                    const isAnySelected = selectedMethods.includes("any");
+                    const isActive = isDirectlySelected || isAnySelected;
+                    return (
+                      <button
+                        key={gear}
+                        type="button"
+                        onClick={() => toggleMethod(gear)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                          isDirectlySelected
+                            ? "bg-orange-500/15 border-orange-500/40 text-orange-200"
+                            : isAnySelected
+                            ? "bg-orange-500/10 border-orange-500/25 text-orange-300/80 hover:bg-orange-500/20"
+                            : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white"
+                        }`}
+                        title={isAnySelected ? `Auto-included in 'Any' (click to isolate)` : `Click to select`}
+                      >
+                        <span>{gear}</span>
+                        {isActive && <Check className="w-3 h-3 text-orange-400 stroke-[3]" />}
+                        <span
+                          onClick={(e) => handleRemoveCustomGear(gear, e)}
+                          className="ml-1 text-white/30 hover:text-rose-400 transition-colors p-0.5"
+                          title="Remove custom gear"
+                        >
+                          <X className="w-3 h-3" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-        {/* Step 2: Hostel Cooking Gear + Custom Appliances */}
-        <div className="border-t border-white/[0.06] pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">2</span>
-              Hostel Cooking Gear
-            </h3>
-            <span className="text-[11px] font-medium text-white/40">
-              {selectedMethods.includes("any")
-                ? customGearList.length > 0
-                  ? `Any gear allowed (includes ${customGearList.length} custom)`
-                  : "Any gear allowed"
-                : `${selectedMethods.length} gear selected`}
-            </span>
-          </div>
-
-          {/* Preset Gear Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {STANDARD_COOKING_METHODS.map(method => {
-              const Icon = method.icon;
-              const isSelected = selectedMethods.includes(method.id);
-              return (
+              <form onSubmit={handleAddCustomGear} className="flex items-center gap-2 max-w-md">
+                <input
+                  type="text"
+                  placeholder="+ Add custom gear (e.g. Rice Cooker, Egg Boiler)..."
+                  value={newCustomGear}
+                  onChange={(e) => setNewCustomGear(e.target.value)}
+                  className="flex-1 h-8 px-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+                />
                 <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => toggleMethod(method.id)}
-                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[66px] ${
-                    isSelected
-                      ? "bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.12)]"
-                      : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:text-white hover:border-white/15"
-                  }`}
+                  type="submit"
+                  disabled={!newCustomGear.trim()}
+                  className="h-8 px-3 rounded-xl bg-white/[0.06] text-white/80 hover:text-white text-xs font-semibold disabled:opacity-30 border border-white/[0.08] transition-all shrink-0"
                 >
-                  <div className="flex items-center justify-between">
-                    <Icon className="w-4 h-4" />
-                    {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  </div>
-                  <span className="text-xs font-bold tracking-tight mt-2">{method.label}</span>
+                  Add
                 </button>
-              );
-            })}
+              </form>
+            </div>
           </div>
 
-          {/* Custom Gear Chips & Input */}
-          <div className="mt-3.5 pt-3 border-t border-white/[0.04]">
+          {/* Step 3: Cooking Skill Level (Compact Segmented Row) */}
+          <div className="border-t border-white/[0.06] pt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Custom / Dorm Appliances</span>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white font-bold">3</span>
+                Cooking Skill
+              </h3>
             </div>
 
-            {customGearList.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2.5">
-                {customGearList.map(gear => {
-                  const isDirectlySelected = selectedMethods.includes(gear);
-                  const isAnySelected = selectedMethods.includes("any");
-                  const isActive = isDirectlySelected || isAnySelected;
-                  return (
-                    <button
-                      key={gear}
-                      type="button"
-                      onClick={() => toggleMethod(gear)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
-                        isDirectlySelected
-                          ? "bg-orange-500/15 border-orange-500/40 text-orange-200"
-                          : isAnySelected
-                          ? "bg-orange-500/10 border-orange-500/25 text-orange-300/80 hover:bg-orange-500/20"
-                          : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white"
-                      }`}
-                      title={isAnySelected ? `Auto-included in 'Any' (click to isolate)` : `Click to select`}
-                    >
-                      <span>{gear}</span>
-                      {isActive && <Check className="w-3 h-3 text-orange-400 stroke-[3]" />}
-                      <span
-                        onClick={(e) => handleRemoveCustomGear(gear, e)}
-                        className="ml-1 text-white/30 hover:text-rose-400 transition-colors p-0.5"
-                        title="Remove custom gear"
-                      >
-                        <X className="w-3 h-3" />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <form onSubmit={handleAddCustomGear} className="flex items-center gap-2 max-w-md">
-              <input
-                type="text"
-                placeholder="+ Add custom gear (e.g. Rice Cooker, Hot Plate, Egg Boiler)..."
-                value={newCustomGear}
-                onChange={(e) => setNewCustomGear(e.target.value)}
-                className="flex-1 h-9 px-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
-              />
-              <button
-                type="submit"
-                disabled={!newCustomGear.trim()}
-                className="h-9 px-3.5 rounded-xl bg-white/[0.06] text-white/80 hover:text-white text-xs font-semibold disabled:opacity-30 border border-white/[0.08] transition-all shrink-0"
-              >
-                Add Gear
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Step 3: Cooking Skill Level */}
-        <div className="border-t border-white/[0.06] pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">3</span>
-              Your Cooking Skill & Effort Level
-            </h3>
-            <span className="text-[11px] font-medium text-white/40">
-              Personalizes recipe prep & techniques
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {COOKING_SKILL_LEVELS.map(skill => {
-              const Icon = skill.icon;
-              const isSelected = selectedSkill === skill.id;
-              return (
-                <button
-                  key={skill.id}
-                  type="button"
-                  onClick={() => setSelectedSkill(skill.id)}
-                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                    isSelected
-                      ? `${skill.bg} ${skill.border} shadow-[0_0_15px_rgba(249,115,22,0.1)]`
-                      : "bg-white/[0.02] border-white/[0.06] hover:border-white/15"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${
-                        isSelected ? `${skill.bg} ${skill.border}` : "bg-white/[0.03] border-white/[0.06]"
-                      }`}>
-                        <Icon className={`w-3.5 h-3.5 ${isSelected ? skill.color : "text-white/40"}`} />
-                      </div>
-                      <span className={`text-xs font-bold tracking-tight ${isSelected ? "text-white" : "text-white/70"}`}>
-                        {skill.label}
+            <div className="grid grid-cols-3 gap-2">
+              {COOKING_SKILL_LEVELS.map(skill => {
+                const Icon = skill.icon;
+                const isSelected = selectedSkill === skill.id;
+                return (
+                  <button
+                    key={skill.id}
+                    type="button"
+                    onClick={() => setSelectedSkill(skill.id)}
+                    className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      isSelected
+                        ? `${skill.bg} ${skill.border} shadow-[0_0_12px_rgba(249,115,22,0.12)] text-white`
+                        : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:border-white/15 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Icon className={`w-3.5 h-3.5 ${isSelected ? skill.color : "text-white/40"}`} />
+                      <span className="text-xs font-bold truncate">
+                        {skill.id === "beginner" ? "Beginner" : skill.id === "intermediate" ? "Comfortable" : "Masterchef"}
                       </span>
                     </div>
-                    {isSelected && <Check className={`w-4 h-4 ${skill.color}`} strokeWidth={2.5} />}
-                  </div>
-
-                  <p className="text-[11px] text-white/50 leading-relaxed mb-3">
-                    {skill.subtitle}
-                  </p>
-
-                  <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border self-start ${
-                    isSelected ? `${skill.bg} ${skill.border} ${skill.color}` : "bg-white/[0.02] border-white/[0.06] text-white/35"
-                  }`}>
-                    {skill.badge}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Step 4: Trigger Action & Synergy Settings */}
-        <div className="border-t border-white/[0.06] pt-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="text-xs text-white/40 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-              <span>Goal: <strong className="text-white capitalize">{userProfile?.goal?.replace(/_/g, " ") || "Balanced Nutrition"}</strong></span>
+                    <span className="text-[10px] text-white/40 hidden sm:block truncate">{skill.badge.split("•")[0]}</span>
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[11px] text-white/45 text-center mt-2 italic">
+              {COOKING_SKILL_LEVELS.find(s => s.id === selectedSkill)?.subtitle}
+            </p>
+          </div>
 
+          {/* Step 4: Trigger Action & Synergy Settings */}
+          <div className="border-t border-white/[0.06] pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setAutoDeductPantry(!autoDeductPantry)}
@@ -818,134 +871,134 @@ export default function Cook() {
               }`}
             >
               <Package className="w-3.5 h-3.5" />
-              <span>Auto-deduct Pantry: <strong>{autoDeductPantry ? "ON" : "OFF"}</strong></span>
+              <span>Auto-deduct: <strong>{autoDeductPantry ? "ON" : "OFF"}</strong></span>
+            </button>
+
+            <button
+              onClick={handleGenerateRecipes}
+              disabled={generating || selectedIngredients.length === 0}
+              className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              {generating ? (
+                <>
+                  <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                  <span>Generating Recipes...</span>
+                </>
+              ) : (
+                <>
+                  <ChefHat className="w-4 h-4" />
+                  <span>Generate Recipes</span>
+                </>
+              )}
             </button>
           </div>
 
-          <button
-            onClick={handleGenerateRecipes}
-            disabled={generating || selectedIngredients.length === 0}
-            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-lg"
-          >
-            {generating ? (
-              <>
-                <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
-                <span>Generating Recipes...</span>
-              </>
-            ) : (
-              <>
-                <ChefHat className="w-4 h-4" />
-                <span>Generate Recipes</span>
-              </>
-            )}
-          </button>
+          {errorMsg && (
+            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium flex items-center gap-2">
+              <Info className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
         </div>
-
-        {errorMsg && (
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium flex items-center gap-2">
-            <Info className="w-4 h-4 shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Generated & Saved Recipes Section */}
       {(recipes.length > 0 || savedRecipes.length > 0) && (
-        <div ref={recipesSectionRef} className="space-y-4 pt-4 scroll-mt-6">
-          {/* Header & Tabs */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div ref={recipesSectionRef} className="space-y-3 pt-2 scroll-mt-6">
+          {/* Streamlined Single-Row Header */}
+          <div className="flex items-center justify-between gap-2 pt-1 pb-1">
+            {/* Left: Tab Switcher */}
+            <div className="flex items-center bg-white/[0.03] p-1 rounded-2xl border border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => {
                   setActiveRecipeTab("generated");
                   setActiveMobileCardIndex(0);
                 }}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRecipeTab === "generated"
-                    ? "bg-orange-500 text-black shadow-lg shadow-orange-500/20"
-                    : "bg-white/[0.04] text-white/60 hover:text-white border border-white/[0.06]"
+                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20"
+                    : "text-white/60 hover:text-white"
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Generated Recipes ({recipes.length})</span>
+                <span>Recipes ({recipes.length})</span>
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => {
                   setActiveRecipeTab("saved");
                   setActiveMobileCardIndex(0);
                 }}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRecipeTab === "saved"
-                    ? "bg-orange-500 text-black shadow-lg shadow-orange-500/20"
-                    : "bg-white/[0.04] text-white/60 hover:text-white border border-white/[0.06]"
+                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20"
+                    : "text-white/60 hover:text-white"
                 }`}
               >
                 <Bookmark className="w-3.5 h-3.5" />
-                <span>Saved for Later ({savedRecipes.length})</span>
+                <span>Saved ({savedRecipes.length})</span>
               </button>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              {/* Mobile View Mode Toggle */}
-              <div className="flex md:hidden items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => setMobileViewMode("carousel")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    mobileViewMode === "carousel"
-                      ? "bg-orange-500 text-black"
-                      : "text-white/40 hover:text-white"
-                  }`}
-                >
-                  Swipe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileViewMode("list")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    mobileViewMode === "list"
-                      ? "bg-orange-500 text-black"
-                      : "text-white/40 hover:text-white"
-                  }`}
-                >
-                  List
-                </button>
-              </div>
+            {/* Right: Stepper on mobile + Clear button */}
+            <div className="flex items-center gap-1.5">
+              {(activeRecipeTab === "generated" ? recipes : savedRecipes).length > 1 && (
+                <div className="flex md:hidden items-center bg-white/[0.03] border border-white/[0.08] rounded-xl px-1 py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollToRecipeIndex(Math.max(0, activeMobileCardIndex - 1))}
+                    disabled={activeMobileCardIndex === 0}
+                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-20 transition-all"
+                    aria-label="Previous recipe"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[11px] font-bold text-orange-400 px-1.5 min-w-[34px] text-center">
+                    {activeMobileCardIndex + 1}/{(activeRecipeTab === "generated" ? recipes : savedRecipes).length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const maxIdx = (activeRecipeTab === "generated" ? recipes : savedRecipes).length - 1;
+                      scrollToRecipeIndex(Math.min(maxIdx, activeMobileCardIndex + 1));
+                    }}
+                    disabled={activeMobileCardIndex >= (activeRecipeTab === "generated" ? recipes : savedRecipes).length - 1}
+                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-20 transition-all"
+                    aria-label="Next recipe"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {activeRecipeTab === "generated" && recipes.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearGeneratedRecipes}
-                  className="text-[11px] text-white/40 hover:text-rose-400 transition-colors flex items-center gap-1 px-2.5 py-1 rounded-full border border-white/[0.06] hover:border-rose-500/30"
-                  title="Clear current generated recipes"
+                  className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-500/10 text-white/40 hover:text-rose-400 border border-white/[0.06] hover:border-rose-500/30 transition-all text-xs font-semibold flex items-center gap-1"
+                  title="Clear generated recipes"
                 >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Clear</span>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Clear</span>
                 </button>
               )}
             </div>
           </div>
 
           {/* Subheader info */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
-                {activeRecipeTab === "generated" ? "Suggested High-Protein Recipes" : "Your Saved Cookbook"}
-              </h2>
-              <p className="text-xs text-white/40 mt-0.5">
-                {activeRecipeTab === "generated"
-                  ? `Tailored for ${selectedSkill.toUpperCase()} skill • ${selectedMethods.includes("any") ? "All hostel & dorm gear" : selectedMethods.join(", ")}`
-                  : "Meals you bookmarked to cook again anytime"}
-              </p>
-            </div>
+          <div className="flex items-center justify-between text-xs text-white/40 pb-1">
+            <span className="truncate">
+              {activeRecipeTab === "generated"
+                ? `Tailored for ${selectedSkill.toUpperCase()} skill • ${selectedMethods.includes("any") ? "All hostel equipment" : selectedMethods.join(", ")}`
+                : "Your bookmarked hostel meals"}
+            </span>
           </div>
 
           {/* If Saved tab is selected but empty */}
           {activeRecipeTab === "saved" && savedRecipes.length === 0 && (
-            <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-8 text-center max-w-md mx-auto my-6">
+            <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-8 text-center max-w-md mx-auto my-4">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center mx-auto mb-3">
                 <Bookmark className="w-6 h-6" />
               </div>
@@ -967,7 +1020,7 @@ export default function Cook() {
 
           {/* If Generated tab is empty */}
           {activeRecipeTab === "generated" && recipes.length === 0 && (
-            <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-8 text-center max-w-md mx-auto my-6">
+            <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-8 text-center max-w-md mx-auto my-4">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center mx-auto mb-3">
                 <ChefHat className="w-6 h-6" />
               </div>
@@ -978,59 +1031,12 @@ export default function Cook() {
             </div>
           )}
 
-          {/* Mobile Recipe Carousel Navigator (shows when carousel mode is active on mobile) */}
-          {((activeRecipeTab === "generated" && recipes.length > 0) || (activeRecipeTab === "saved" && savedRecipes.length > 0)) && (
-            <div className={`md:hidden ${mobileViewMode === "carousel" ? "flex" : "hidden"} items-center justify-between bg-white/[0.02] border border-white/[0.06] p-2 rounded-2xl`}>
-              <button
-                type="button"
-                onClick={() => scrollToRecipeIndex(Math.max(0, activeMobileCardIndex - 1))}
-                disabled={activeMobileCardIndex === 0}
-                className="p-1.5 rounded-xl bg-white/[0.04] text-white/70 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                {(activeRecipeTab === "generated" ? recipes : savedRecipes).map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => scrollToRecipeIndex(idx)}
-                    className={`w-6 h-6 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center shrink-0 ${
-                      activeMobileCardIndex === idx
-                        ? "bg-orange-500 text-black scale-110 shadow-sm"
-                        : "bg-white/[0.04] text-white/40 hover:text-white"
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const maxIdx = (activeRecipeTab === "generated" ? recipes : savedRecipes).length - 1;
-                  scrollToRecipeIndex(Math.min(maxIdx, activeMobileCardIndex + 1));
-                }}
-                disabled={activeMobileCardIndex >= (activeRecipeTab === "generated" ? recipes : savedRecipes).length - 1}
-                className="p-1.5 rounded-xl bg-white/[0.04] text-white/70 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Recipes Display: Desktop Grid + Mobile Swipeable Carousel or List */}
+          {/* Recipes Display: Desktop Grid + Mobile Swipeable Snap Carousel */}
           {((activeRecipeTab === "generated" && recipes.length > 0) || (activeRecipeTab === "saved" && savedRecipes.length > 0)) && (
             <div
               ref={carouselContainerRef}
               onScroll={handleCarouselScroll}
-              className={
-                mobileViewMode === "carousel"
-                  ? "flex md:grid md:grid-cols-3 overflow-x-auto snap-x snap-mandatory gap-4 pb-4 no-scrollbar scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
-                  : "grid grid-cols-1 md:grid-cols-3 gap-4"
-              }
+              className="flex md:grid md:grid-cols-3 overflow-x-auto snap-x snap-mandatory gap-3 pb-3 no-scrollbar scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
             >
               {(activeRecipeTab === "generated" ? recipes : savedRecipes).map(recipe => {
                 const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems, recipe.pantryDeductions);
@@ -1042,18 +1048,14 @@ export default function Cook() {
                     key={recipe.id}
                     data-recipe-card
                     id={`recipe-card-${recipe.id}`}
-                    className={`rounded-3xl bg-[#121418] border border-white/[0.06] p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl ${
-                      mobileViewMode === "carousel"
-                        ? "w-[86vw] max-w-[360px] sm:w-[75vw] md:w-auto md:max-w-none shrink-0 snap-center"
-                        : ""
-                    }`}
+                    className="w-[86vw] max-w-[350px] sm:w-[70vw] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl"
                   >
                     <div>
                       {/* Header: Badge Pills + Save for Later Button */}
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {recipe.tag && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                               {recipe.tag}
                             </span>
                           )}
@@ -1156,32 +1158,29 @@ export default function Cook() {
                         </ul>
                       </div>
 
-                      {/* Collapsible Step-by-Step Instructions */}
-                      <div className="space-y-1.5 mb-4">
+                      {/* Clean Accordion Instructions */}
+                      <div className="space-y-2 mb-4">
                         <button
                           type="button"
                           onClick={() => toggleInstructions(recipe.id)}
-                          className="w-full flex items-center justify-between text-[10px] font-bold text-white/50 uppercase tracking-widest hover:text-white/80 transition-colors py-1 group"
+                          className="w-full flex items-center justify-between text-xs font-semibold py-2 px-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-white/70 hover:text-white transition-all"
                         >
-                          <span className="flex items-center gap-1.5">
-                            <span>Instructions ({recipe.instructions.length} steps)</span>
-                            <span className="text-[9px] lowercase font-normal text-white/30 group-hover:text-white/50">
-                              {isExpanded ? "(collapse)" : "(tap to expand)"}
-                            </span>
+                          <span className="flex items-center gap-2">
+                            <BookOpen className="w-3.5 h-3.5 text-orange-400" />
+                            <span>{recipe.instructions.length} Step Instructions</span>
                           </span>
-                          {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-white/40" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-white/40" />
-                          )}
+                          <span className="flex items-center gap-1 text-[11px] text-orange-400 font-bold">
+                            <span>{isExpanded ? "Hide" : "View Steps"}</span>
+                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </span>
                         </button>
 
-                        {isExpanded ? (
+                        {isExpanded && (
                           <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-                            <ol className="text-xs text-white/70 space-y-2">
+                            <ol className="text-xs text-white/75 space-y-2">
                               {recipe.instructions.map((step, idx) => (
                                 <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                                  <span className="text-[10px] font-bold text-white/30 shrink-0 mt-0.5">{idx + 1}.</span>
+                                  <span className="text-[10px] font-bold text-orange-400/80 shrink-0 mt-0.5">{idx + 1}.</span>
                                   <span>{step}</span>
                                 </li>
                               ))}
@@ -1196,13 +1195,6 @@ export default function Cook() {
                                 </div>
                               </div>
                             )}
-                          </div>
-                        ) : (
-                          <div
-                            onClick={() => toggleInstructions(recipe.id)}
-                            className="text-[11px] text-white/40 hover:text-white/70 cursor-pointer line-clamp-2 italic bg-white/[0.02] p-2.5 rounded-2xl border border-white/[0.04] transition-colors"
-                          >
-                            1. {recipe.instructions[0]} <span className="text-orange-400/80 font-normal">→ view all steps</span>
                           </div>
                         )}
                       </div>
@@ -1239,9 +1231,12 @@ export default function Cook() {
                   </div>
                 );
               })}
+              {/* Right padding spacer so card 6 never gets cut off */}
+              <div className="w-1 shrink-0 md:hidden pointer-events-none" />
             </div>
           )}
-
+        </div>
+      )}
           {/* Restock Alert Banner */}
           {restockAlertItems && restockAlertItems.length > 0 && (
             <div className="rounded-3xl bg-amber-500/[0.08] border border-amber-500/20 p-5 mt-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -1317,9 +1312,7 @@ export default function Cook() {
               </div>
             </div>
           )}
-        </div>
-      )}
 
-    </div>
+        </div>
   );
 }
