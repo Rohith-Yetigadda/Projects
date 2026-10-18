@@ -262,7 +262,7 @@ export default function Progress() {
   const calPercent = Math.round((stats.avgCals / targetCalories) * 100);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-32 lg:pb-8">
       
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -317,12 +317,12 @@ export default function Progress() {
                   {d.dayName}
                 </span>
 
-                <div className="my-1.5 shrink-0">
+                <div className="my-1.5 shrink-0 flex items-center justify-center">
                   <AppleActivityRing
                     rings={d.rings}
-                    size={46}
-                    strokeWidth={7}
-                    ringGap={3}
+                    size={40}
+                    strokeWidth={6}
+                    ringGap={2.5}
                   />
                 </div>
 

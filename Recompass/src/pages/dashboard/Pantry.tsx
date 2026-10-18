@@ -454,7 +454,7 @@ export default function Pantry() {
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 md:pb-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8">
       
       {/* Toast Notification */}
       {notification && (
@@ -539,7 +539,7 @@ export default function Pantry() {
       </div>
 
       {/* Category Pills Strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pr-8">
         {CATEGORIES.map(category => (
           <button
             key={category}
@@ -572,8 +572,8 @@ export default function Pantry() {
       <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
         
         {/* Streamlined Quick Add Row with Gemini AI Parsing */}
-        <form onSubmit={handleAddItem} className="flex items-center px-4 md:px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
+        <form onSubmit={handleAddItem} className="flex items-center px-3 sm:px-5 h-13 sm:h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2 sm:gap-2.5">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
             {addingItem ? (
               <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
             ) : (
@@ -588,12 +588,12 @@ export default function Pantry() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             disabled={addingItem}
-            className="flex-1 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30 min-w-[120px]"
+            className="flex-1 min-w-0 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30"
           />
 
           {/* Inline Qty Box (Active and Visible in Both Mobile & Desktop) */}
-          <div className="flex items-center gap-1 shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-1">
-            <span className="text-[10px] text-white/35 font-semibold uppercase">Qty</span>
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl px-1.5 sm:px-2 py-1">
+            <span className="text-[9px] sm:text-[10px] text-white/35 font-semibold uppercase">Qty</span>
             <input
               type="number"
               step="any"
@@ -601,7 +601,7 @@ export default function Pantry() {
               value={newQuantity}
               onChange={(e) => setNewQuantity(e.target.value)}
               disabled={addingItem}
-              className="w-10 bg-transparent border-none text-center text-xs font-bold text-white focus:outline-none"
+              className="w-8 sm:w-10 bg-transparent border-none text-center text-xs font-bold text-white focus:outline-none"
             />
           </div>
 
@@ -616,10 +616,10 @@ export default function Pantry() {
           <button
             type="submit"
             disabled={!newName.trim() || addingItem}
-            className="px-3.5 sm:px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1.5"
+            className="px-3 sm:px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1 shadow-sm"
           >
             {addingItem ? (
-              <span>AI Adding...</span>
+              <span>Adding...</span>
             ) : (
               <span>Add</span>
             )}

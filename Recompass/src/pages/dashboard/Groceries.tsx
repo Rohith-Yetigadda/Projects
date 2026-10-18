@@ -330,7 +330,7 @@ export default function Groceries() {
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 md:pb-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8">
       
       {/* Toast Notification */}
       {notification && (
@@ -460,7 +460,7 @@ export default function Groceries() {
         </form>
 
         {/* Table Column Sorting Header (Visible on ALL Devices & Screens) */}
-        <div className="grid grid-cols-[36px_1fr_125px_40px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/40 uppercase tracking-widest">
+        <div className="grid grid-cols-[32px_1fr_105px_36px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/40 uppercase tracking-widest">
           <div className="text-center">Status</div>
           <button 
             onClick={() => handleSort("name")}
@@ -492,7 +492,7 @@ export default function Groceries() {
             sortedItems.map(item => (
               <div 
                 key={item.id} 
-                className={`group grid grid-cols-[36px_1fr_125px_40px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 min-h-[50px] transition-colors hover:bg-white/[0.02] ${
+                className={`group grid grid-cols-[32px_1fr_105px_36px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 min-h-[50px] transition-colors hover:bg-white/[0.02] ${
                   item.purchased ? "bg-black/20 opacity-60" : ""
                 }`}
               >

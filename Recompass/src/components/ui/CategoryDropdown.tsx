@@ -93,7 +93,7 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
       {/* Luxury Custom Floating Popover (Apple Health / Mobbin style) */}
       {isOpen && (
         <div
-          className="absolute left-0 top-full mt-1.5 z-50 w-44 rounded-2xl bg-[#14161b] border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.85)] p-1.5 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
+          className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-2xl bg-[#14161b] border border-white/[0.12] shadow-[0_16px_40px_rgba(0,0,0,0.85)] p-1.5 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-2.5 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.06] mb-1">

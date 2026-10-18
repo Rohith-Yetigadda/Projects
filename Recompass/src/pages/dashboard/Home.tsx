@@ -268,7 +268,7 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-20 md:pb-8 w-full min-w-0">
+    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8 w-full min-w-0">
 
       {/* Editorial Header */}
       <header className="space-y-1 w-full min-w-0">
@@ -363,12 +363,12 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Authentic Apple Activity Concentric Rings (Mobile Viewport 104px) */}
+          {/* Authentic Apple Activity Concentric Rings (Mobile Viewport 96px) */}
           <div className="shrink-0 flex items-center justify-center">
             <AppleActivityRing
               rings={activityRings}
-              size={104}
-              strokeWidth={9}
+              size={96}
+              strokeWidth={8.5}
               ringGap={2.5}
               loading={loading}
             />
@@ -379,13 +379,13 @@ export default function Home() {
             {macroItems.map(item => {
               const cue = getMacroStatusCue(item.key, item.current, item.target);
               return (
-                <div key={item.key} className="flex items-center justify-between py-1.5 px-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <div key={item.key} className="flex items-center justify-between py-1.5 px-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="text-white/80 font-medium text-[11px] truncate">{item.label}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 font-mono text-[10px] sm:text-[11px] tabular-nums">
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[10px] tabular-nums">
                     <div>
                       <span className="font-bold text-white">{item.current}</span>
                       <span className="text-white/40 text-[9px]">/{item.target}{item.unitShort}</span>
@@ -393,7 +393,7 @@ export default function Home() {
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${cue.colorClasses}`}>
                       <span className="font-sans">{cue.arrow}</span>
                       <span>{cue.pct}%</span>
-                      <span className="text-[8px] font-sans font-medium uppercase tracking-wider opacity-90 ml-0.5">{cue.shortCue}</span>
+                      <span className="text-[8px] font-sans font-medium uppercase tracking-wider opacity-90 ml-0.5 hidden sm:inline">{cue.shortCue}</span>
                     </span>
                   </div>
                 </div>

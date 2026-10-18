@@ -535,7 +535,7 @@ export default function Cook() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 md:pb-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8">
       
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

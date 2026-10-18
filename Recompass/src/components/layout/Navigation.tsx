@@ -144,7 +144,7 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="lg:hidden flex items-center justify-between h-14 px-4 bg-[#0a0b0e]/90 backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-40 sticky top-0">
+      <header className="lg:hidden flex items-center justify-between min-h-14 h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] px-4 bg-[#0a0b0e]/90 backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-40 sticky top-0">
         <button
           onClick={() => setMenuOpen(true)}
           className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/70 hover:text-white transition-colors"
@@ -240,15 +240,15 @@ export function MobileHeader() {
 
 export function BottomNav() {
   return (
-    <nav className="lg:hidden fixed bottom-3 inset-x-4 max-w-md mx-auto z-50 bg-[#121418]/90 backdrop-blur-2xl border border-white/[0.08] rounded-full px-2 py-1.5 shadow-2xl shadow-black/80">
-      <div className="flex items-center justify-around">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[#0c0e12]/95 backdrop-blur-2xl border-t border-white/[0.08] px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <div className="max-w-md mx-auto flex items-center justify-around">
         {mobileNav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/app"}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-full transition-all duration-200 relative ${
+              `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-xl transition-all duration-200 relative select-none ${
                 isActive ? "text-white" : "text-white/40 hover:text-white/70"
               }`
             }
@@ -258,7 +258,7 @@ export function BottomNav() {
                 <div className={`p-1 rounded-xl transition-all ${isActive ? "bg-white/10" : ""}`}>
                   <Icon className="w-4 h-4 stroke-[2]" />
                 </div>
-                <span className={`text-[9px] tracking-tight font-medium ${isActive ? "text-white font-semibold" : "text-white/40"}`}>
+                <span className={`text-[10px] tracking-tight font-medium ${isActive ? "text-white font-bold" : "text-white/40"}`}>
                   {label}
                 </span>
               </>

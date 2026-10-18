@@ -2132,7 +2132,7 @@ export default function DailyLog() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin"/></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-4 md:pb-6 overflow-hidden">
+    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-32 lg:pb-8">
       {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
       {editingEntry && (
@@ -2295,36 +2295,31 @@ export default function DailyLog() {
         </div>
       </div>
 
-      {/* Segmented Meal Filter Tabs for Frictionless Mobile Browsing */}
-      <div className="w-full max-w-full min-w-0 flex items-center gap-1.5 p-1 rounded-2xl bg-[#121418] border border-white/[0.06] overflow-x-auto no-scrollbar">
+      {/* Segmented Meal Filter Tabs (Zero Cutoff Across Any Phone Display) */}
+      <div className="w-full max-w-full min-w-0 grid grid-cols-5 gap-1 p-1 rounded-2xl bg-[#121418] border border-white/[0.06]">
         {[
-          { key: "all" as const, label: "All Meals", icon: UtensilsCrossed, count: log.breakfast.length + log.lunch.length + log.dinner.length + log.snacks.length },
-          { key: "breakfast" as const, label: "Breakfast", icon: Coffee, count: log.breakfast.length },
-          { key: "lunch" as const, label: "Lunch", icon: Sun, count: log.lunch.length },
-          { key: "dinner" as const, label: "Dinner", icon: Moon, count: log.dinner.length },
-          { key: "snacks" as const, label: "Snacks", icon: Sparkles, count: log.snacks.length },
+          { key: "all" as const, fullLabel: "All Meals", shortLabel: "All", icon: UtensilsCrossed },
+          { key: "breakfast" as const, fullLabel: "Breakfast", shortLabel: "B'fast", icon: Coffee },
+          { key: "lunch" as const, fullLabel: "Lunch", shortLabel: "Lunch", icon: Sun },
+          { key: "dinner" as const, fullLabel: "Dinner", shortLabel: "Dinner", icon: Moon },
+          { key: "snacks" as const, fullLabel: "Snacks", shortLabel: "Snacks", icon: Sparkles },
         ].map(tab => {
           const isActive = activeMealFilter === tab.key;
           const TabIcon = tab.icon;
           return (
             <button
               key={tab.key}
+              type="button"
               onClick={() => setActiveMealFilter(tab.key)}
-              className={`flex-1 min-w-[72px] sm:min-w-[80px] shrink-0 flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`w-full flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl text-xs font-semibold transition-all select-none ${
                 isActive
                   ? "bg-white text-black shadow-md font-bold"
                   : "text-white/60 hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <TabIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-black" : "text-white/50"}`} />
-              <span>{tab.label}</span>
-              {tab.count > 0 && (
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
-                  isActive ? "bg-black/15 text-black" : "bg-white/[0.08] text-white/70"
-                }`}>
-                  {tab.count}
-                </span>
-              )}
+              <span className="hidden md:inline truncate">{tab.fullLabel}</span>
+              <span className="md:hidden truncate">{tab.shortLabel}</span>
             </button>
           );
         })}
@@ -2528,7 +2523,7 @@ export default function DailyLog() {
                     setCustomInput(prev => ({ ...prev, [key]: "" }));
                   }
                 }}
-                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-full px-4 py-2.5 text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/25 transition-all"
+                className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.08] rounded-full px-4 py-2.5 text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/25 transition-all"
               />
               <button 
                 onClick={() => {
