@@ -224,9 +224,9 @@ AVAILABLE CATEGORIES AND EXACT UNITS:
 4. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
    - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
    - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
-5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
-   - presets MUST be servings/plates: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)"] or ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
-   - defaultQuantity: "1 serving (~100g)" (or "1 serving (~150g)")
+5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad, custom recipes):
+   - presets MUST be plain clean servings without fake gram guesses: ["1 serving", "half serving", "2 servings", "3 servings"]
+   - defaultQuantity: "1 serving"
 6. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
    - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
    - defaultQuantity: "1 slice"
@@ -278,9 +278,9 @@ AVAILABLE CATEGORIES AND EXACT UNITS:
 4. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
    - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
    - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
-5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
-   - presets MUST be servings/plates: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)"] or ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
-   - defaultQuantity: "1 serving (~100g)" (or "1 serving (~150g)")
+5. "serving" (for normal items, dry sabzi, bhaji, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad, custom recipes):
+   - presets MUST be plain clean servings without fake gram guesses: ["1 serving", "half serving", "2 servings", "3 servings"]
+   - defaultQuantity: "1 serving"
 6. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
    - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
    - defaultQuantity: "1 slice"

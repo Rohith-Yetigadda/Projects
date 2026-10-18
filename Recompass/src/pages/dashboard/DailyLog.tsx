@@ -156,7 +156,7 @@ export interface FoodPortionProfile {
   estimatedMacros?: { calories: number; protein: number; carbs: number; fats: number };
 }
 
-export const PORTION_CACHE_KEY_PREFIX = "recompass_portion_v4_";
+export const PORTION_CACHE_KEY_PREFIX = "recompass_portion_v5_";
 const PORTION_MEMORY_CACHE = new Map<string, FoodPortionProfile>();
 
 // Invalidate any legacy profiles containing "bowl", "katori", generic "half portion", or mismatching units
@@ -165,6 +165,8 @@ export function isObsoleteProfile(p: FoodPortionProfile | null | undefined, food
   if (p.category === "bowl") return true;
   if (p.presets.some(preset => /bowl|katori|half portion/i.test(preset))) return true;
   if (p.category === "portion" && p.presets.includes("half portion")) return true;
+  // Invalidate any serving presets with inaccurate gram guesses like (~150g)
+  if (p.presets.some(preset => /serving\s*\(~\d+g\)/i.test(preset))) return true;
   const lower = (foodName || p.cleanName || "").toLowerCase();
   // Rice items MUST use paddle!
   if (/\b(rice|biryani|pulao|pulav|khichdi|fried rice)\b/.test(lower) && p.category !== "paddle") return true;
@@ -179,7 +181,7 @@ export function isObsoleteProfile(p: FoodPortionProfile | null | undefined, food
 try {
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const k = localStorage.key(i);
-    if (k && (k.startsWith("recompass_portion_v1_") || k.startsWith("recompass_portion_v2_") || k.startsWith("recompass_portion_v3_"))) {
+    if (k && (k.startsWith("recompass_portion_v1_") || k.startsWith("recompass_portion_v2_") || k.startsWith("recompass_portion_v3_") || k.startsWith("recompass_portion_v4_"))) {
       localStorage.removeItem(k);
     }
   }
@@ -291,14 +293,14 @@ export function inferFoodPortionDefaults(foodName: string): FoodPortionProfile {
     };
   }
 
-  // 9. NORMAL ITEMS: DRY SABZI / BHURJI / GRAINS / POHA / UPMA / NOODLES (Keep serving!)
+  // 9. NORMAL ITEMS: DRY SABZI / BHURJI / GRAINS / POHA / UPMA / CUSTOM RECIPES (Clean servings without misleading gram numbers)
   const isDrySabziOrBhurji = /\b(sabzi|bhaji|bhurji|fry|sukha|aloo|gobi|bhindi|beans|cabbage|capsicum|baingan|matar|dry)\b/.test(lower);
   if (isDrySabziOrBhurji) {
     return {
       cleanName: clean,
       category: "serving",
-      defaultQuantity: "1 serving (~100g)",
-      presets: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)", "3 servings (~300g)"],
+      defaultQuantity: "1 serving",
+      presets: ["1 serving", "half serving", "2 servings", "3 servings"],
       estimatedMacros: { calories: 140, protein: 4, carbs: 16, fats: 7 },
     };
   }
@@ -306,8 +308,8 @@ export function inferFoodPortionDefaults(foodName: string): FoodPortionProfile {
   return {
     cleanName: clean,
     category: "serving",
-    defaultQuantity: "1 serving (~150g)",
-    presets: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "3 servings (~450g)"],
+    defaultQuantity: "1 serving",
+    presets: ["1 serving", "half serving", "2 servings", "3 servings"],
     estimatedMacros: { calories: 180, protein: 5, carbs: 30, fats: 5 },
   };
 }
@@ -516,19 +518,22 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
 }
 
 export function getQuickPortionPresets(foodName: string): { category: string; defaultUnit: string; presets: string[] } {
+  const sanitizePresets = (presets: string[]) =>
+    presets.map(p => p.replace(/\bserving\s*\(~\d+g\)/gi, "serving").trim());
+
   const cached = getCachedPortionProfile(foodName);
   if (cached) {
     return {
       category: cached.category,
-      defaultUnit: cached.defaultQuantity,
-      presets: cached.presets,
+      defaultUnit: cached.defaultQuantity.replace(/\bserving\s*\(~\d+g\)/gi, "serving").trim(),
+      presets: sanitizePresets(cached.presets),
     };
   }
   const inferred = inferFoodPortionDefaults(foodName);
   return {
     category: inferred.category,
-    defaultUnit: inferred.defaultQuantity,
-    presets: inferred.presets,
+    defaultUnit: inferred.defaultQuantity.replace(/\bserving\s*\(~\d+g\)/gi, "serving").trim(),
+    presets: sanitizePresets(inferred.presets),
   };
 }
 
