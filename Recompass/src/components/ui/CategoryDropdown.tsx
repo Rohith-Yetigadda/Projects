@@ -16,6 +16,7 @@ export const getCategoryBadgeStyle = (cat: string) => {
     case "Snacks": return "text-rose-400 bg-rose-400/10 border-rose-400/20";
     case "Supplements": return "text-purple-400 bg-purple-400/10 border-purple-400/20";
     case "Grains": return "text-yellow-200 bg-yellow-200/10 border-yellow-200/20";
+    case "Spreads": return "text-amber-500 bg-amber-500/10 border-amber-500/20";
     case "Spices": return "text-orange-300 bg-orange-300/10 border-orange-300/20";
     case "Oils": return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20";
     default: return "text-white/60 bg-white/5 border-white/10";
@@ -30,6 +31,7 @@ export const getCategoryDot = (cat: string) => {
     case "Snacks": return "bg-rose-400";
     case "Supplements": return "bg-purple-400";
     case "Grains": return "bg-yellow-200";
+    case "Spreads": return "bg-amber-500";
     case "Spices": return "bg-orange-300";
     case "Oils": return "bg-yellow-400";
     default: return "bg-white/40";

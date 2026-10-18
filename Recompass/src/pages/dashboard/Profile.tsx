@@ -5,6 +5,8 @@ import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { User, Target, Activity, LogOut, Check, Loader2, Sparkles, PieChart, Flame } from "lucide-react";
+import { calculateMacroTargets } from "@/lib/nutritionCalculator";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function Profile() {
   const { userProfile, refreshProfile } = useAuth();
@@ -12,6 +14,7 @@ export default function Profile() {
   
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   
   const [data, setData] = useState({
     name: "",
@@ -78,18 +81,12 @@ export default function Profile() {
     navigate("/login");
   };
 
-  // Auto-calculated preview
-  const w = parseFloat(data.weight) || 70;
-  const h = parseFloat(data.height) || 170;
-  const a = parseFloat(data.age) || 25;
-  const bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
-  let tdee = bmr * 1.55;
-  let autoProtein = w * 1.6;
-  if (data.goal === "muscle_gain") { tdee += 300; autoProtein = w * 2.2; }
-  else if (data.goal === "fat_loss") tdee -= 300;
-  const autoCalories = Math.round(tdee);
-  const autoFats = Math.round((autoCalories * 0.25) / 9);
-  const autoCarbs = Math.round((autoCalories - (autoProtein * 4) - (autoFats * 9)) / 4);
+  // Auto-calculated preview via centralized sports nutrition target engine
+  const macroCalc = calculateMacroTargets(data);
+  const autoCalories = macroCalc.calories;
+  const autoProtein = macroCalc.protein;
+  const autoCarbs = macroCalc.carbs;
+  const autoFats = macroCalc.fats;
 
   // Active target calculation for energy distribution
   const activeCalories = data.customTargetsEnabled ? (parseInt(data.customCalories) || 2000) : autoCalories;
@@ -125,7 +122,7 @@ export default function Profile() {
         </div>
 
         <button 
-          onClick={handleLogout} 
+          onClick={() => setShowSignOutConfirm(true)} 
           title="Sign out"
           className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all"
         >
@@ -426,6 +423,19 @@ export default function Profile() {
           )}
         </button>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      <ConfirmDialog
+        open={showSignOutConfirm}
+        title="Sign Out"
+        description="Are you sure you want to sign out of your Recompass account on this device?"
+        confirmLabel="Sign Out"
+        cancelLabel="Stay Logged In"
+        variant="danger"
+        icon="logout"
+        onConfirm={handleLogout}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
 
     </div>
   );

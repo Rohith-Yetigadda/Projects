@@ -198,7 +198,7 @@ export default function MenuUpload() {
         extractedData: finalized,
         portionProfiles,
       });
-      navigate("/app/this-week");
+      navigate("/app/week");
     } catch (err: any) {
       setError("Failed to save menu.");
     } finally {

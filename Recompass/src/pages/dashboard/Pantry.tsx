@@ -20,6 +20,7 @@ import {
 import { classifyFoodWithAI, fastClassifyFood, FOOD_CATEGORIES } from "@/lib/geminiClassifier";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
+import { UnitDropdown } from "@/components/ui/UnitDropdown";
 
 export type PantryItem = {
   id: string;
@@ -64,7 +65,14 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return qty <= item.lowStockThreshold ? "low_stock" : "in_stock";
   }
 
-  // 2. Spices: Indian hostel/dorm spice packets are small 10-15rs sachets (20g-50g)
+  // 2. Spreads & Condiments (peanut butter, jam, mayo, ketchup):
+  if (category === "spreads") {
+    if (unit === "g") return qty <= 50 ? "low_stock" : "in_stock";
+    if (unit === "tbsp") return qty <= 2 ? "low_stock" : "in_stock";
+    return qty <= 1 ? "low_stock" : "in_stock";
+  }
+
+  // 3. Spices: Indian hostel/dorm spice packets are small 10-15rs sachets (20g-50g)
   // Low on stock only when nearly finished (<= 15g, or <= 0.015kg)
   if (category === "spices") {
     if (unit === "g") {
@@ -76,7 +84,7 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return qty <= 1 ? "low_stock" : "in_stock";
   }
 
-  // 3. Measured weight/volume: (g, kg, ml, l) for staples
+  // 4. Measured weight/volume: (g, kg, ml, l) for staples
   if (unit === "g") {
     return qty <= 50 ? "low_stock" : "in_stock";
   }
@@ -87,12 +95,12 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return qty <= 100 ? "low_stock" : "in_stock";
   }
 
-  // 4. Portions / Scoops / Slices: (scoop, scoops, serving, servings, slice, slices)
+  // 5. Portions / Scoops / Slices: (scoop, scoops, serving, servings, slice, slices)
   if (["scoop", "scoops", "serving", "servings", "slice", "slices"].includes(unit)) {
     return qty <= 2 ? "low_stock" : "in_stock";
   }
 
-  // 5. Counted individual pieces: (pcs, eggs, bananas, etc.)
+  // 6. Counted individual pieces: (pcs, eggs, bananas, etc.)
   // Only low when down to the final single piece
   if (qty <= 1) {
     return "low_stock";
@@ -103,12 +111,13 @@ export function getStockStatus(item: PantryItem): StockStatus {
 
 /**
  * Smart, unit-aware stepper increment.
- * e.g. 10g for spices, 50g for grams, 100ml for liquids, 1 for discrete items (scoop, pcs, jar, pack).
+ * e.g. 10g for spices, 25g for spreads, 50g for staples, 100ml for liquids, 1 for discrete items.
  */
 export function getSmartStep(unit: string, category?: string): number {
   const u = (unit || "").toLowerCase().trim();
   const c = (category || "").toLowerCase().trim();
   if (c === "spices" && u === "g") return 10;
+  if (c === "spreads" && u === "g") return 25;
   if (u === "g") return 50;
   if (u === "ml") return 100;
   if (u === "kg" || u === "l") return 0.25;
@@ -122,10 +131,10 @@ const CATEGORIES = [
 
 const STARTER_STASH: Omit<PantryItem, "id">[] = [
   { name: "Eggs", category: "Protein", quantity: 6, unit: "pcs" },
-  { name: "Peanut Butter", category: "Snacks", quantity: 1, unit: "jar" },
+  { name: "Peanut Butter", category: "Spreads", quantity: 350, unit: "g" },
   { name: "Rolled Oats", category: "Grains", quantity: 500, unit: "g" },
   { name: "Whey Protein", category: "Supplements", quantity: 15, unit: "scoops" },
-  { name: "Milk", category: "Dairy", quantity: 2, unit: "packs" },
+  { name: "Milk", category: "Dairy", quantity: 1000, unit: "ml" },
   { name: "Bananas", category: "Produce", quantity: 4, unit: "pcs" },
 ];
 
@@ -575,15 +584,15 @@ export default function Pantry() {
           {/* Main Item Name Input */}
           <input
             type="text"
-            placeholder="Add with AI (e.g. Chilli powder, 6 Eggs, Peanut Butter, 500g Oats)..."
+            placeholder="Add with AI (e.g. Peanut Butter, 6 Eggs, 500g Oats)..."
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             disabled={addingItem}
-            className="flex-1 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30 min-w-0"
+            className="flex-1 h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30 min-w-[120px]"
           />
 
-          {/* Compact Inline Qty Box */}
-          <div className="hidden sm:flex items-center gap-1 shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-1">
+          {/* Inline Qty Box (Active and Visible in Both Mobile & Desktop) */}
+          <div className="flex items-center gap-1 shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl px-2 py-1">
             <span className="text-[10px] text-white/35 font-semibold uppercase">Qty</span>
             <input
               type="number"
@@ -596,34 +605,18 @@ export default function Pantry() {
             />
           </div>
 
-          {/* Tight Custom Unit Dropdown (Chevron tightly hugs label) */}
-          <div className="relative shrink-0 flex items-center">
-            <select
-              value={newUnit}
-              onChange={(e) => setNewUnit(e.target.value)}
-              disabled={addingItem}
-              className="appearance-none bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-white/80 text-xs font-semibold rounded-xl pl-2.5 pr-6 py-1.5 focus:outline-none cursor-pointer transition-colors"
-            >
-              <option value="pcs" className="bg-[#171a20]">pcs</option>
-              <option value="slices" className="bg-[#171a20]">slices</option>
-              <option value="packs" className="bg-[#171a20]">packs</option>
-              <option value="g" className="bg-[#171a20]">g</option>
-              <option value="ml" className="bg-[#171a20]">ml</option>
-              <option value="kg" className="bg-[#171a20]">kg</option>
-              <option value="l" className="bg-[#171a20]">l</option>
-              <option value="jar" className="bg-[#171a20]">jar</option>
-              <option value="bottles" className="bg-[#171a20]">bottles</option>
-              <option value="scoops" className="bg-[#171a20]">scoops</option>
-              <option value="servings" className="bg-[#171a20]">servings</option>
-            </select>
-            <ChevronDown className="w-3 h-3 text-white/40 absolute right-2 pointer-events-none" />
-          </div>
+          {/* Luxury Custom Unit Dropdown Popover */}
+          <UnitDropdown
+            unit={newUnit}
+            onChange={setNewUnit}
+            disabled={addingItem}
+          />
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={!newName.trim() || addingItem}
-            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1.5"
+            className="px-3.5 sm:px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1.5"
           >
             {addingItem ? (
               <span>AI Adding...</span>
@@ -688,7 +681,7 @@ export default function Pantry() {
           </div>
         ) : (
           <>
-            {/* Mobile Touch Cards Layout (sm:hidden) */}
+            {/* Mobile Touch Cards Layout (sm:hidden) - Streamlined to reduce scroll */}
             <div className="flex sm:hidden flex-col divide-y divide-white/[0.04]">
               {sortedItems.map(item => {
                 const status = getStockStatus(item);
@@ -699,46 +692,42 @@ export default function Pantry() {
                 return (
                   <div
                     key={item.id}
-                    className={`p-4 space-y-3 transition-colors ${
+                    className={`p-3 space-y-2 transition-colors ${
                       isDepleted ? "bg-rose-500/[0.02] opacity-60" : isLow ? "bg-amber-500/[0.02]" : ""
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-white truncate font-sans">
-                            {item.name}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-white truncate font-sans max-w-[140px]">
+                          {item.name}
+                        </span>
+                        <CategoryDropdown
+                          category={item.category}
+                          onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                        />
+                        {isLow && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[9px] font-bold text-amber-400 uppercase tracking-wider shrink-0">
+                            Low
                           </span>
-                          {isLow && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[9px] font-bold text-amber-400 uppercase tracking-wider shrink-0">
-                              Low Stock
-                            </span>
-                          )}
-                          {isDepleted && (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-[9px] font-bold text-rose-400 uppercase tracking-wider shrink-0">
-                              Depleted
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1.5">
-                          <CategoryDropdown
-                            category={item.category}
-                            onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
-                          />
-                        </div>
+                        )}
+                        {isDepleted && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-[9px] font-bold text-rose-400 uppercase tracking-wider shrink-0">
+                            Depleted
+                          </span>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => handleAddToGroceries(item)}
-                          className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95"
+                          className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95"
                           title="Add to Groceries list"
                         >
                           <ShoppingCart className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteItem(item.id)}
-                          className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-rose-400 transition-all active:scale-95"
+                          className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-rose-400 transition-all active:scale-95"
                           title="Remove item"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -746,17 +735,17 @@ export default function Pantry() {
                       </div>
                     </div>
 
-                    {/* Mobile Stepper Controls */}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-white/35">Stock Quantity</span>
-                      <div className="flex items-center gap-2">
+                    {/* Compact Stepper Row */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-white/30">In Stock</span>
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleAdjustQuantity(item.id, -step)}
-                          className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
+                          className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
                         >
-                          <Minus className="w-3.5 h-3.5" />
+                          <Minus className="w-3 h-3" />
                         </button>
-                        <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-xl px-2.5 py-1">
+                        <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-0.5">
                           <input
                             type="number"
                             step={step}
@@ -764,15 +753,15 @@ export default function Pantry() {
                             value={editingQuantities[item.id] !== undefined ? editingQuantities[item.id] : item.quantity}
                             onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                             onBlur={() => handleQuantityInputBlur(item.id)}
-                            className="w-12 text-center font-bold text-xs bg-transparent text-white focus:outline-none"
+                            className="w-11 text-center font-bold text-xs bg-transparent text-white focus:outline-none"
                           />
                           <span className="text-[10px] text-white/40 font-medium ml-1">{item.unit}</span>
                         </div>
                         <button
                           onClick={() => handleAdjustQuantity(item.id, step)}
-                          className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
+                          className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3" />
                         </button>
                       </div>
                     </div>

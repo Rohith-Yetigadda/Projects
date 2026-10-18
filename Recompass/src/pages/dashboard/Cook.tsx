@@ -1162,9 +1162,9 @@ export default function Cook() {
                         <ul className="text-xs text-white/70 space-y-1.5">
                           {impacts.map((imp, idx) => (
                             <li key={idx} className="flex items-center justify-between gap-2 py-0.5 border-b border-white/[0.02] last:border-0">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="text-orange-400 font-bold">•</span>
-                                <span className="truncate">{imp.ingredientStr}</span>
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="text-orange-400 font-bold shrink-0">•</span>
+                                <span className="text-xs text-white/80 font-medium leading-tight">{imp.ingredientStr}</span>
                               </div>
                               {imp.matchedItem ? (
                                 imp.willDeplete ? (
@@ -1175,11 +1175,11 @@ export default function Cook() {
                                 ) : imp.willBeLowStock || imp.statusAfter === "low_stock" ? (
                                   <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-1">
                                     <AlertTriangle className="w-2.5 h-2.5" />
-                                    <span>Low ({imp.remainingQuantity} {imp.matchedItem.unit})</span>
+                                    <span>Low ({imp.remainingDisplay})</span>
                                   </span>
                                 ) : (
                                   <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400/90 border border-emerald-500/20 font-medium">
-                                    ✓ {imp.remainingQuantity} {imp.matchedItem.unit} left
+                                    ✓ {imp.remainingDisplay}
                                   </span>
                                 )
                               ) : (

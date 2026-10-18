@@ -9,6 +9,7 @@ import {
 import { TrendingUp, Activity, Flame, Sparkles, CheckCircle2 } from "lucide-react";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { getLocalDateStr } from "@/lib/dateUtils";
+import { calculateMacroTargets } from "@/lib/nutritionCalculator";
 import {
   AppleActivityRing,
   APPLE_FITNESS_MACRO_PALETTES,
@@ -44,42 +45,31 @@ export default function Progress() {
 
     const fetchLast7Days = async () => {
       try {
-        // Calculate user's target calories
+        // Calculate user's target calories via centralized sports nutrition target engine
         let targetCals = 2000;
         let targetPro = 120;
+        let targetCarbs = 200;
+        let targetFats = 55;
+
         if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.calories) {
           targetCals = Number(userProfile.targetOverrides.calories);
           targetPro = Number(userProfile.targetOverrides.protein || 120);
-        } else if (userProfile && userProfile.weight && userProfile.height && userProfile.age) {
-          const w = Number(userProfile.weight);
-          const h = Number(userProfile.height);
-          const a = Number(userProfile.age);
-          const isMale = userProfile.gender !== "female";
-          const bmr = isMale ? (10 * w) + (6.25 * h) - (5 * a) + 5 : (10 * w) + (6.25 * h) - (5 * a) - 161;
-          
-          let multiplier = 1.2;
-          if (userProfile.activity === "light") multiplier = 1.375;
-          if (userProfile.activity === "moderate") multiplier = 1.55;
-          if (userProfile.activity === "very_active") multiplier = 1.725;
-          
-          let tdee = bmr * multiplier;
-          if (userProfile.goal === "fat_loss") tdee -= 500;
-          if (userProfile.goal === "muscle_gain") tdee += 300;
-          
-          targetCals = Math.round(tdee);
-          targetPro = Math.round(userProfile.goal === "muscle_gain" ? w * 2.2 : w * 1.6);
+          targetCarbs = Number(userProfile.targetOverrides.carbs || 200);
+          targetFats = Number(userProfile.targetOverrides.fats || 55);
+        } else if (userProfile) {
+          const calc = calculateMacroTargets({
+            weight: userProfile.weight,
+            height: userProfile.height,
+            age: userProfile.age,
+            goal: userProfile.goal,
+            gender: userProfile.gender,
+            activity: userProfile.activity
+          });
+          targetCals = calc.calories;
+          targetPro = calc.protein;
+          targetCarbs = calc.carbs;
+          targetFats = calc.fats;
         }
-
-        let targetFats = 55;
-        if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.fats) {
-          targetFats = Number(userProfile.targetOverrides.fats);
-        } else {
-          targetFats = Math.round((targetCals * 0.25) / 9);
-        }
-
-        const targetCarbs = userProfile?.targetOverrides?.enabled && userProfile.targetOverrides.carbs
-          ? Number(userProfile.targetOverrides.carbs)
-          : Math.round((targetCals - targetPro * 4 - targetFats * 9) / 4);
 
         if (isMounted) {
           setTargetCalories(targetCals);
@@ -372,81 +362,81 @@ export default function Progress() {
         )}
       </div>
 
-      {/* Bento Metric Cards (Compact) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      {/* Bento Metric Cards (High-Density Mobile 3-Column Bento Row) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {/* Calories Bento */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Avg Calories</span>
-            <div className="w-7 h-7 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70">
-              <Flame className="w-3.5 h-3.5 text-white/80" />
+        <div className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-3 sm:p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider sm:tracking-widest truncate">Avg Cals</span>
+            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/70 shrink-0">
+              <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/80" />
             </div>
           </div>
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold font-sans tracking-tight text-white tabular-nums">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg sm:text-2xl md:text-3xl font-extrabold font-sans tracking-tight text-white tabular-nums">
                 {stats.avgCals}
               </span>
-              <span className="text-xs text-white/40 font-sans font-medium">kcal/day</span>
+              <span className="text-[10px] sm:text-xs text-white/40 font-sans font-medium hidden xs:inline">kcal</span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-sans font-bold ${
+            <div className="mt-1 sm:mt-2 flex items-center gap-1.5 flex-wrap">
+              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-sans font-bold ${
                 Math.abs(calDiff) <= 100 
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" 
                   : calDiff > 100 
                   ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" 
                   : "bg-blue-500/15 text-blue-300 border border-blue-500/30"
               }`}>
-                {calDiff > 0 ? `+${calDiff}` : calDiff} kcal
+                {calDiff > 0 ? `+${calDiff}` : calDiff}
               </span>
-              <span className="text-[10px] text-white/40 font-medium">{calPercent}% target</span>
+              <span className="text-[9px] sm:text-[10px] text-white/40 font-medium hidden sm:inline">{calPercent}% target</span>
             </div>
           </div>
         </div>
 
         {/* Protein Bento */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Avg Protein</span>
-            <div className="w-7 h-7 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
-              <Activity className="w-3.5 h-3.5" />
+        <div className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-3 sm:p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider sm:tracking-widest truncate">Avg Protein</span>
+            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shrink-0">
+              <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold font-sans tracking-tight text-orange-400 tabular-nums">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg sm:text-2xl md:text-3xl font-extrabold font-sans tracking-tight text-orange-400 tabular-nums">
                 {stats.avgPro}
               </span>
-              <span className="text-xs text-white/40 font-sans font-medium">g/day</span>
+              <span className="text-[10px] sm:text-xs text-white/40 font-sans font-medium">g</span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-sans font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30">
-                {Math.round((stats.avgPro / Math.max(1, targetProtein)) * 100)}% target
+            <div className="mt-1 sm:mt-2 flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-sans font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                {Math.round((stats.avgPro / Math.max(1, targetProtein)) * 100)}%
               </span>
-              <span className="text-[10px] text-white/40 font-medium">Goal: {targetProtein}g</span>
+              <span className="text-[9px] sm:text-[10px] text-white/40 font-medium hidden sm:inline">Goal: {targetProtein}g</span>
             </div>
           </div>
         </div>
 
         {/* Active Days Bento */}
-        <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Cadence</span>
-            <div className="w-7 h-7 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <TrendingUp className="w-3.5 h-3.5" />
+        <div className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-3 sm:p-5 relative overflow-hidden flex flex-col justify-between group hover:border-white/[0.12] transition-all">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider sm:tracking-widest truncate">Cadence</span>
+            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
           </div>
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-extrabold font-sans tracking-tight text-white tabular-nums">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg sm:text-2xl md:text-3xl font-extrabold font-sans tracking-tight text-white tabular-nums">
                 {stats.activeDays}
               </span>
-              <span className="text-xs text-white/40 font-sans font-medium">/ 7 days</span>
+              <span className="text-[10px] sm:text-xs text-white/40 font-sans font-medium">/ 7d</span>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/[0.06] text-white/80 border border-white/10">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                {Math.round((stats.activeDays / 7) * 100)}% logged
+            <div className="mt-1 sm:mt-2 flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold bg-white/[0.06] text-white/80 border border-white/10">
+                <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
+                {Math.round((stats.activeDays / 7) * 100)}%
               </span>
             </div>
           </div>

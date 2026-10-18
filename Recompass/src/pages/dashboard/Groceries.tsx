@@ -208,22 +208,27 @@ export default function Groceries() {
 
       let updatedPantry = [...currentPantry];
       purchasedItems.forEach(pItem => {
+        const classified = fastClassifyFood(pItem.name);
+        const addQty = classified.quantity || 1;
+        const addUnit = classified.unit || "pcs";
+        const cat = pItem.category && pItem.category !== "Other" ? pItem.category : classified.category;
+
         const existingIdx = updatedPantry.findIndex(
           p => p.name.toLowerCase() === pItem.name.toLowerCase()
         );
         if (existingIdx >= 0) {
           updatedPantry[existingIdx] = {
             ...updatedPantry[existingIdx],
-            quantity: (updatedPantry[existingIdx].quantity || 0) + 1,
+            quantity: (updatedPantry[existingIdx].quantity || 0) + addQty,
             updatedAt: new Date().toISOString()
           };
         } else {
           updatedPantry.push({
             id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
             name: pItem.name,
-            category: pItem.category || "Other",
-            quantity: 1,
-            unit: "pcs",
+            category: cat,
+            quantity: addQty,
+            unit: addUnit,
             updatedAt: new Date().toISOString()
           });
         }
@@ -251,6 +256,11 @@ export default function Groceries() {
       const snap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
       const currentPantry = snap.exists() ? (snap.data().items || []) : [];
 
+      const classified = fastClassifyFood(item.name);
+      const addQty = classified.quantity || 1;
+      const addUnit = classified.unit || "pcs";
+      const cat = item.category && item.category !== "Other" ? item.category : classified.category;
+
       let updatedPantry = [...currentPantry];
       const existingIdx = updatedPantry.findIndex(
         p => p.name.toLowerCase() === item.name.toLowerCase()
@@ -258,16 +268,16 @@ export default function Groceries() {
       if (existingIdx >= 0) {
         updatedPantry[existingIdx] = {
           ...updatedPantry[existingIdx],
-          quantity: (updatedPantry[existingIdx].quantity || 0) + 1,
+          quantity: (updatedPantry[existingIdx].quantity || 0) + addQty,
           updatedAt: new Date().toISOString()
         };
       } else {
         updatedPantry.push({
           id: Date.now().toString(),
           name: item.name,
-          category: item.category || "Other",
-          quantity: 1,
-          unit: "pcs",
+          category: cat,
+          quantity: addQty,
+          unit: addUnit,
           updatedAt: new Date().toISOString()
         });
       }
@@ -341,11 +351,32 @@ export default function Groceries() {
             Shopping List
           </h1>
           <p className="text-sm font-normal text-white/45 mt-1.5">
-            {pendingCount === 0 ? "All items purchased and stocked." : `${pendingCount} items remaining to purchase`}
+            {pendingCount === 0 ? "All items purchased and stocked." : pendingCount === 1 ? "1 item remaining to purchase" : `${pendingCount} items remaining to purchase`}
           </p>
         </div>
         
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mobile Sort Pills */}
+          <div className="md:hidden flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/30">Sort:</span>
+            <button
+              onClick={() => handleSort("name")}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                sortBy === "name" ? "bg-white text-black" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
+            </button>
+            <button
+              onClick={() => handleSort("category")}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                sortBy === "category" ? "bg-white text-black" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Category {sortBy === "category" && (sortOrder === "asc" ? "↑" : "↓")}
+            </button>
+          </div>
+
           <Link
             to="/app/pantry"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
@@ -424,7 +455,7 @@ export default function Groceries() {
       <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
         
         {/* Quick Add Row */}
-        <form onSubmit={handleAddItem} className="flex items-center px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-3">
+        <form onSubmit={handleAddItem} className="flex items-center px-4 sm:px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5 sm:gap-3">
           <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
             {addingItem ? (
               <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -434,23 +465,23 @@ export default function Groceries() {
           </div>
           <input 
             type="text" 
-            placeholder="Add grocery item with AI (e.g. Chilli powder, Greek Yogurt, Eggs)..."
+            placeholder="Add grocery item (e.g. Chilli powder, Greek Yogurt, Eggs)..."
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             disabled={addingItem}
-            className="w-full h-full bg-transparent border-none focus:outline-none text-xs font-medium text-white placeholder:text-white/30"
+            className="flex-1 min-w-0 bg-transparent border-none focus:outline-none text-xs sm:text-sm font-medium text-white placeholder:text-white/30"
           />
           <button 
             type="submit" 
             disabled={!newItem.trim() || addingItem}
-            className="px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
+            className="px-3.5 sm:px-4 py-1.5 rounded-full bg-white text-black text-[11px] sm:text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
           >
-            {addingItem ? "AI Adding..." : "Add"}
+            {addingItem ? "Adding..." : "Add"}
           </button>
         </form>
 
-        {/* Table Column Sorting Header */}
-        <div className="grid grid-cols-[48px_1fr_130px_90px] md:grid-cols-[64px_1fr_180px_110px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
+        {/* Table Column Sorting Header (Desktop Only) */}
+        <div className="hidden md:grid md:grid-cols-[64px_1fr_180px_110px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
           <div className="text-center">Status</div>
           <button 
             onClick={() => handleSort("name")}
@@ -482,15 +513,16 @@ export default function Groceries() {
             sortedItems.map(item => (
               <div 
                 key={item.id} 
-                className={`group grid grid-cols-[48px_1fr_130px_90px] md:grid-cols-[64px_1fr_180px_110px] items-center px-4 min-h-[52px] transition-colors hover:bg-white/[0.02] ${
+                className={`group transition-colors hover:bg-white/[0.02] ${
                   item.purchased ? "bg-black/20 opacity-60" : ""
                 }`}
               >
-                {/* Checkbox Col */}
-                <div className="flex justify-center">
+                {/* Mobile View (< md): High-density spacious card row */}
+                <div className="md:hidden flex items-center gap-3 px-4 py-3.5">
+                  {/* Checkbox */}
                   <button 
                     onClick={() => togglePurchased(item.id)}
-                    className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center border shrink-0 transition-all ${
                       item.purchased 
                         ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
                         : "border-white/20 hover:border-white/40 bg-transparent"
@@ -498,43 +530,94 @@ export default function Groceries() {
                   >
                     {item.purchased && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </button>
-                </div>
-                
-                {/* Item Name Col */}
-                <div className={`text-xs md:text-sm font-medium truncate pr-4 ${
-                  item.purchased ? "text-white/40 line-through" : "text-white/90"
-                }`}>
-                  {item.name}
-                </div>
-                
-                {/* Category Badge Col (Interactive Dynamic Centered Badge Popover) */}
-                <div className="flex items-center justify-start">
-                  <CategoryDropdown
-                    category={item.category}
-                    onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
-                  />
-                </div>
-                
-                {/* Actions Col */}
-                <div className="flex items-center justify-end gap-1.5 pr-2">
-                  {/* Single Transfer to Pantry */}
-                  {item.purchased && (
-                    <button
-                      onClick={() => transferSingleToPantry(item)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
-                      title="Move directly to Pantry"
-                    >
-                      <Package className="w-3.5 h-3.5" />
-                    </button>
-                  )}
 
-                  <button 
-                    onClick={() => deleteItem(item.id)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
-                    title="Delete item"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Name & Category */}
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className={`text-sm font-semibold truncate ${
+                      item.purchased ? "text-white/40 line-through" : "text-white"
+                    }`}>
+                      {item.name}
+                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <CategoryDropdown
+                        category={item.category}
+                        onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {item.purchased && (
+                      <button
+                        onClick={() => transferSingleToPantry(item)}
+                        className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                        title="Move to Pantry"
+                      >
+                        <Package className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => deleteItem(item.id)}
+                      className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop View (>= md): Structured tabular columns */}
+                <div className="hidden md:grid md:grid-cols-[64px_1fr_180px_110px] items-center px-4 min-h-[52px]">
+                  {/* Checkbox Col */}
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={() => togglePurchased(item.id)}
+                      className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
+                        item.purchased 
+                          ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
+                          : "border-white/20 hover:border-white/40 bg-transparent"
+                      }`}
+                    >
+                      {item.purchased && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </button>
+                  </div>
+                  
+                  {/* Item Name Col */}
+                  <div className={`text-sm font-medium truncate pr-4 ${
+                    item.purchased ? "text-white/40 line-through" : "text-white/90"
+                  }`}>
+                    {item.name}
+                  </div>
+                  
+                  {/* Category Badge Col */}
+                  <div className="flex items-center justify-start">
+                    <CategoryDropdown
+                      category={item.category}
+                      onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                    />
+                  </div>
+                  
+                  {/* Actions Col */}
+                  <div className="flex items-center justify-end gap-1.5 pr-2">
+                    {item.purchased && (
+                      <button
+                        onClick={() => transferSingleToPantry(item)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                        title="Move directly to Pantry"
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={() => deleteItem(item.id)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

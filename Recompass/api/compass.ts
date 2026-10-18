@@ -425,7 +425,7 @@ ABSOLUTE CULINARY RULES (CRITICAL - ZERO TOLERANCE FOR WEIRD COMBINATIONS):
      * Creatine: 1 scoop = 5g (if pantry is in 'g', deduct 5g, NEVER 1g!).
      * Cooking Oil / Butter: 1 tsp = 5ml (NEVER 1ml!). 1 tbsp = 15ml.
      * Spices & Seasonings (Chilli Powder, Pepper, Oregano, Salt, Chilli Flakes, Turmeric): 1 pinch = 1g. 1/2 tsp = 2g. 1 tsp = 3-4g. Always match the pantry item's exact name (e.g. "Chilli Powder" for "1 pinch Chilli Powder").
-     * Peanut Butter / Spreads / Jam: 1 tbsp = 0.04 jar (if pantry in 'jar', NEVER deduct 1 whole jar! 1 tbsp is 0.04 jar). If pantry in 'g', 1 tbsp = 16g.
+     * Peanut Butter / Spreads / Jam: 1 tbsp = 16g. Always deduct in 'g' or 'ml' (never use jars or bottles!).
      * Oats / Grains: 50g = 0.05 kg (if pantry is in 'kg', NEVER deduct 50 kg! 50g is 0.05 kg). If pantry in 'g', deduct 50g.
      * Milk: 1 cup / 250ml -> 250ml (if pantry in 'ml') or 0.5 pack (if 500ml 'packs'). 50ml -> 0.1 pack.
      * Bread: 2 slices -> 2 slices (if pantry in 'slices') or 0.12 pack (if pantry in 'packs', NEVER deduct 2 whole packs for 2 slices!).
@@ -497,7 +497,8 @@ AVAILABLE CATEGORIES (Pick EXACTLY one):
 - "Dairy" (milk, curd, dahi, yogurt, butter, ghee, cheese, paneer)
 - "Produce" (bananas, apples, spinach, veggies, fruits, onions, tomatoes, potatoes, lemon)
 - "Grains" (rice, oats, muesli, wheat, atta, bread, roti, chapati, dal, lentils, pasta, noodles)
-- "Snacks" (peanut butter, almonds, nuts, chips, biscuits, cookies, chocolates, seeds)
+- "Spreads" (peanut butter, jam, mayonnaise, ketchup, chocolate spread, nutella, marmalade, hummus)
+- "Snacks" (almonds, nuts, chips, biscuits, cookies, chocolates, seeds, dry fruits)
 - "Supplements" (whey protein, casein, creatine, multivitamins, fish oil, electrolytes)
 - "Spices" (chilli powder, turmeric, jeera, cumin, garam masala, salt, pepper, chaat masala)
 - "Oils" (olive oil, mustard oil, coconut oil, sunflower oil, vegetable oil, cooking spray)
@@ -507,7 +508,7 @@ RULES:
 1. "name": Clean, Title Case food title (e.g. "Chilli Powder", "Eggs", "Rolled Oats", "Peanut Butter").
 2. "category": Must match one of the exact categories above.
 3. "quantity": Numeric quantity from input, or fallback to ${payload.fallbackQty || 1}.
-4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "jar", "packs", "bottles", "scoops").
+4. "unit": Best fitting unit ("g", "kg", "ml", "pcs", "slices", "packs", "scoops", "tbsp", "tsp"). NEVER use "jar" or "bottle", use "g" or "ml".
 
 OUTPUT STRICTLY AS JSON:
 {"name":"Rolled Oats","category":"Grains","quantity":${payload.fallbackQty || 1},"unit":"g"}`;

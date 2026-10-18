@@ -5,6 +5,7 @@ export const FOOD_CATEGORIES = [
   "Dairy",
   "Produce",
   "Grains",
+  "Spreads",
   "Snacks",
   "Supplements",
   "Spices",
@@ -79,12 +80,22 @@ export function fastClassifyFood(
     else if (rawUnit === "ml") parsedUnit = "ml";
     else if (rawUnit.startsWith("l")) parsedUnit = "L";
     else if (rawUnit.startsWith("scoop")) parsedUnit = "scoops";
-    else if (rawUnit.startsWith("jar")) parsedUnit = "jar";
     else if (rawUnit.startsWith("pack")) parsedUnit = "packs";
-    else if (rawUnit.startsWith("bottle")) parsedUnit = "bottles";
     else if (rawUnit.startsWith("box")) parsedUnit = "box";
     else if (rawUnit.startsWith("slice")) parsedUnit = "slices";
-    else parsedUnit = "pcs";
+    else if (rawUnit.startsWith("tbsp")) parsedUnit = "tbsp";
+    else if (rawUnit.startsWith("tsp")) parsedUnit = "tsp";
+    else if (rawUnit.startsWith("jar")) {
+      // User requested eliminating jar units -> convert to standard weight (350g per jar)
+      parsedQty = parsedQty * 350;
+      parsedUnit = "g";
+    } else if (rawUnit.startsWith("bottle")) {
+      // User requested eliminating bottle units -> convert to standard volume (500ml per bottle)
+      parsedQty = parsedQty * 500;
+      parsedUnit = "ml";
+    } else {
+      parsedUnit = "pcs";
+    }
     cleanName = matchLeading[3].trim();
   }
 
@@ -100,8 +111,16 @@ export function fastClassifyFood(
   // Instant category resolution for common pantry & grocery staples
   let category: FoodCategory = "Other";
 
+  // Spreads (peanut butter, jam, mayonnaise, ketchup, chocolate spreads, nutella, marmalade, hummus, etc.)
+  if (/\b(peanut butter|pb|mayo|mayonnaise|ketchup|tomato ketchup|jam|jams|marmalade|chocolate spread|nutella|hummus|cream cheese spread|spreads?)\b/.test(lower)) {
+    category = "Spreads";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      parsedUnit = "g";
+      parsedQty = 350;
+    }
+  }
   // Grains (prioritize oats/muesli first so "Fruit & Nuts Oats" doesn't hit fruit)
-  if (/\b(oats?|rolled oats?|instant oats?|steel cut|muesli|oatmeal|breakfast cereal|cornflakes?|rice|steamed rice|basmati|brown rice|wheat|flour|atta|maida|besan|sooji|rava|semolina|poha|chivda|quinoa|daliya|vermicelli|semiya|noodles?|maggi|pasta|macaroni|bread|brown bread|white bread|multigrain|loaf|roti|chapatis?|parathas?|kulcha|naan|dals?|moong|toor|masoor|urad|chana|rajma|chole|lentils?)\b/.test(lower)) {
+  else if (/\b(oats?|rolled oats?|instant oats?|steel cut|muesli|oatmeal|breakfast cereal|cornflakes?|rice|steamed rice|basmati|brown rice|wheat|flour|atta|maida|besan|sooji|rava|semolina|poha|chivda|quinoa|daliya|vermicelli|semiya|noodles?|maggi|pasta|macaroni|bread|brown bread|white bread|multigrain|loaf|roti|chapatis?|parathas?|kulcha|naan|dals?|moong|toor|masoor|urad|chana|rajma|chole|lentils?)\b/.test(lower)) {
     category = "Grains";
     if (parsedUnit === "pcs" && !matchLeading) {
       if (/bread|brown bread|white bread|multigrain|loaf/.test(lower)) {
@@ -148,11 +167,11 @@ export function fastClassifyFood(
     category = "Oils";
     if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "ml";
   }
-  // Snacks
-  else if (/\b(peanut butter|pb|almonds?|badam|cashews?|kaju|walnuts?|akhrot|raisins?|kishmish|chia seeds?|flax seeds?|pumpkin seeds?|sunflower seeds?|mixed seeds?|dry fruits?|peanuts?|groundnuts?|biscuits?|cookies?|chips?|popcorn|chocolates?|energy bar|protein bar|honey|jams?|peanut)\b/.test(lower)) {
+  // Snacks (Dry fruits, nuts, seeds, energy bars, etc. WITHOUT peanut butter/spreads)
+  else if (/\b(almonds?|badam|cashews?|kaju|walnuts?|akhrot|raisins?|kishmish|chia seeds?|flax seeds?|pumpkin seeds?|sunflower seeds?|mixed seeds?|dry fruits?|peanuts?|groundnuts?|biscuits?|cookies?|chips?|popcorn|chocolates?|energy bar|protein bar|honey)\b/.test(lower)) {
     category = "Snacks";
     if (parsedUnit === "pcs" && !matchLeading) {
-      parsedUnit = /peanut butter|pb|honey|jam/.test(lower) ? "jar" : /seeds|almonds|cashews|nuts/.test(lower) ? "g" : "packs";
+      parsedUnit = /honey/.test(lower) ? "g" : /seeds|almonds|cashews|nuts/.test(lower) ? "g" : "packs";
     }
   }
   // Produce (Fruits & Veggies)
@@ -243,7 +262,7 @@ export async function classifyFoodWithAI(
 Analyze this food, ingredient, or pantry item input: "${trimmed}".
 
 AVAILABLE CATEGORIES:
-"Protein", "Dairy", "Produce", "Grains", "Snacks", "Supplements", "Spices", "Oils", "Other"
+"Protein", "Dairy", "Produce", "Grains", "Spreads", "Snacks", "Supplements", "Spices", "Oils", "Other"
 
 OUTPUT STRICTLY AS JSON:
 {"name":"FOOD_NAME","category":"CATEGORY","quantity":${fallbackQty},"unit":"${defaultUnit}"}`;

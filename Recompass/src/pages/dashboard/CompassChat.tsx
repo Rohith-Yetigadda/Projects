@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import { clearCachedData } from "@/lib/dataCache";
 import { getLocalDateStr } from "@/lib/dateUtils";
 import { getStockStatus } from "@/pages/dashboard/Pantry";
+import { fastClassifyFood } from "@/lib/geminiClassifier";
 
 export type AgentAction = {
   id: string;
@@ -295,13 +296,13 @@ SUPPORTED ACTIONS:
 - "ADD_STAPLE": Save reusable recurring meal/shake (data: { name: string, recipe: string, mealType?: "breakfast"|"lunch"|"dinner"|"snacks"|"any", calories: number, protein: number, carbs: number, fats: number })
 - "REMOVE_STAPLE": Delete a staple recipe (data: { name: string })
 - "LOG_STAPLE": 1-tap log an existing staple to today (data: { stapleName: string, mealType: string })
-- "ADD_PANTRY": Restock kitchen (data: { name: string, quantity: number, unit?: string, category?: string })
+- "ADD_PANTRY": Restock kitchen (data: { name: string, quantity: number, unit?: string, category?: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Spreads"|"Other" })
 - "CONSUME_PANTRY": Deduct kitchen stock (data: { name: string, quantity: number })
 - "UPDATE_PANTRY": Edit stock or category (data: { name: string, quantity: number, unit?: string, category?: string })
 - "REMOVE_PANTRY": Delete pantry item (data: { name: string })
 - "CLEAR_PANTRY": Empty pantry (data: {})
 - "RESTOCK_LOW_TO_GROCERIES": Auto-transfer low pantry items to groceries (data: {})
-- "ADD_GROCERIES": Add items to shopping list (data: { items: Array<{ name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Other" }> | string[] })
+- "ADD_GROCERIES": Add items to shopping list (data: { items: Array<{ name: string, category: "Protein"|"Dairy"|"Produce"|"Snacks"|"Supplements"|"Grains"|"Spices"|"Oils"|"Spreads"|"Other" }> | string[] })
 - "REMOVE_GROCERIES": Remove items from list (data: { items: string[] })
 - "CHECK_GROCERIES": Mark items bought (data: { items: string[] })
 - "UNCHECK_GROCERIES": Unmark items (data: { items: string[] })
@@ -836,11 +837,13 @@ Instructions:
           // 11. ADD_PANTRY
           if (actionType === "ADD_PANTRY") {
             const name = actionData.name;
-            const quantity = Number(actionData.quantity) || 1;
-            const unit = actionData.unit || "pcs";
-            const category = actionData.category || "Protein";
-            
             if (name) {
+              const classified = fastClassifyFood(name);
+              let category = actionData.category && actionData.category !== "Other" ? actionData.category : classified.category;
+              let unit = actionData.unit || classified.unit || "pcs";
+              if (unit === "jar" || unit === "bottle") unit = "g";
+              const quantity = Number(actionData.quantity) || classified.quantity || 1;
+
               const pantryRef = doc(db, "users", currentUser.uid, "pantry", "current");
               const pantrySnap = await getDoc(pantryRef);
               let currentItems = pantrySnap.exists() ? pantrySnap.data().items || [] : [];
@@ -1031,7 +1034,10 @@ Instructions:
               
               const newGroceryItems = itemsToAdd.map(itemObj => {
                 const name = typeof itemObj === "string" ? itemObj : itemObj.name;
-                const aiCategory = typeof itemObj === "string" ? "Produce" : itemObj.category || "Produce";
+                const classified = fastClassifyFood(name);
+                const aiCategory = (typeof itemObj === "object" && itemObj.category && itemObj.category !== "Other")
+                  ? itemObj.category
+                  : classified.category;
                 return {
                   id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                   name,
@@ -1488,12 +1494,12 @@ Instructions:
               Hey, {userProfile?.name?.split(" ")[0] || "there"}.<br/>
               <span className="text-white/45 font-normal text-sm">Upload a plate photo or ask me anything about your nutritional targets.</span>
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto sm:flex-wrap pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
               {suggestions.map((s, i) => (
                 <button 
                   key={i} 
                   onClick={() => handleSend(s)} 
-                  className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white transition-all text-left"
+                  className="px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-semibold text-white/70 hover:bg-white/[0.08] hover:text-white transition-all text-left whitespace-nowrap shrink-0 sm:shrink sm:whitespace-normal"
                 >
                   {s}
                 </button>

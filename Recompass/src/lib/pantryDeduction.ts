@@ -12,6 +12,8 @@ export type PantryImpactItem = {
   matchedItem: PantryItem | null;
   deductQuantity: number;
   remainingQuantity: number;
+  deductedDisplay: string;
+  remainingDisplay: string;
   statusBefore: StockStatus;
   statusAfter: StockStatus;
   willBeLowStock: boolean;
@@ -351,6 +353,8 @@ export function getRecipePantryImpact(
         matchedItem: null,
         deductQuantity: 0,
         remainingQuantity: 0,
+        deductedDisplay: "",
+        remainingDisplay: "not stocked",
         statusBefore: "depleted",
         statusAfter: "depleted",
         willBeLowStock: false,
@@ -360,7 +364,6 @@ export function getRecipePantryImpact(
     }
 
     // 3. Normalize raw quantity and unit through calculateDeductionAmount
-    // Whether from AI deduction or recipe string parsing, always convert into the matched pantry item's unit!
     let rawQty = parsed.quantity;
     let rawUnit = parsed.unit;
 
@@ -372,7 +375,28 @@ export function getRecipePantryImpact(
     }
 
     const deductQty = calculateDeductionAmount(matched, rawQty, rawUnit, parsed.name);
-    const remaining = Math.max(0, Math.round((matched.quantity - deductQty) * 100) / 100);
+    const pUnit = (matched.unit || "pcs").toLowerCase().trim();
+    const rUnit = (rawUnit || "pcs").toLowerCase().trim();
+
+    // Human-readable deduction string (e.g. "-30g" instead of "-0.03 kg")
+    let deductedDisplay = `-${rawQty} ${rawUnit}`;
+    if (rUnit === pUnit) {
+      deductedDisplay = `-${deductQty} ${matched.unit}`;
+    }
+
+    let remaining = Math.max(0, Math.round((matched.quantity - deductQty) * 1000) / 1000);
+    
+    // Remaining display string (e.g. "970g left" instead of "0.97 kg left")
+    let remainingDisplay = `${remaining} ${matched.unit} left`;
+    if (remaining <= 0) {
+      remainingDisplay = "depleted";
+    } else if (pUnit === "kg" && (rUnit === "g" || rUnit === "gram" || rUnit === "grams" || remaining < 1)) {
+      const gLeft = Math.round(remaining * 1000);
+      remainingDisplay = `${gLeft}g left`;
+    } else if (pUnit === "l" && (rUnit === "ml" || remaining < 1)) {
+      const mlLeft = Math.round(remaining * 1000);
+      remainingDisplay = `${mlLeft}ml left`;
+    }
 
     const statusBefore = getStockStatus(matched);
     const statusAfter = getStockStatus({ ...matched, quantity: remaining });
@@ -382,6 +406,8 @@ export function getRecipePantryImpact(
       matchedItem: matched,
       deductQuantity: deductQty,
       remainingQuantity: remaining,
+      deductedDisplay,
+      remainingDisplay,
       statusBefore,
       statusAfter,
       willBeLowStock: statusAfter === "low_stock" && statusBefore !== "low_stock",
@@ -393,6 +419,8 @@ export function getRecipePantryImpact(
 
 /**
  * Returns updated pantry items after subtracting deductions.
+ * Automatically converts items to grams or ml if remaining quantity falls below 1kg / 1L
+ * so the pantry is stored cleanly without decimal rounding confusion.
  */
 export function applyPantryDeductions(pantryItems: PantryItem[], impactList: PantryImpactItem[]): PantryItem[] {
   const deductMap = new Map<string, number>();
@@ -407,10 +435,28 @@ export function applyPantryDeductions(pantryItems: PantryItem[], impactList: Pan
   return pantryItems.map(item => {
     const toDeduct = deductMap.get(item.id);
     if (!toDeduct) return item;
-    const newQty = Math.max(0, Math.round((item.quantity - toDeduct) * 100) / 100);
+
+    const unit = (item.unit || "pcs").toLowerCase().trim();
+    let newQty = Math.max(0, item.quantity - toDeduct);
+    let newUnit = item.unit;
+
+    // Convert sub-kilogram quantities to grams (e.g. 1kg - 30g = 970g)
+    if (unit === "kg" && newQty < 1 && newQty > 0) {
+      newQty = Math.round(newQty * 1000);
+      newUnit = "g";
+    }
+    // Convert sub-liter quantities to ml (e.g. 1L - 100ml = 900ml)
+    else if (unit === "l" && newQty < 1 && newQty > 0) {
+      newQty = Math.round(newQty * 1000);
+      newUnit = "ml";
+    } else {
+      newQty = Math.round(newQty * 100) / 100;
+    }
+
     return {
       ...item,
       quantity: newQty,
+      unit: newUnit,
       updatedAt: new Date().toISOString(),
     };
   });

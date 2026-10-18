@@ -117,6 +117,7 @@ function App() {
           <Route path="/app/week" element={
             <AppRoute><ThisWeek /></AppRoute>
           } />
+          <Route path="/app/this-week" element={<Navigate to="/app/week" replace />} />
           <Route path="/app/log" element={
             <AppRoute><DailyLog /></AppRoute>
           } />
