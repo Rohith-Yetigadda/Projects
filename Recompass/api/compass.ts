@@ -359,29 +359,64 @@ OUTPUT STRICTLY AS JSON:
       }
 
       case "generate_recipes": {
-        const prompt = `You are an expert student chef creating practical hostel recipes.
-Available ingredients in pantry: ${JSON.stringify(payload.ingredients || [])}.
-Fitness goal: ${payload.goal || "healthy nutrition"}.
-Preferred equipment: ${payload.method || "any"}.
+        const methodsStr = Array.isArray(payload.methods) && payload.methods.length > 0
+          ? payload.methods.join(", ")
+          : (payload.method || "any hostel equipment");
+        
+        const skill = payload.skillLevel || "intermediate";
+        const skillDesc = skill === "beginner"
+          ? "Beginner / Zero-effort: Minimal prep, foolproof 1-pot or dump-and-heat recipes with very few steps and zero complex techniques."
+          : skill === "masterchef"
+          ? "Hostel Masterchef / Gourmet: Creative culinary techniques, complex flavor profiles, layered textures, inventive hostel hacks, and restaurant-style presentation."
+          : "Intermediate / Comfortable: Standard hostel cooking with balanced seasoning, pan searing, and creative combinations.";
 
-Generate 3 creative, delicious, high-protein recipes they can make in a hostel room with minimal equipment.
+        const prompt = `You are an elite hostel culinary chef creating customized recipes for university students.
+
+CONTEXT:
+- Available ingredients in pantry: ${JSON.stringify(payload.ingredients || [])}.
+- Fitness Goal: ${payload.goal || "healthy nutrition"}.
+- Available Cooking Gear: ${methodsStr}.
+- Student Cooking Skill: "${skill.toUpperCase()}" (${skillDesc}).
+
+GENERATION REQUIREMENTS:
+1. QUANTITY & VARIETY: Generate 5 to 6 DIVERSE, HIGH-PROTEIN recipes so the student has a rich buffet of choices. Do not just output 3 simple ones. Include:
+   - 1 Ultra-Quick Fuel / Snack (under 5 mins)
+   - 2 Hearty Protein Meals / Bowls (Savory, satisfying lunch/dinner)
+   - 1 Creative Wrap / Sandwich / Toasted creation
+   - 1 Sweet Protein Craving / Dessert / Mug Cake
+   - 1 Signature Chef Special matching their chosen gear and skill level.
+2. EXACT GEAR SETTINGS & PARAMETERS (CRITICAL):
+   - For every recipe and step involving gear, provide the EXACT mechanical setting:
+     * Microwave: Exact power / wattage and seconds/minutes (e.g. "800W / High power for 90 seconds", "medium 500W for 2 mins").
+     * Induction Cooktop: Exact wattage / temperature (e.g. "Set induction to 1200W / 160°C for sautéing, reduce to 600W / 100°C for simmering").
+     * Electric Kettle: Exact kettle operation (e.g. "Add 250ml water, turn switch ON. Hold lid open with a fork handle for 3 minutes to maintain continuous boil without auto-shutoff").
+     * Air Fryer / Toaster / Pan: Exact preheat time, temperature, and duration (e.g. "Air Fryer: 180°C for 6 mins", "Pan: Medium heat for 3 mins each side").
+   - Populate "gearSettings" with a clean one-line hardware summary for the entire recipe.
+3. MATCH COOKING SKILL:
+   - If Beginner: Keep steps foolproof, minimal chopping, fast, forgiving.
+   - If Masterchef: Use advanced flavor layering, spices, textural contrasts, gourmet hostel techniques.
+4. INGREDIENTS FORMAT: Each ingredient string must be clear with amount and name (e.g. "2 Eggs", "1 scoop Whey Protein", "1 Banana", "50g Oats", "1 tbsp Peanut Butter").
+5. ACCURATE MACROS: Provide realistic calories, protein, carbs, and fats.
 
 OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
 [
   {
     "id": "recipe-1",
-    "title": "High Protein Banana Peanut Butter Mug Cake",
-    "time": "5 mins",
-    "method": "Microwave",
+    "title": "Masala Scrambled Egg & Pepper Toast",
+    "tag": "High-Protein Main",
+    "time": "8 mins",
+    "method": "Induction / Pan",
     "difficulty": "Easy",
-    "ingredients": ["1 scoop Whey Protein", "1 Banana", "1 tbsp Peanut Butter", "2 tbsp Milk"],
+    "gearSettings": "Induction: 1000W / 140°C for sautéing, 600W for soft scramble",
+    "ingredients": ["2 Eggs", "2 slices Whole Wheat Bread", "Chilli Flakes", "Black Pepper", "1 tsp Oil"],
     "instructions": [
-      "Mash the banana in a microwave-safe mug.",
-      "Add whey protein, peanut butter, and milk, mixing until smooth.",
-      "Microwave on high for 60-90 seconds. Let cool slightly and enjoy."
+      "Set induction cooktop to 1000W (140°C) with a non-stick pan and add 1 tsp oil.",
+      "Crack 2 eggs directly into the pan, season with black pepper and chilli flakes.",
+      "Lower induction heat to 600W and stir gently for 90 seconds until creamy and soft-set.",
+      "Toast the bread slices on the pan for 1 min per side at 800W, then top with the scrambled eggs."
     ],
-    "hostelHack": "Use a fork to mash the banana completely before adding whey to prevent dry pockets.",
-    "macros": { "calories": 360, "protein": 34, "carbs": 38, "fats": 9 }
+    "hostelHack": "Keep induction at 600W at the end—residual pan heat finishes cooking the eggs without making them rubbery.",
+    "macros": { "calories": 280, "protein": 18, "carbs": 24, "fats": 12 }
   }
 ]`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];

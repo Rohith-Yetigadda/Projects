@@ -17,7 +17,9 @@ import {
   ShoppingCart,
   AlertTriangle,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Sliders,
+  X
 } from "lucide-react";
 import type { PantryItem, StockStatus } from "./Pantry";
 import { getStockStatus } from "./Pantry";
@@ -27,9 +29,11 @@ import { setCachedData } from "@/lib/dataCache";
 type Recipe = {
   id: string;
   title: string;
+  tag?: string;
   time: string;
   method: string;
   difficulty: string;
+  gearSettings?: string;
   ingredients: string[];
   instructions: string[];
   hostelHack: string;
@@ -41,12 +45,50 @@ type Recipe = {
   };
 };
 
-const COOKING_METHODS = [
+const STANDARD_COOKING_METHODS = [
   { id: "any", label: "Any (Hostel)", icon: Zap },
+  { id: "induction", label: "Induction Cooktop", icon: Flame },
   { id: "microwave", label: "Microwave", icon: Flame },
   { id: "kettle", label: "Electric Kettle", icon: Flame },
-  { id: "induction", label: "Induction", icon: Flame },
+  { id: "sandwich_toaster", label: "Sandwich Toaster / Grill", icon: Flame },
+  { id: "pan_tawa", label: "Pan / Tawa", icon: Flame },
+  { id: "air_fryer", label: "Air Fryer", icon: Zap },
   { id: "no-cook", label: "No-Cook / Shake", icon: Sparkles },
+];
+
+export type CookingSkillLevel = "beginner" | "intermediate" | "masterchef";
+
+const COOKING_SKILL_LEVELS = [
+  {
+    id: "beginner" as CookingSkillLevel,
+    label: "Beginner / Zero-Effort",
+    subtitle: "Foolproof 1-kettle / 1-bowl recipes, dump & heat, minimal prep",
+    badge: "5-8 mins • Zero skill needed",
+    icon: Flame,
+    color: "text-emerald-400",
+    border: "border-emerald-500/30",
+    bg: "bg-emerald-500/10"
+  },
+  {
+    id: "intermediate" as CookingSkillLevel,
+    label: "Intermediate / Comfortable",
+    subtitle: "Standard pan/induction cooking, sautéing, balanced seasoning",
+    badge: "10-15 mins • Standard cooking",
+    icon: ChefHat,
+    color: "text-orange-400",
+    border: "border-orange-500/30",
+    bg: "bg-orange-500/10"
+  },
+  {
+    id: "masterchef" as CookingSkillLevel,
+    label: "Hostel Masterchef",
+    subtitle: "Complex flavor layering, gourmet hacks, restaurant-style textures",
+    badge: "15-25 mins • Gourmet creativity",
+    icon: Sparkles,
+    color: "text-purple-400",
+    border: "border-purple-500/30",
+    bg: "bg-purple-500/10"
+  }
 ];
 
 export default function Cook() {
@@ -54,7 +96,19 @@ export default function Cook() {
   const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [customIngredient, setCustomIngredient] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState("any");
+  
+  // Equipment & Skill States
+  const [selectedMethods, setSelectedMethods] = useState<string[]>(["any"]);
+  const [customGearList, setCustomGearList] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("recompass_custom_gear");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [newCustomGear, setNewCustomGear] = useState("");
+  const [selectedSkill, setSelectedSkill] = useState<CookingSkillLevel>("intermediate");
   
   const [loadingPantry, setLoadingPantry] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -102,6 +156,14 @@ export default function Cook() {
     }
   };
 
+  const handleSelectAll = () => {
+    setSelectedIngredients(pantryItems.map(i => i.name));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIngredients([]);
+  };
+
   // Add custom ingredient
   const handleAddCustomIngredient = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +173,44 @@ export default function Cook() {
       setSelectedIngredients([...selectedIngredients, name]);
     }
     setCustomIngredient("");
+  };
+
+  // Cooking Method Selection & Custom Gear Handlers
+  const toggleMethod = (id: string) => {
+    if (id === "any") {
+      setSelectedMethods(["any"]);
+      return;
+    }
+    const withoutAny = selectedMethods.filter(m => m !== "any");
+    if (withoutAny.includes(id)) {
+      const remaining = withoutAny.filter(m => m !== id);
+      setSelectedMethods(remaining.length === 0 ? ["any"] : remaining);
+    } else {
+      setSelectedMethods([...withoutAny, id]);
+    }
+  };
+
+  const handleAddCustomGear = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newCustomGear.trim();
+    if (!trimmed) return;
+    if (!customGearList.includes(trimmed)) {
+      const updated = [...customGearList, trimmed];
+      setCustomGearList(updated);
+      try { localStorage.setItem("recompass_custom_gear", JSON.stringify(updated)); } catch {}
+      const withoutAny = selectedMethods.filter(m => m !== "any");
+      setSelectedMethods([...withoutAny, trimmed]);
+    }
+    setNewCustomGear("");
+  };
+
+  const handleRemoveCustomGear = (gear: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = customGearList.filter(g => g !== gear);
+    setCustomGearList(updated);
+    try { localStorage.setItem("recompass_custom_gear", JSON.stringify(updated)); } catch {}
+    const remainingSelected = selectedMethods.filter(m => m !== gear);
+    setSelectedMethods(remainingSelected.length === 0 ? ["any"] : remainingSelected);
   };
 
   // Generate Recipes
@@ -132,7 +232,8 @@ export default function Cook() {
           payload: {
             ingredients: selectedIngredients,
             goal: userProfile?.goal || "high protein nutrition",
-            method: selectedMethod
+            methods: selectedMethods,
+            skillLevel: selectedSkill
           }
         })
       });
@@ -332,9 +433,26 @@ export default function Cook() {
               <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">1</span>
               Select Available Ingredients
             </h3>
-            <span className="text-[11px] font-medium text-white/40">
-              {selectedIngredients.length} selected
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="text-[11px] font-semibold text-white/50 hover:text-white transition-colors"
+              >
+                Select All
+              </button>
+              <span className="text-white/20">•</span>
+              <button
+                type="button"
+                onClick={handleDeselectAll}
+                className="text-[11px] font-semibold text-white/50 hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+              <span className="text-[11px] font-medium text-orange-400/80 ml-1">
+                ({selectedIngredients.length} selected)
+              </span>
+            </div>
           </div>
 
           {loadingPantry ? (
@@ -361,18 +479,19 @@ export default function Cook() {
                 return (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => toggleIngredient(item.name)}
                     className={`px-3.5 py-2 rounded-2xl text-xs font-semibold border transition-all flex items-center gap-2 ${
                       isSelected
-                        ? "bg-white text-black border-white shadow-sm font-bold"
-                        : "bg-white/[0.03] text-white/60 border-white/[0.06] hover:text-white hover:border-white/20"
+                        ? "bg-orange-500/15 border-orange-500/40 text-white font-semibold shadow-[0_0_12px_rgba(249,115,22,0.15)] hover:bg-orange-500/20"
+                        : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white/80 hover:border-white/15"
                     }`}
                   >
                     <span>{item.name}</span>
-                    <span className={`text-[10px] ${isSelected ? "text-black/60 font-semibold" : "text-white/40"}`}>
+                    <span className={`text-[10px] font-mono ${isSelected ? "text-orange-300/80 font-medium" : "text-white/35"}`}>
                       ({item.quantity} {item.unit})
                     </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-orange-400 stroke-[3]" />}
                   </button>
                 );
               })}
@@ -398,36 +517,156 @@ export default function Cook() {
           </form>
         </div>
 
-        {/* Step 2: Pick Cooking Method */}
+        {/* Step 2: Hostel Cooking Gear + Custom Appliances */}
         <div className="border-t border-white/[0.06] pt-5">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 mb-3">
-            <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">2</span>
-            Hostel Cooking Gear
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">2</span>
+              Hostel Cooking Gear
+            </h3>
+            <span className="text-[11px] font-medium text-white/40">
+              {selectedMethods.includes("any") ? "Any gear allowed" : `${selectedMethods.length} gear selected`}
+            </span>
+          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {COOKING_METHODS.map(method => {
+          {/* Preset Gear Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {STANDARD_COOKING_METHODS.map(method => {
               const Icon = method.icon;
-              const isSelected = selectedMethod === method.id;
+              const isSelected = selectedMethods.includes(method.id);
               return (
                 <button
                   key={method.id}
-                  onClick={() => setSelectedMethod(method.id)}
-                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[64px] ${
+                  type="button"
+                  onClick={() => toggleMethod(method.id)}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[66px] ${
                     isSelected
-                      ? "bg-orange-500/15 border-orange-500/40 text-orange-300"
+                      ? "bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.12)]"
                       : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:text-white hover:border-white/15"
                   }`}
                 >
-                  <Icon className="w-4 h-4 mb-2" />
-                  <span className="text-xs font-bold tracking-tight">{method.label}</span>
+                  <div className="flex items-center justify-between">
+                    <Icon className="w-4 h-4" />
+                    {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                  </div>
+                  <span className="text-xs font-bold tracking-tight mt-2">{method.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Gear Chips & Input */}
+          <div className="mt-3.5 pt-3 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Custom / Dorm Appliances</span>
+            </div>
+
+            {customGearList.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2.5">
+                {customGearList.map(gear => {
+                  const isSelected = selectedMethods.includes(gear);
+                  return (
+                    <button
+                      key={gear}
+                      type="button"
+                      onClick={() => toggleMethod(gear)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
+                        isSelected
+                          ? "bg-orange-500/15 border-orange-500/40 text-orange-200"
+                          : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white"
+                      }`}
+                    >
+                      <span>{gear}</span>
+                      {isSelected && <Check className="w-3 h-3 text-orange-400 stroke-[3]" />}
+                      <span
+                        onClick={(e) => handleRemoveCustomGear(gear, e)}
+                        className="ml-1 text-white/30 hover:text-rose-400 transition-colors p-0.5"
+                        title="Remove custom gear"
+                      >
+                        <X className="w-3 h-3" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <form onSubmit={handleAddCustomGear} className="flex items-center gap-2 max-w-md">
+              <input
+                type="text"
+                placeholder="+ Add custom gear (e.g. Rice Cooker, Hot Plate, Egg Boiler)..."
+                value={newCustomGear}
+                onChange={(e) => setNewCustomGear(e.target.value)}
+                className="flex-1 h-9 px-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-medium text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!newCustomGear.trim()}
+                className="h-9 px-3.5 rounded-xl bg-white/[0.06] text-white/80 hover:text-white text-xs font-semibold disabled:opacity-30 border border-white/[0.08] transition-all shrink-0"
+              >
+                Add Gear
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Step 3: Cooking Skill Level */}
+        <div className="border-t border-white/[0.06] pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white">3</span>
+              Your Cooking Skill & Effort Level
+            </h3>
+            <span className="text-[11px] font-medium text-white/40">
+              Personalizes recipe prep & techniques
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {COOKING_SKILL_LEVELS.map(skill => {
+              const Icon = skill.icon;
+              const isSelected = selectedSkill === skill.id;
+              return (
+                <button
+                  key={skill.id}
+                  type="button"
+                  onClick={() => setSelectedSkill(skill.id)}
+                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? `${skill.bg} ${skill.border} shadow-[0_0_15px_rgba(249,115,22,0.1)]`
+                      : "bg-white/[0.02] border-white/[0.06] hover:border-white/15"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center border ${
+                        isSelected ? `${skill.bg} ${skill.border}` : "bg-white/[0.03] border-white/[0.06]"
+                      }`}>
+                        <Icon className={`w-3.5 h-3.5 ${isSelected ? skill.color : "text-white/40"}`} />
+                      </div>
+                      <span className={`text-xs font-bold tracking-tight ${isSelected ? "text-white" : "text-white/70"}`}>
+                        {skill.label}
+                      </span>
+                    </div>
+                    {isSelected && <Check className={`w-4 h-4 ${skill.color}`} strokeWidth={2.5} />}
+                  </div>
+
+                  <p className="text-[11px] text-white/50 leading-relaxed mb-3">
+                    {skill.subtitle}
+                  </p>
+
+                  <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border self-start ${
+                    isSelected ? `${skill.bg} ${skill.border} ${skill.color}` : "bg-white/[0.02] border-white/[0.06] text-white/35"
+                  }`}>
+                    {skill.badge}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Step 3: Trigger Action & Synergy Settings */}
+        {/* Step 4: Trigger Action & Synergy Settings */}
         <div className="border-t border-white/[0.06] pt-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="text-xs text-white/40 flex items-center gap-1.5">
@@ -457,12 +696,12 @@ export default function Cook() {
             {generating ? (
               <>
                 <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
-                <span>Cooking with Compass AI...</span>
+                <span>Chef AI Creating 5-6 Recipes...</span>
               </>
             ) : (
               <>
                 <ChefHat className="w-4 h-4" />
-                <span>Generate Hostel Recipes</span>
+                <span>Generate 5-6 Hostel Recipes</span>
               </>
             )}
           </button>
@@ -480,10 +719,15 @@ export default function Cook() {
       {recipes.length > 0 && (
         <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white tracking-tight font-sans">
-              Suggested High-Protein Recipes
-            </h2>
-            <span className="text-xs font-semibold text-white/40">
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight font-sans">
+                Suggested High-Protein Recipes
+              </h2>
+              <p className="text-xs text-white/40 mt-0.5">
+                Tailored for {selectedSkill.toUpperCase()} skill • {selectedMethods.join(", ")}
+              </p>
+            </div>
+            <span className="text-xs font-bold text-orange-400 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
               {recipes.length} recipes created
             </span>
           </div>
@@ -499,6 +743,11 @@ export default function Cook() {
                 <div>
                   {/* Badge Pills */}
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    {recipe.tag && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                        {recipe.tag}
+                      </span>
+                    )}
                     <span className="px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {recipe.time}
@@ -515,6 +764,21 @@ export default function Cook() {
                   <h3 className="text-base font-extrabold text-white tracking-tight font-sans mb-3 leading-snug">
                     {recipe.title}
                   </h3>
+
+                  {/* Exact Gear Settings Box */}
+                  {recipe.gearSettings && (
+                    <div className="p-3 rounded-2xl bg-cyan-500/[0.07] border border-cyan-500/20 text-cyan-300 text-xs mb-4 flex items-start gap-2.5">
+                      <Sliders className="w-4 h-4 shrink-0 text-cyan-400 mt-0.5" />
+                      <div className="min-w-0">
+                        <span className="font-bold text-[10px] uppercase tracking-wider block text-cyan-400">
+                          Exact Equipment Setting
+                        </span>
+                        <p className="text-[11px] text-cyan-100 font-mono leading-relaxed mt-0.5">
+                          {recipe.gearSettings}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Macros Row */}
                   <div className="grid grid-cols-4 gap-1 p-2.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] mb-4 text-center">
@@ -588,9 +852,9 @@ export default function Cook() {
                     <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
                       Instructions
                     </div>
-                    <ol className="text-xs text-white/70 space-y-1.5">
+                    <ol className="text-xs text-white/70 space-y-2">
                       {recipe.instructions.map((step, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
+                        <li key={idx} className="flex items-start gap-2 leading-relaxed">
                           <span className="text-[10px] font-bold text-white/30 shrink-0 mt-0.5">{idx + 1}.</span>
                           <span>{step}</span>
                         </li>
