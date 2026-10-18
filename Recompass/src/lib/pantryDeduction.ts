@@ -195,6 +195,15 @@ export function calculateDeductionAmount(pantryItem: PantryItem, parsedQty: numb
     return parsedQty;
   }
 
+  // Bread / Cheese Pack vs Slices (e.g. 1 pack Bread vs 2 slices Bread)
+  if (["pack", "packs"].includes(pUnit) && ["slice", "slices"].includes(rUnit)) {
+    // 1 standard bread/cheese pack ~ 15-20 slices
+    return Math.round((parsedQty / 15) * 100) / 100;
+  }
+  if (["slice", "slices"].includes(pUnit) && ["pack", "packs"].includes(rUnit)) {
+    return parsedQty * 15;
+  }
+
   // Default fallback: deduct parsed quantity or 1
   return parsedQty > 0 ? parsedQty : 1;
 }

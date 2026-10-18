@@ -695,12 +695,12 @@ export default function Cook() {
             {generating ? (
               <>
                 <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
-                <span>Chef AI Creating 5-6 Recipes...</span>
+                <span>Generating Recipes...</span>
               </>
             ) : (
               <>
                 <ChefHat className="w-4 h-4" />
-                <span>Generate 5-6 Hostel Recipes</span>
+                <span>Generate Recipes</span>
               </>
             )}
           </button>

@@ -36,8 +36,28 @@ export default function Groceries() {
   const [newItem, setNewItem] = useState("");
   const [lowPantryItems, setLowPantryItems] = useState<PantryItem[]>([]);
 
-  const [sortBy, setSortBy] = useState<"name" | "category">("category");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "category">(() => {
+    try {
+      const saved = localStorage.getItem("groceries_sort_by");
+      if (saved === "name" || saved === "category") return saved;
+    } catch {}
+    return "category";
+  });
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() => {
+    try {
+      const saved = localStorage.getItem("groceries_sort_order");
+      if (saved === "asc" || saved === "desc") return saved;
+    } catch {}
+    return "asc";
+  });
+
+  // Persist sort preference
+  useEffect(() => {
+    try {
+      localStorage.setItem("groceries_sort_by", sortBy);
+      localStorage.setItem("groceries_sort_order", sortOrder);
+    } catch {}
+  }, [sortBy, sortOrder]);
   const [notification, setNotification] = useState<string | null>(null);
 
   const showNotification = (msg: string) => {

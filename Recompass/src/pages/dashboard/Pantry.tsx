@@ -87,8 +87,8 @@ export function getStockStatus(item: PantryItem): StockStatus {
     return qty <= 100 ? "low_stock" : "in_stock";
   }
 
-  // 4. Portions / Scoops: (scoop, scoops, serving, servings)
-  if (["scoop", "scoops", "serving", "servings"].includes(unit)) {
+  // 4. Portions / Scoops / Slices: (scoop, scoops, serving, servings, slice, slices)
+  if (["scoop", "scoops", "serving", "servings", "slice", "slices"].includes(unit)) {
     return qty <= 2 ? "low_stock" : "in_stock";
   }
 
@@ -143,8 +143,28 @@ export default function Pantry() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [filterLowStockOnly, setFilterLowStockOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "quantity" | "category">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "quantity" | "category">(() => {
+    try {
+      const saved = localStorage.getItem("pantry_sort_by");
+      if (saved === "name" || saved === "quantity" || saved === "category") return saved;
+    } catch {}
+    return "name";
+  });
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() => {
+    try {
+      const saved = localStorage.getItem("pantry_sort_order");
+      if (saved === "asc" || saved === "desc") return saved;
+    } catch {}
+    return "asc";
+  });
+
+  // Persist sort preference
+  useEffect(() => {
+    try {
+      localStorage.setItem("pantry_sort_by", sortBy);
+      localStorage.setItem("pantry_sort_order", sortOrder);
+    } catch {}
+  }, [sortBy, sortOrder]);
 
   // New Item State
   const [newName, setNewName] = useState("");
@@ -585,13 +605,14 @@ export default function Pantry() {
               className="appearance-none bg-white/[0.04] border border-white/[0.08] hover:border-white/20 text-white/80 text-xs font-semibold rounded-xl pl-2.5 pr-6 py-1.5 focus:outline-none cursor-pointer transition-colors"
             >
               <option value="pcs" className="bg-[#171a20]">pcs</option>
+              <option value="slices" className="bg-[#171a20]">slices</option>
+              <option value="packs" className="bg-[#171a20]">packs</option>
               <option value="g" className="bg-[#171a20]">g</option>
               <option value="ml" className="bg-[#171a20]">ml</option>
               <option value="kg" className="bg-[#171a20]">kg</option>
               <option value="l" className="bg-[#171a20]">l</option>
               <option value="jar" className="bg-[#171a20]">jar</option>
               <option value="bottles" className="bg-[#171a20]">bottles</option>
-              <option value="packs" className="bg-[#171a20]">packs</option>
               <option value="scoops" className="bg-[#171a20]">scoops</option>
               <option value="servings" className="bg-[#171a20]">servings</option>
             </select>

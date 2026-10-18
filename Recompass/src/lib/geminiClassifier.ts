@@ -83,6 +83,7 @@ export function fastClassifyFood(
     else if (rawUnit.startsWith("pack")) parsedUnit = "packs";
     else if (rawUnit.startsWith("bottle")) parsedUnit = "bottles";
     else if (rawUnit.startsWith("box")) parsedUnit = "box";
+    else if (rawUnit.startsWith("slice")) parsedUnit = "slices";
     else parsedUnit = "pcs";
     cleanName = matchLeading[3].trim();
   }
@@ -100,15 +101,29 @@ export function fastClassifyFood(
   let category: FoodCategory = "Other";
 
   // Grains (prioritize oats/muesli first so "Fruit & Nuts Oats" doesn't hit fruit)
-  if (/\b(oats?|rolled oats?|instant oats?|steel cut|muesli|oatmeal|breakfast cereal|cornflakes?|rice|steamed rice|basmati|brown rice|wheat|flour|atta|maida|besan|sooji|rava|semolina|poha|chivda|quinoa|daliya|vermicelli|semiya|noodles?|maggi|pasta|macaroni|bread|brown bread|multigrain|roti|chapatis?|parathas?|kulcha|naan|dals?|moong|toor|masoor|urad|chana|rajma|chole|lentils?)\b/.test(lower)) {
+  if (/\b(oats?|rolled oats?|instant oats?|steel cut|muesli|oatmeal|breakfast cereal|cornflakes?|rice|steamed rice|basmati|brown rice|wheat|flour|atta|maida|besan|sooji|rava|semolina|poha|chivda|quinoa|daliya|vermicelli|semiya|noodles?|maggi|pasta|macaroni|bread|brown bread|white bread|multigrain|loaf|roti|chapatis?|parathas?|kulcha|naan|dals?|moong|toor|masoor|urad|chana|rajma|chole|lentils?)\b/.test(lower)) {
     category = "Grains";
-    if (parsedUnit === "pcs" && !matchLeading) parsedUnit = "g";
+    if (parsedUnit === "pcs" && !matchLeading) {
+      if (/bread|brown bread|white bread|multigrain|loaf/.test(lower)) {
+        parsedUnit = "packs";
+      } else if (/roti|chapatis?|parathas?|kulcha|naan/.test(lower)) {
+        parsedUnit = "pcs";
+      } else {
+        parsedUnit = "g";
+      }
+    }
   }
   // Dairy
   else if (/\b(milks?|toned milk|skim milk|dairy|curds?|dahi|yogurt|cheese|paneer|cottage cheese|butter|ghee|cream|malai|chaas|buttermilk|lassis?)\b/.test(lower)) {
     category = "Dairy";
     if (parsedUnit === "pcs" && !matchLeading) {
-      parsedUnit = /milk|chaas|lassi/.test(lower) ? "ml" : /paneer|butter|cheese/.test(lower) ? "g" : "packs";
+      parsedUnit = /milk|chaas|lassi/.test(lower)
+        ? "ml"
+        : /cheese/.test(lower)
+        ? "slices"
+        : /paneer|butter/.test(lower)
+        ? "g"
+        : "packs";
     }
   }
   // Protein
