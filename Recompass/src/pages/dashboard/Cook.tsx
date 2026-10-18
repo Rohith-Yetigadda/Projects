@@ -223,6 +223,10 @@ export default function Cook() {
     setErrorMsg(null);
 
     try {
+      const effectiveMethods = selectedMethods.includes("any")
+        ? ["any standard hostel equipment", ...customGearList]
+        : selectedMethods;
+
       const res = await fetch("/api/compass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -231,7 +235,7 @@ export default function Cook() {
           payload: {
             ingredients: selectedIngredients,
             goal: userProfile?.goal || "high protein nutrition",
-            methods: selectedMethods,
+            methods: effectiveMethods,
             skillLevel: selectedSkill
           }
         })
@@ -524,7 +528,11 @@ export default function Cook() {
               Hostel Cooking Gear
             </h3>
             <span className="text-[11px] font-medium text-white/40">
-              {selectedMethods.includes("any") ? "Any gear allowed" : `${selectedMethods.length} gear selected`}
+              {selectedMethods.includes("any")
+                ? customGearList.length > 0
+                  ? `Any gear allowed (includes ${customGearList.length} custom)`
+                  : "Any gear allowed"
+                : `${selectedMethods.length} gear selected`}
             </span>
           </div>
 
@@ -563,20 +571,25 @@ export default function Cook() {
             {customGearList.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2.5">
                 {customGearList.map(gear => {
-                  const isSelected = selectedMethods.includes(gear);
+                  const isDirectlySelected = selectedMethods.includes(gear);
+                  const isAnySelected = selectedMethods.includes("any");
+                  const isActive = isDirectlySelected || isAnySelected;
                   return (
                     <button
                       key={gear}
                       type="button"
                       onClick={() => toggleMethod(gear)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
-                        isSelected
+                        isDirectlySelected
                           ? "bg-orange-500/15 border-orange-500/40 text-orange-200"
+                          : isAnySelected
+                          ? "bg-orange-500/10 border-orange-500/25 text-orange-300/80 hover:bg-orange-500/20"
                           : "bg-white/[0.02] text-white/50 border-white/[0.06] hover:text-white"
                       }`}
+                      title={isAnySelected ? `Auto-included in 'Any' (click to isolate)` : `Click to select`}
                     >
                       <span>{gear}</span>
-                      {isSelected && <Check className="w-3 h-3 text-orange-400 stroke-[3]" />}
+                      {isActive && <Check className="w-3 h-3 text-orange-400 stroke-[3]" />}
                       <span
                         onClick={(e) => handleRemoveCustomGear(gear, e)}
                         className="ml-1 text-white/30 hover:text-rose-400 transition-colors p-0.5"
@@ -723,7 +736,7 @@ export default function Cook() {
                 Suggested High-Protein Recipes
               </h2>
               <p className="text-xs text-white/40 mt-0.5">
-                Tailored for {selectedSkill.toUpperCase()} skill • {selectedMethods.join(", ")}
+                Tailored for {selectedSkill.toUpperCase()} skill • {selectedMethods.includes("any") ? "All hostel & dorm gear" : selectedMethods.join(", ")}
               </p>
             </div>
             <span className="text-xs font-bold text-orange-400 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
