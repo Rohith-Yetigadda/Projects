@@ -205,7 +205,12 @@ export default function Cook() {
       const container = carouselContainerRef.current;
       const cards = container.querySelectorAll<HTMLElement>("[data-recipe-card]");
       if (cards[index]) {
-        cards[index].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        const card = cards[index];
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const currentScrollLeft = container.scrollLeft;
+        const targetScrollLeft = currentScrollLeft + (cardRect.left - containerRect.left) - (container.clientWidth - card.clientWidth) / 2;
+        container.scrollTo({ left: Math.max(0, targetScrollLeft), behavior: "smooth" });
       }
     }
   };
@@ -367,12 +372,19 @@ export default function Cook() {
         throw new Error("Invalid recipe format returned from AI.");
       }
 
-      setRecipes(received);
+      // Stamp unique IDs so expanded state or keys don't clash across rerolls
+      const stampedRecipes = received.map((r, idx) => ({
+        ...r,
+        id: `${r.id || 'recipe'}_${Date.now()}_${idx}`
+      }));
+
+      setRecipes(stampedRecipes);
+      setExpandedInstructions({});
       setActiveRecipeTab("generated");
       setActiveMobileCardIndex(0);
       setIsFormCollapsed(true);
       try {
-        localStorage.setItem("recompass_generated_recipes", JSON.stringify(received));
+        localStorage.setItem("recompass_generated_recipes", JSON.stringify(stampedRecipes));
       } catch (err) {
         console.warn("Failed to persist recipes to localStorage:", err);
       }
@@ -559,31 +571,31 @@ export default function Cook() {
 
       {/* Main Ingredient Selector Bento / Collapsed Bar */}
       {recipes.length > 0 && isFormCollapsed ? (
-        <div className="rounded-2xl bg-[#121418] border border-white/[0.08] p-3.5 flex items-center justify-between gap-3 shadow-lg">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="rounded-2xl bg-[#121418] border border-white/[0.08] p-3 sm:p-3.5 flex items-center justify-between gap-2.5 shadow-lg">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
               <ChefHat className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-bold text-white truncate">
-                  {selectedIngredients.length} Ingredients Selected
+                  {selectedIngredients.length} Items
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-white/60 border border-white/[0.06] uppercase tracking-wider shrink-0 font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-white/60 border border-white/[0.06] uppercase tracking-wider font-semibold shrink-0">
                   {selectedSkill}
                 </span>
               </div>
               <p className="text-[11px] text-white/40 truncate mt-0.5">
-                Gear: {selectedMethods.includes("any") ? "All hostel equipment" : selectedMethods.join(", ")}
+                Gear: {selectedMethods.includes("any") ? "All gear" : selectedMethods.join(", ")}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setIsFormCollapsed(false)}
-              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all flex items-center gap-1"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white/80 hover:text-white text-xs font-semibold border border-white/[0.08] transition-all flex items-center gap-1"
             >
               <span>Refine</span>
               <ChevronDown className="w-3.5 h-3.5" />
@@ -592,7 +604,7 @@ export default function Cook() {
               type="button"
               onClick={handleGenerateRecipes}
               disabled={generating}
-              className="px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-white/90 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40"
+              className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-white text-black hover:bg-white/90 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40"
             >
               {generating ? (
                 <div className="w-3 h-3 rounded-full border-2 border-black/30 border-t-black animate-spin" />
@@ -819,37 +831,31 @@ export default function Cook() {
             </div>
           </div>
 
-          {/* Step 3: Cooking Skill Level (Compact Segmented Row) */}
+          {/* Step 3: Cooking Skill Level (Segmented Control) */}
           <div className="border-t border-white/[0.06] pt-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white font-bold">3</span>
                 Cooking Skill
               </h3>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex rounded-2xl bg-white/[0.03] p-1 border border-white/[0.08]">
               {COOKING_SKILL_LEVELS.map(skill => {
-                const Icon = skill.icon;
                 const isSelected = selectedSkill === skill.id;
+                const label = skill.id === "beginner" ? "Beginner" : skill.id === "intermediate" ? "Comfortable" : "Masterchef";
                 return (
                   <button
                     key={skill.id}
                     type="button"
                     onClick={() => setSelectedSkill(skill.id)}
-                    className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                    className={`flex-1 py-2 px-1 text-center rounded-xl text-xs font-bold transition-all ${
                       isSelected
-                        ? `${skill.bg} ${skill.border} shadow-[0_0_12px_rgba(249,115,22,0.12)] text-white`
-                        : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:border-white/15 hover:text-white"
+                        ? "bg-orange-500 text-black shadow-md shadow-orange-500/20 font-extrabold"
+                        : "text-white/50 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Icon className={`w-3.5 h-3.5 ${isSelected ? skill.color : "text-white/40"}`} />
-                      <span className="text-xs font-bold truncate">
-                        {skill.id === "beginner" ? "Beginner" : skill.id === "intermediate" ? "Comfortable" : "Masterchef"}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-white/40 hidden sm:block truncate">{skill.badge.split("•")[0]}</span>
+                    <span>{label}</span>
                   </button>
                 );
               })}
@@ -859,25 +865,52 @@ export default function Cook() {
             </p>
           </div>
 
-          {/* Step 4: Trigger Action & Synergy Settings */}
-          <div className="border-t border-white/[0.06] pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setAutoDeductPantry(!autoDeductPantry)}
-              className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-all flex items-center gap-2 self-start ${
-                autoDeductPantry
-                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                  : "bg-white/[0.03] border-white/[0.08] text-white/40 hover:text-white/60"
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Auto-deduct: <strong>{autoDeductPantry ? "ON" : "OFF"}</strong></span>
-            </button>
+          {/* Step 4: Settings & Action */}
+          <div className="border-t border-white/[0.06] pt-4 space-y-3">
+            {/* Auto-deduct toggle row */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  autoDeductPantry ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[0.04] text-white/40"
+                }`}>
+                  <Package className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Auto-deduct Pantry</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      autoDeductPantry ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[0.06] text-white/40"
+                    }`}>
+                      {autoDeductPantry ? "ENABLED" : "OFF"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/40 truncate">
+                    Automatically depletes used quantities from your pantry
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAutoDeductPantry(!autoDeductPantry)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  autoDeductPantry ? "bg-emerald-500" : "bg-white/10"
+                }`}
+                role="switch"
+                aria-checked={autoDeductPantry}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    autoDeductPantry ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
 
+            {/* Primary Action Button */}
             <button
               onClick={handleGenerateRecipes}
               disabled={generating || selectedIngredients.length === 0}
-              className="px-6 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="w-full py-3.5 px-6 rounded-2xl bg-white text-black font-extrabold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.99] disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               {generating ? (
                 <>
@@ -886,7 +919,7 @@ export default function Cook() {
                 </>
               ) : (
                 <>
-                  <ChefHat className="w-4 h-4" />
+                  <ChefHat className="w-4 h-4 text-orange-600" />
                   <span>Generate Recipes</span>
                 </>
               )}
@@ -905,8 +938,8 @@ export default function Cook() {
       {/* Generated & Saved Recipes Section */}
       {(recipes.length > 0 || savedRecipes.length > 0) && (
         <div ref={recipesSectionRef} className="space-y-3 pt-2 scroll-mt-6">
-          {/* Streamlined Single-Row Header */}
-          <div className="flex items-center justify-between gap-2 pt-1 pb-1">
+          {/* Top Row: Tab Switcher & Clear Button */}
+          <div className="flex items-center justify-between gap-2 pt-1">
             {/* Left: Tab Switcher */}
             <div className="flex items-center bg-white/[0.03] p-1 rounded-2xl border border-white/[0.08]">
               <button
@@ -917,7 +950,7 @@ export default function Cook() {
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRecipeTab === "generated"
-                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20"
+                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20 font-extrabold"
                     : "text-white/60 hover:text-white"
                 }`}
               >
@@ -933,7 +966,7 @@ export default function Cook() {
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeRecipeTab === "saved"
-                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20"
+                    ? "bg-orange-500 text-black shadow-md shadow-orange-500/20 font-extrabold"
                     : "text-white/60 hover:text-white"
                 }`}
               >
@@ -942,22 +975,44 @@ export default function Cook() {
               </button>
             </div>
 
-            {/* Right: Stepper on mobile + Clear button */}
-            <div className="flex items-center gap-1.5">
-              {(activeRecipeTab === "generated" ? recipes : savedRecipes).length > 1 && (
-                <div className="flex md:hidden items-center bg-white/[0.03] border border-white/[0.08] rounded-xl px-1 py-0.5">
+            {/* Right: Clear button */}
+            {activeRecipeTab === "generated" && recipes.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearGeneratedRecipes}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-500/10 text-white/40 hover:text-rose-400 border border-white/[0.06] hover:border-rose-500/30 transition-all text-xs font-semibold flex items-center gap-1.5"
+                title="Clear generated recipes"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
+
+          {/* Subheader info & Mobile Stepper */}
+          <div className="flex items-center justify-between text-xs text-white/40 pb-1 pt-0.5">
+            <span className="truncate text-[11px] sm:text-xs">
+              {activeRecipeTab === "generated"
+                ? `Tailored for ${selectedSkill.toUpperCase()} skill • ${selectedMethods.includes("any") ? "All hostel equipment" : selectedMethods.join(", ")}`
+                : "Your bookmarked hostel meals"}
+            </span>
+
+            {/* Mobile Carousel Stepper & Indicators */}
+            {(activeRecipeTab === "generated" ? recipes : savedRecipes).length > 1 && (
+              <div className="flex md:hidden items-center gap-2 shrink-0 ml-2">
+                <span className="text-[11px] font-bold text-orange-400">
+                  {activeMobileCardIndex + 1} of {(activeRecipeTab === "generated" ? recipes : savedRecipes).length}
+                </span>
+                <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-xl p-0.5">
                   <button
                     type="button"
                     onClick={() => scrollToRecipeIndex(Math.max(0, activeMobileCardIndex - 1))}
                     disabled={activeMobileCardIndex === 0}
-                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-20 transition-all"
+                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-25 transition-all"
                     aria-label="Previous recipe"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-[11px] font-bold text-orange-400 px-1.5 min-w-[34px] text-center">
-                    {activeMobileCardIndex + 1}/{(activeRecipeTab === "generated" ? recipes : savedRecipes).length}
-                  </span>
                   <button
                     type="button"
                     onClick={() => {
@@ -965,35 +1020,14 @@ export default function Cook() {
                       scrollToRecipeIndex(Math.min(maxIdx, activeMobileCardIndex + 1));
                     }}
                     disabled={activeMobileCardIndex >= (activeRecipeTab === "generated" ? recipes : savedRecipes).length - 1}
-                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-20 transition-all"
+                    className="p-1 rounded-lg text-white/70 hover:text-white disabled:opacity-25 transition-all"
                     aria-label="Next recipe"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              )}
-
-              {activeRecipeTab === "generated" && recipes.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClearGeneratedRecipes}
-                  className="px-2.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-500/10 text-white/40 hover:text-rose-400 border border-white/[0.06] hover:border-rose-500/30 transition-all text-xs font-semibold flex items-center gap-1"
-                  title="Clear generated recipes"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Clear</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Subheader info */}
-          <div className="flex items-center justify-between text-xs text-white/40 pb-1">
-            <span className="truncate">
-              {activeRecipeTab === "generated"
-                ? `Tailored for ${selectedSkill.toUpperCase()} skill • ${selectedMethods.includes("any") ? "All hostel equipment" : selectedMethods.join(", ")}`
-                : "Your bookmarked hostel meals"}
-            </span>
+              </div>
+            )}
           </div>
 
           {/* If Saved tab is selected but empty */}
@@ -1036,7 +1070,7 @@ export default function Cook() {
             <div
               ref={carouselContainerRef}
               onScroll={handleCarouselScroll}
-              className="flex md:grid md:grid-cols-3 overflow-x-auto snap-x snap-mandatory gap-3 pb-3 no-scrollbar scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
+              className="flex md:grid md:grid-cols-3 items-start md:items-start overflow-x-auto snap-x snap-mandatory gap-3.5 pb-4 no-scrollbar scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
             >
               {(activeRecipeTab === "generated" ? recipes : savedRecipes).map(recipe => {
                 const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems, recipe.pantryDeductions);
@@ -1048,7 +1082,7 @@ export default function Cook() {
                     key={recipe.id}
                     data-recipe-card
                     id={`recipe-card-${recipe.id}`}
-                    className="w-[86vw] max-w-[350px] sm:w-[70vw] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl"
+                    className="w-[88vw] max-w-[360px] sm:w-[70vw] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl self-start h-fit"
                   >
                     <div>
                       {/* Header: Badge Pills + Save for Later Button */}
