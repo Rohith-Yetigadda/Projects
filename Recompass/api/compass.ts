@@ -194,9 +194,9 @@ CRITICAL SCALING RULES:
    - Example "100ml milk": ~65 kcal, ~3.3g protein, ~5g carbs, ~3.5g fat.
    - Example "150ml milk": ~95 kcal, ~5g protein, ~7.5g carbs, ~5g fat.
    - Example "200ml milk": ~130 kcal, ~6.5g protein, ~10g carbs, ~7g fat.
-   - Example "1 glass (~250ml) milk": ~165 kcal, ~8.2g protein, ~12.5g carbs, ~8.5g fat.
-   - Example "300ml milk": ~195 kcal, ~10g protein, ~15g carbs, ~10.5g fat.
-   - Example "half bowl": ~50% of a full bowl.
+    - Example "1 glass (~250ml) milk": ~165 kcal, ~8.2g protein, ~12.5g carbs, ~8.5g fat.
+    - Example "300ml milk": ~195 kcal, ~10g protein, ~15g carbs, ~10.5g fat.
+    - Example "half serving": ~50% of a full serving.
 3. If the input describes any food, meal, snack, or drink, calculate its macros. ONLY return {"error": "INVALID_FOOD"} if input is purely gibberish (e.g. "asdfg123") or non-food.
 
 OUTPUT STRICTLY AS JSON:
@@ -206,34 +206,48 @@ OUTPUT STRICTLY AS JSON:
       }
 
       case "classify_food_portion": {
-        const prompt = `You are an expert nutrition portioning classifier.
+        const prompt = `You are an expert nutrition portioning classifier for a college student mess / fitness app.
 Analyze this food item: "${payload.foodName}".
 
-Determine the most natural, user-friendly portion unit type and provide 4-6 realistic portion presets for logging.
+CRITICAL RULE: In this mess hall, they NEVER use bowls ("katoris"). Do NOT use the unit "bowl" anywhere in presets, categories, or default quantities.
 
-AVAILABLE CATEGORIES:
-- "piece" (for discrete items like banana, egg, chapati, dosa, idli, bread, apple, cookie, samosa, paratha)
-- "bowl" (for curries, dal, sabzi, rice, salad, oats, curd, kheer, biryani)
-- "ladle" (for liquid curries, sambar, rasam, dal, gravies)
-- "glass" (for beverages, milk, tea, coffee, lassi, juice, buttermilk)
-- "slice" (for cut fruits like watermelon, papaya, melon, pineapple, bread)
-- "scoop" (for whey protein, ice cream, powders)
-- "tsp" (for condiments, sugar, ghee, butter, peanut butter, oil, salt, pickle)
+AVAILABLE CATEGORIES AND EXACT UNITS:
+1. "ladle" (MANDATORY for all liquid curries, dal, sambar, rasam, gravies, kadhi, soup, curd, raita):
+   - presets MUST be ladles with ml data: ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"]
+   - defaultQuantity: "1 ladle (~100ml)"
+2. "glass" (MANDATORY for all beverages, milk, tea, coffee, lassi, chaas, buttermilk, juice, shakes):
+   - presets MUST be glasses/cups with ml data: ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"]
+   - defaultQuantity: "1 glass (~200ml)" (or "1 cup (~150ml)" for tea/coffee)
+3. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
+   - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
+   - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
+4. "serving" (MANDATORY for rice, pulao, biryani, dry sabzi, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
+   - presets MUST be servings/plates with grams data: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
+   - defaultQuantity: "1 serving (~150g)" (or "1 serving (~100g)" for dry sabzi/bhurji)
+5. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
+   - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
+   - defaultQuantity: "1 slice"
+6. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
+   - presets: ["1 tsp (~5g)", "1 tbsp (~15g)", "2 tbsp (~30g)", "half tsp"]
+   - defaultQuantity: "1 tbsp (~15g)"
+7. "scoop" (for whey protein, ice cream, powders):
+   - presets: ["1 scoop (~30g)", "half scoop (~15g)", "1.5 scoops (~45g)", "2 scoops (~60g)"]
+   - defaultQuantity: "1 scoop (~30g)"
 
 RULES:
 1. "cleanName": Clean capitalized food name (strip any trailing -1pc, numbers, etc).
-2. "category": Pick EXACTLY one from the categories above.
-3. "defaultQuantity": The most common single serving (e.g. "1 piece", "1 bowl", "1 ladle", "200ml", "1 scoop").
-4. "presets": Array of 4-6 sensible, realistic portion options the user would select on a campus or at home.
+2. "category": Pick EXACTLY one from the categories above (NEVER "bowl").
+3. "defaultQuantity": The most common single serving.
+4. "presets": Array of 4-6 sensible, realistic portion options from the rules above.
 5. "estimatedMacros": Estimated macros for the defaultQuantity.
 
 OUTPUT STRICTLY AS JSON:
 {
-  "cleanName": "Banana",
-  "category": "piece",
-  "defaultQuantity": "1 piece",
-  "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "100g"],
-  "estimatedMacros": { "calories": 105, "protein": 1.3, "carbs": 27, "fats": 0.3 }
+  "cleanName": "Dal Tadka",
+  "category": "ladle",
+  "defaultQuantity": "1 ladle (~100ml)",
+  "presets": ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"],
+  "estimatedMacros": { "calories": 120, "protein": 6, "carbs": 16, "fats": 4 }
 }`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
         break;
@@ -241,24 +255,40 @@ OUTPUT STRICTLY AS JSON:
 
       case "batch_classify_food_portions": {
         const foods: string[] = Array.isArray(payload.foods) ? payload.foods : [payload.foodName];
-        const prompt = `You are an expert nutrition portioning classifier.
+        const prompt = `You are an expert nutrition portioning classifier for a college student mess / fitness app.
 Classify each of these food items into its natural portion unit category, realistic portion presets, and estimated macros for 1 default serving.
+
+CRITICAL RULE: In this mess hall, they NEVER use bowls ("katoris"). Do NOT use the unit "bowl" anywhere in presets, categories, or default quantities.
 
 FOODS TO CLASSIFY: ${JSON.stringify(foods)}
 
-AVAILABLE CATEGORIES:
-- "piece" (for paratha, chapati, roti, naan, puri, dosa, idli, egg, bread, banana, apple, samosa, cookie)
-- "bowl" (for dal, curry, rice, pulao, biryani, sabzi, curd, oats, salad, kheer)
-- "ladle" (for sambar, rasam, gravies, liquid dal)
-- "glass" (for milk, tea, coffee, juice, chaas, lassi)
-- "slice" (for watermelon, papaya, melon, pineapple, bread slices)
-- "scoop" (for whey protein, ice cream, powders)
-- "tsp" (for condiments, sugar, ghee, butter, peanut butter, oil, salt, pickle)
+AVAILABLE CATEGORIES AND EXACT UNITS:
+1. "ladle" (MANDATORY for all liquid curries, dal, sambar, rasam, gravies, kadhi, soup, curd, raita):
+   - presets MUST be ladles with ml data: ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"]
+   - defaultQuantity: "1 ladle (~100ml)"
+2. "glass" (MANDATORY for all beverages, milk, tea, coffee, lassi, chaas, buttermilk, juice, shakes):
+   - presets MUST be glasses/cups with ml data: ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"]
+   - defaultQuantity: "1 glass (~200ml)" (or "1 cup (~150ml)" for tea/coffee)
+3. "piece" (MANDATORY for discrete items, chapati, roti, phulka, paratha, naan, puri, bhatura, idli, dosa, vada, egg, boiled egg, omelette, bread, banana, apple, samosa, cutlet, sweets):
+   - presets MUST be pieces: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"]
+   - defaultQuantity: "1 piece" (or "2 pieces" for rotis/chapatis/puris/idlis)
+4. "serving" (MANDATORY for rice, pulao, biryani, dry sabzi, bhurji, egg bhurji, paneer bhurji, poha, upma, oats, noodles, pasta, salad):
+   - presets MUST be servings/plates with grams data: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"]
+   - defaultQuantity: "1 serving (~150g)" (or "1 serving (~100g)" for dry sabzi/bhurji)
+5. "slice" (for cut fruits like watermelon, papaya, pineapple, bread slices, pizza):
+   - presets: ["half slice", "1 slice", "2 slices", "3 slices", "4 slices"]
+   - defaultQuantity: "1 slice"
+6. "tbsp" (for condiments, butter, ghee, peanut butter, jam, pickle, sugar, honey):
+   - presets: ["1 tsp (~5g)", "1 tbsp (~15g)", "2 tbsp (~30g)", "half tsp"]
+   - defaultQuantity: "1 tbsp (~15g)"
+7. "scoop" (for whey protein, ice cream, powders):
+   - presets: ["1 scoop (~30g)", "half scoop (~15g)", "1.5 scoops (~45g)", "2 scoops (~60g)"]
+   - defaultQuantity: "1 scoop (~30g)"
 
 RULES:
-1. "category": Pick EXACTLY one from the categories above.
-2. "defaultQuantity": The most common single serving (e.g. "1 piece", "1 bowl", "1 ladle", "200ml", "1 glass (~250ml)", "1 scoop").
-3. "presets": Array of 4-6 sensible, realistic portion options the user would select on a campus or at home.
+1. "category": Pick EXACTLY one from the categories above (NEVER "bowl").
+2. "defaultQuantity": The most common single serving.
+3. "presets": Array of 4-6 sensible, realistic portion options.
 4. "estimatedMacros": Estimated macros for the defaultQuantity.
 
 OUTPUT STRICTLY AS A JSON OBJECT where keys are the clean food names:
@@ -266,14 +296,26 @@ OUTPUT STRICTLY AS A JSON OBJECT where keys are the clean food names:
   "Aloo Paratha": {
     "category": "piece",
     "defaultQuantity": "1 piece",
-    "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "100g"],
+    "presets": ["half piece", "1 piece", "2 pieces", "3 pieces", "4 pieces"],
     "estimatedMacros": { "calories": 260, "protein": 6, "carbs": 38, "fats": 10 }
+  },
+  "Dal Makhani": {
+    "category": "ladle",
+    "defaultQuantity": "1 ladle (~100ml)",
+    "presets": ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"],
+    "estimatedMacros": { "calories": 160, "protein": 6, "carbs": 18, "fats": 8 }
   },
   "Hot Milk": {
     "category": "glass",
-    "defaultQuantity": "1 glass (~250ml)",
-    "presets": ["100ml", "150ml", "1 cup (200ml)", "1 glass (~250ml)", "300ml"],
-    "estimatedMacros": { "calories": 160, "protein": 8, "carbs": 12, "fats": 8.5 }
+    "defaultQuantity": "1 glass (~200ml)",
+    "presets": ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"],
+    "estimatedMacros": { "calories": 130, "protein": 6.5, "carbs": 10, "fats": 6.5 }
+  },
+  "Steamed Rice": {
+    "category": "serving",
+    "defaultQuantity": "1 serving (~150g)",
+    "presets": ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"],
+    "estimatedMacros": { "calories": 195, "protein": 4, "carbs": 44, "fats": 0.5 }
   }
 }`;
         contents = [{ role: "user", parts: [{ text: prompt }] }];
@@ -342,14 +384,15 @@ OUTPUT STRICTLY AS A JSON ARRAY of recipe objects:
 
       case "analyze_plate": {
         const prompt = `Analyze this photo of a food plate/tray, meal, snack, or beverage.
-Identify each food or beverage item visible and estimate its quantity (e.g. 2 chapatis, 1 bowl dal ~200ml, 1 cup rice ~150g).
+Identify each food or beverage item visible and estimate its quantity (e.g. 2 chapatis, 1 ladle dal ~100ml, 1 serving rice ~150g, 1 glass milk ~200ml).
 For each item estimate realistic macros based on the visible portion.
+NOTE: Do NOT use the unit "bowl" for portions. Use "ladle" with ml for gravies/curries/dal/curd, "serving" or "plate" with grams for rice/sabzi, "piece" for rotis/eggs, and "glass" with ml for drinks.
 
 CRITICAL INSTRUCTIONS:
 1. If the photo DOES NOT contain any food, meal, or edible beverage (e.g. person, selfie, furniture, car, room, empty plate/table, electronics, text, document, pet, non-food object), return STRICTLY:
    {"error": "NO_FOOD_DETECTED", "items": []}
 2. If food or drink IS present, return ONLY a JSON array of items:
-   [{"name":"Chapati","quantity":"2 pieces","calories":200,"protein":6,"carbs":36,"fats":2},{"name":"Dal Fry","quantity":"1 bowl","calories":150,"protein":8,"carbs":18,"fats":5}]`;
+   [{"name":"Chapati","quantity":"2 pieces","calories":200,"protein":6,"carbs":36,"fats":2},{"name":"Dal Fry","quantity":"1 ladle","calories":130,"protein":6,"carbs":16,"fats":4}]`;
         const imgPart = payload.image
           ? { inlineData: { data: payload.image, mimeType: payload.mimeType || "image/jpeg" } }
           : null;

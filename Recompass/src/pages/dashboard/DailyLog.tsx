@@ -95,46 +95,50 @@ export function sanitizeMacros(raw: { calories?: number; protein?: number; carbs
 export function parseQuantityMultiplier(quantity: string, foodName = ""): number {
   const q = quantity.toLowerCase().trim();
   const f = cleanFoodName(foodName).toLowerCase().trim();
-  const isLiquidDish = /\b(dal|sambar|rasam|curry|gravy|soup|chole|rajma|milk|tea|coffee|shake|smoothie|juice)\b/.test(f);
+  if (!q) return 1.0;
 
-  // 1. Explicit ml
-  const mlMatch = q.match(/(\d+(?:\.\d+)?)\s*ml/);
+  // 1. Separate the main unit from parenthetical descriptions (e.g. "(~100ml)", "(~150g)")
+  // Descriptive context like "(~100ml)" must NEVER distort multiplier calculations!
+  const mainText = q.replace(/\([^)]*\)/g, "").trim();
+
+  // 2. Explicit fractional / half / small qualifiers
+  if (/\b(?:half|0\.5|1\/2)\s*(?:ladle|glass|cup|mug|serving|plate|piece|slice|scoop)?\b/i.test(mainText)) return 0.5;
+  if (/\b(?:quarter|0\.25|1\/4)\b/i.test(mainText)) return 0.25;
+  if (/small\s+(?:ladle|cup|portion|piece)/i.test(mainText)) return 0.65;
+  if (/large\s+(?:ladle|glass|portion|piece)|big\b/i.test(mainText)) return 1.5;
+
+  // 3. Special unit conversions
+  if (/1\s*tsp\b/i.test(mainText)) return 0.33;
+  if (/1\s*tbsp\b/i.test(mainText)) return 1.0;
+  if (/2\s*tbsp\b/i.test(mainText)) return 2.0;
+  if (/1\s*cup\b/i.test(mainText)) return 0.75; // Standard tea/coffee cup (150ml) vs 200ml glass
+  if (/1\s*mug\b/i.test(mainText)) return 1.5;  // Large mug (300ml) vs 200ml glass
+  if (/1\s*plate\b/i.test(mainText)) return 1.67; // Mess thali plate portion (~250g) vs 150g serving
+
+  // 4. Numeric count of primary mess units (ladles, glasses, pieces, servings, plates, slices, scoops)
+  const countMatch = mainText.match(/^(\d+(?:\.\d+)?)\s*(?:nos?|pcs?|pieces?|ladles?|glasses?|cups?|slices?|scoops?|rotis?|chapatis?|eggs?|servings?|plates?)?\b/);
+  if (countMatch) {
+    const count = parseFloat(countMatch[1]);
+    if (!isNaN(count) && count > 0 && count <= 50) return count;
+  }
+
+  // 5. Standalone explicit ml (only when not preceded by a primary unit like "1 ladle (~100ml)")
+  const isLiquidDish = /\b(dal|sambar|rasam|curry|gravy|soup|chole|rajma|milk|tea|coffee|shake|smoothie|juice)\b/.test(f);
+  const mlMatch = q.match(/^(\d+(?:\.\d+)?)\s*ml\b/) || (!countMatch ? q.match(/(\d+(?:\.\d+)?)\s*ml\b/) : null);
   if (mlMatch) {
     const ml = parseFloat(mlMatch[1]);
     if (isLiquidDish) {
-      return Math.max(0.1, Math.round((ml / 150) * 100) / 100); // 150ml ladle base
+      return Math.max(0.1, Math.round((ml / 100) * 100) / 100); // 100ml ladle base
     }
     return Math.max(0.1, Math.round((ml / 200) * 100) / 100); // 200ml glass base
   }
 
-  // 2. Explicit grams
-  const gMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|grams)\b/);
+  // 6. Standalone explicit grams (only when not preceded by a primary unit like "1 serving (~150g)")
+  const gMatch = q.match(/^(\d+(?:\.\d+)?)\s*(?:g|gm|grams)\b/) || (!countMatch ? q.match(/(\d+(?:\.\d+)?)\s*(?:g|gm|grams)\b/) : null);
   if (gMatch) {
     const g = parseFloat(gMatch[1]);
-    return Math.max(0.1, Math.round((g / 100) * 100) / 100); // 100g base
+    return Math.max(0.1, Math.round((g / 150) * 100) / 100); // 150g serving base
   }
-
-  // 3. Small / Half / Large qualifiers
-  if (/small\s+(?:ladle|bowl|cup|portion|piece|katori)/i.test(q)) return 0.65;
-  if (/half\s+(?:bowl|ladle|glass|piece|scoop|cup|plate|portion|katori)/i.test(q)) return 0.5;
-  if (/large\s+(?:bowl|ladle|glass|piece|scoop|cup|plate|portion|katori)/i.test(q) || /big\s+/i.test(q)) return 1.5;
-  if (/plate/i.test(q)) return 1.5;
-  if (/1\s*tsp/i.test(q)) return 0.33;
-  if (/1\s*tbsp/i.test(q)) return 0.67;
-  if (/2\s*tbsp/i.test(q)) return 1.33;
-
-  // 4. Numeric count of pieces, ladles, bowls, glasses, scoops
-  const countMatch = q.match(/^(\d+(?:\.\d+)?)\s*(?:nos?|pcs?|pieces?|ladles?|bowls?|glasses?|cups?|slices?|scoops?|rotis?|chapatis?|eggs?|servings?|katoris?)?\b/);
-  if (countMatch) {
-    const count = parseFloat(countMatch[1]);
-    if (count > 0 && count <= 50) return count;
-  }
-
-  // 5. General fractional or word counts
-  if (/\bhalf\b/i.test(q) || /\b1\/2\b/.test(q)) return 0.5;
-  if (/\bquarter\b/i.test(q) || /\b1\/4\b/.test(q)) return 0.25;
-  if (/\bsmall\b/i.test(q)) return 0.7;
-  if (/\blarge\b/i.test(q)) return 1.4;
 
   return 1.0;
 }
@@ -150,12 +154,172 @@ export interface FoodPortionProfile {
 
 const PORTION_MEMORY_CACHE = new Map<string, FoodPortionProfile>();
 
+/**
+ * 0ms Instant Deterministic Mess Portion Classifier
+ * Eliminates all "bowls", replacing them with real mess hall units:
+ * - ladles (with ml) for liquid gravies, curries, dals, sambar, curd
+ * - glasses/cups (with ml) for milk, tea, coffee, lassi, chaas, juices
+ * - pieces for rotis, chapatis, parathas, puris, dosas, idlis, eggs, bread, snacks
+ * - servings/plates (with grams) for rice, pulao, biryani, dry sabzi, bhurji, poha, upma
+ */
+export function inferFoodPortionDefaults(foodName: string): FoodPortionProfile {
+  const clean = cleanFoodName(foodName);
+  const lower = clean.toLowerCase();
+
+  // 1. BEVERAGES / DRINKS (Served in glasses/cups with ml data)
+  if (/\b(milk|tea|chai|coffee|lassi|chaas|buttermilk|juice|shake|smoothie|badam milk|bournvita|horlicks|water)\b/.test(lower)) {
+    const isTeaOrCoffee = /\b(tea|chai|coffee)\b/.test(lower);
+    return {
+      cleanName: clean,
+      category: "glass",
+      defaultQuantity: isTeaOrCoffee ? "1 cup (~150ml)" : "1 glass (~200ml)",
+      presets: ["half glass (~100ml)", "1 cup (~150ml)", "1 glass (~200ml)", "1 mug (~300ml)"],
+      estimatedMacros: isTeaOrCoffee
+        ? { calories: 80, protein: 2, carbs: 10, fats: 3 }
+        : { calories: 130, protein: 6.5, carbs: 10, fats: 6.5 },
+    };
+  }
+
+  // 2. LIQUID CURRIES / DALS / SAMBAR / GRAVIES / SOUPS (Served with ladles with ml data)
+  if (/\b(dal|sambar|rasam|kadhi|curry|gravy|soup|shorba|saag|rajma|chole|chana masala|salan|korma|paneer butter masala|butter chicken|egg curry|chicken curry|mutton curry|fish curry)\b/.test(lower)) {
+    return {
+      cleanName: clean,
+      category: "ladle",
+      defaultQuantity: "1 ladle (~100ml)",
+      presets: ["1 ladle (~100ml)", "2 ladles (~200ml)", "3 ladles (~300ml)", "half ladle (~50ml)"],
+      estimatedMacros: { calories: 130, protein: 5.5, carbs: 14, fats: 5 },
+    };
+  }
+
+  // 3. CURD / DAHI / RAITA (Served with ladles or portions in mess)
+  if (/\b(curd|dahi|raita|boondi raita|cucumber raita|yogurt)\b/.test(lower)) {
+    return {
+      cleanName: clean,
+      category: "ladle",
+      defaultQuantity: "1 ladle (~100ml)",
+      presets: ["1 ladle (~100ml)", "2 ladles (~200ml)", "half ladle (~50ml)", "1 serving (~100g)"],
+      estimatedMacros: { calories: 75, protein: 4, carbs: 5, fats: 4 },
+    };
+  }
+
+  // 4. DISCRETE BREADS / EGGS / SNACKS / SWEETS (Counted strictly in pieces)
+  if (/\b(roti|rotis|chapati|chapatis|phulka|phulkas|paratha|parathas|naan|naans|puri|puris|poori|pooris|bhatura|bhature|kulcha|kulchas|idli|idlis|dosa|dosas|uttapam|vada|vadas|egg|eggs|boiled egg|boiled eggs|omelette|omlet|bread|toast|banana|bananas|apple|apples|orange|oranges|samosa|samosas|cutlet|cutlets|kachori|patties|puff|puffs|roll|rolls|sandwich|sandwiches|biscuit|biscuits|cookie|cookies|gulab jamun|rasgulla|laddu|ladoo|jalebi|barfi|sweet|sweets)\b/.test(lower)) {
+    const isMultiDefault = /\b(roti|rotis|chapati|chapatis|phulka|phulkas|puri|puris|poori|pooris|idli|idlis|bread|toast)\b/.test(lower);
+    return {
+      cleanName: clean,
+      category: "piece",
+      defaultQuantity: isMultiDefault ? "2 pieces" : "1 piece",
+      presets: ["1 piece", "2 pieces", "3 pieces", "4 pieces", "half piece"],
+      estimatedMacros: { calories: 120, protein: 3.5, carbs: 20, fats: 2.5 },
+    };
+  }
+
+  // 5. SLICEABLE FRUITS / FOODS (Counted in slices)
+  if (/\b(watermelon|papaya|pineapple|melon|muskmelon|pizza)\b/.test(lower)) {
+    return {
+      cleanName: clean,
+      category: "slice",
+      defaultQuantity: "1 slice",
+      presets: ["1 slice", "2 slices", "3 slices", "half slice"],
+      estimatedMacros: { calories: 50, protein: 1, carbs: 12, fats: 0.2 },
+    };
+  }
+
+  // 6. CONDIMENTS / SPREADS / BUTTER (Counted in tbsp/tsp)
+  if (/\b(butter|ghee|jam|pickle|achar|chutney|peanut butter|honey|sugar|sauce|mayo|mayonnaise)\b/.test(lower)) {
+    return {
+      cleanName: clean,
+      category: "tbsp",
+      defaultQuantity: "1 tbsp (~15g)",
+      presets: ["1 tsp (~5g)", "1 tbsp (~15g)", "2 tbsp (~30g)", "half tsp"],
+      estimatedMacros: { calories: 75, protein: 0.5, carbs: 4, fats: 6 },
+    };
+  }
+
+  // 7. POWDERS / PROTEIN (Counted in scoops)
+  if (/\b(whey|protein powder|scoop|creatine)\b/.test(lower)) {
+    return {
+      cleanName: clean,
+      category: "scoop",
+      defaultQuantity: "1 scoop (~30g)",
+      presets: ["1 scoop (~30g)", "half scoop (~15g)", "2 scoops (~60g)"],
+      estimatedMacros: { calories: 120, protein: 24, carbs: 2, fats: 1.5 },
+    };
+  }
+
+  // 8. RICE / GRAINS / DRY SABZI / BHURJI (Counted in servings/plates, ZERO bowls!)
+  const isDrySabziOrBhurji = /\b(sabzi|bhaji|bhurji|fry|sukha|aloo|gobi|bhindi|beans|cabbage|capsicum|baingan|matar|dry)\b/.test(lower);
+  if (isDrySabziOrBhurji) {
+    return {
+      cleanName: clean,
+      category: "serving",
+      defaultQuantity: "1 serving (~100g)",
+      presets: ["1 serving (~100g)", "half serving (~50g)", "2 servings (~200g)", "1 ladle"],
+      estimatedMacros: { calories: 140, protein: 4, carbs: 16, fats: 7 },
+    };
+  }
+
+  const isRiceOrGrain = /\b(rice|pulao|pulav|biryani|khichdi|fried rice|jeera rice|curd rice|poha|upma|sheera|halwa|sewai|vermicelli|noodles|maggi|pasta|macaroni|oats|porridge)\b/.test(lower);
+  return {
+    cleanName: clean,
+    category: "serving",
+    defaultQuantity: "1 serving (~150g)",
+    presets: ["1 serving (~150g)", "half serving (~75g)", "2 servings (~300g)", "1 plate (~250g)"],
+    estimatedMacros: isRiceOrGrain 
+      ? { calories: 210, protein: 4.5, carbs: 45, fats: 1.5 }
+      : { calories: 160, protein: 5, carbs: 22, fats: 5 },
+  };
+}
+
+/**
+ * Intelligent Custom Food String Parser
+ * Parses user input like "2 chapatis", "200ml milk", "2 ladles dal", "1 plate biryani"
+ */
+export function parseCustomFoodInput(input: string): { foodName: string; quantity: string } {
+  const trimmed = input.trim();
+  if (!trimmed) return { foodName: "", quantity: "" };
+
+  const match = trimmed.match(/^((?:\d+(?:\.\d+)?|half|quarter|one|two|three|four|five)\s*(?:nos?|pcs?|pieces?|ladles?|glasses?|cups?|mugs?|servings?|plates?|slices?|scoops?|tbsp|tsp|ml|l|ltr|g|gm|gms|grams?|kg|rotis?|chapatis?|eggs?|packets?|boxes?))\s+(?:of\s+)?(.+)$/i);
+  if (match) {
+    const rawQty = match[1].trim();
+    const rawDish = match[2].trim();
+    let cleanQty = rawQty;
+    if (/^\d+\s*(?:rotis?|chapatis?|eggs?)$/i.test(rawQty)) {
+      cleanQty = rawQty.replace(/\b(?:rotis?|chapatis?|eggs?)\b/i, "pieces").trim();
+    }
+    return {
+      foodName: rawDish,
+      quantity: cleanQty,
+    };
+  }
+
+  const numFoodMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s+([a-zA-Z].+)$/i);
+  if (numFoodMatch) {
+    return {
+      foodName: numFoodMatch[2].trim(),
+      quantity: `${numFoodMatch[1]} pieces`,
+    };
+  }
+
+  return { foodName: trimmed, quantity: "" };
+}
+
 export function getCachedPortionProfile(foodName: string): FoodPortionProfile | null {
   const key = cleanFoodName(foodName).toLowerCase();
   if (!key) return null;
+
+  // Invalidate any legacy profiles containing "bowl", "katori", or generic "half portion"
+  const isObsoleteProfile = (p: FoodPortionProfile) => {
+    if (!p || !p.presets || !Array.isArray(p.presets)) return true;
+    if (p.category === "bowl") return true;
+    if (p.presets.some(preset => /bowl|katori|half portion/i.test(preset))) return true;
+    if (p.category === "portion" && p.presets.includes("half portion")) return true;
+    return false;
+  };
+
   if (PORTION_MEMORY_CACHE.has(key)) {
     const mem = PORTION_MEMORY_CACHE.get(key)!;
-    if (mem.category === "portion" && mem.estimatedMacros?.calories === 160) {
+    if (isObsoleteProfile(mem)) {
       PORTION_MEMORY_CACHE.delete(key);
     } else {
       return mem;
@@ -165,7 +329,7 @@ export function getCachedPortionProfile(foodName: string): FoodPortionProfile | 
     const local = localStorage.getItem("recompass_portion_v2_" + key);
     if (local) {
       const parsed: FoodPortionProfile = JSON.parse(local);
-      if (parsed.category === "portion" && parsed.estimatedMacros?.calories === 160) {
+      if (isObsoleteProfile(parsed)) {
         localStorage.removeItem("recompass_portion_v2_" + key);
       } else {
         PORTION_MEMORY_CACHE.set(key, parsed);
@@ -209,12 +373,23 @@ export async function batchClassifyFoodPortions(foods: string[]): Promise<Record
           if (item && item.presets && Array.isArray(item.presets)) {
             const clean = cleanFoodName(rawName);
             const key = clean.toLowerCase();
+            const defaults = inferFoodPortionDefaults(clean);
+
+            // Filter out any "bowl" mentions from AI
+            const cleanedPresets = item.presets
+              .filter((p: string) => !/bowl|katori/i.test(p))
+              .map((p: string) => p.replace(/\bbowl\b/gi, "serving"));
+
+            const finalPresets = cleanedPresets.length > 0 ? cleanedPresets : defaults.presets;
+            const finalCategory = item.category === "bowl" ? defaults.category : (item.category || defaults.category);
+            const finalDefault = /bowl/i.test(item.defaultQuantity) ? defaults.defaultQuantity : (item.defaultQuantity || finalPresets[0]);
+
             const profile: FoodPortionProfile = {
               cleanName: clean,
-              category: item.category || "portion",
-              defaultQuantity: item.defaultQuantity || item.presets[0] || "1 serving",
-              presets: item.presets,
-              estimatedMacros: item.estimatedMacros ? sanitizeMacros(item.estimatedMacros) : undefined,
+              category: finalCategory,
+              defaultQuantity: finalDefault,
+              presets: finalPresets,
+              estimatedMacros: item.estimatedMacros ? sanitizeMacros(item.estimatedMacros) : defaults.estimatedMacros,
             };
             results[clean] = profile;
             PORTION_MEMORY_CACHE.set(key, profile);
@@ -234,6 +409,16 @@ export async function batchClassifyFoodPortions(foods: string[]): Promise<Record
     console.warn("[batchClassifyFoodPortions] Error:", err);
   }
 
+  // For any items that failed or timed out, apply instant mess defaults
+  for (const food of unclassified) {
+    const clean = cleanFoodName(food);
+    if (!results[clean]) {
+      const fallback = inferFoodPortionDefaults(clean);
+      results[clean] = fallback;
+      PORTION_MEMORY_CACHE.set(clean.toLowerCase(), fallback);
+    }
+  }
+
   return results;
 }
 
@@ -244,9 +429,13 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
   const cached = getCachedPortionProfile(key);
   if (cached) return cached;
 
+  const defaults = inferFoodPortionDefaults(cleaned);
+
   try {
     const batchRes = await batchClassifyFoodPortions([cleaned]);
-    if (batchRes[cleaned]) return batchRes[cleaned];
+    if (batchRes[cleaned] && !batchRes[cleaned].presets.some(p => /bowl|katori/i.test(p))) {
+      return batchRes[cleaned];
+    }
 
     const res = await fetch("/api/compass", {
       method: "POST",
@@ -257,17 +446,24 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
     if (res.ok) {
       const data = await res.json();
       if (data && !data.error && Array.isArray(data.presets) && data.presets.length > 0) {
+        const cleanedPresets = data.presets
+          .filter((p: string) => !/bowl|katori/i.test(p))
+          .map((p: string) => p.replace(/\bbowl\b/gi, "serving"));
+
+        const finalPresets = cleanedPresets.length > 0 ? cleanedPresets : defaults.presets;
+        const finalCategory = data.category === "bowl" ? defaults.category : (data.category || defaults.category);
+        const finalDefault = /bowl/i.test(data.defaultQuantity) ? defaults.defaultQuantity : (data.defaultQuantity || finalPresets[0]);
+
         const profile: FoodPortionProfile = {
           cleanName: data.cleanName || cleaned,
-          category: data.category || "portion",
-          defaultQuantity: data.defaultQuantity || data.presets[0] || "1 serving",
-          presets: data.presets,
-          estimatedMacros: data.estimatedMacros ? sanitizeMacros(data.estimatedMacros) : undefined,
+          category: finalCategory,
+          defaultQuantity: finalDefault,
+          presets: finalPresets,
+          estimatedMacros: data.estimatedMacros ? sanitizeMacros(data.estimatedMacros) : defaults.estimatedMacros,
         };
         PORTION_MEMORY_CACHE.set(key, profile);
         try { localStorage.setItem("recompass_portion_v2_" + key, JSON.stringify(profile)); } catch {}
         
-        // Pre-cache default portion macros if returned
         if (profile.estimatedMacros) {
           const defaultKey = `recompass_macros_v4_${(profile.defaultQuantity + " " + profile.cleanName).toLowerCase().trim()}`;
           try {
@@ -282,15 +478,9 @@ export async function getFoodPortionProfile(foodName: string): Promise<FoodPorti
     console.warn("[getFoodPortionProfile] AI portion classification failed:", err);
   }
 
-  // Pure dynamic fallback if offline/error: zero hardcoded dish names
-  const fallbackProfile: FoodPortionProfile = {
-    cleanName: cleaned,
-    category: "portion",
-    defaultQuantity: "1 serving",
-    presets: ["1 serving", "half portion", "2 servings", "100g", "200g"],
-    estimatedMacros: { calories: 180, protein: 6, carbs: 25, fats: 6 },
-  };
-  return fallbackProfile;
+  PORTION_MEMORY_CACHE.set(key, defaults);
+  try { localStorage.setItem("recompass_portion_v2_" + key, JSON.stringify(defaults)); } catch {}
+  return defaults;
 }
 
 export function getQuickPortionPresets(foodName: string): { category: string; defaultUnit: string; presets: string[] } {
@@ -302,10 +492,11 @@ export function getQuickPortionPresets(foodName: string): { category: string; de
       presets: cached.presets,
     };
   }
+  const inferred = inferFoodPortionDefaults(foodName);
   return {
-    category: "portion",
-    defaultUnit: "1 serving",
-    presets: ["1 serving", "half portion", "2 servings", "100g", "200g"],
+    category: inferred.category,
+    defaultUnit: inferred.defaultQuantity,
+    presets: inferred.presets,
   };
 }
 
@@ -416,16 +607,16 @@ async function analyzePlate(base64: string, mimeType: string): Promise<{ items: 
 // ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
 function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string) => void; onCancel: () => void }) {
   const cleaned = cleanFoodName(foodName);
-  const [profile, setProfile] = useState<FoodPortionProfile | null>(() => getCachedPortionProfile(cleaned));
-  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(!profile);
+  const [profile, setProfile] = useState<FoodPortionProfile>(() => getCachedPortionProfile(cleaned) || inferFoodPortionDefaults(cleaned));
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(!getCachedPortionProfile(cleaned));
 
-  const presets = profile?.presets || [];
+  const presets = profile.presets;
   const [custom, setCustom] = useState("");
-  const initialQty = profile?.defaultQuantity || presets[0] || "1 serving";
+  const initialQty = profile.defaultQuantity || presets[0] || "1 serving";
   const [selected, setSelected] = useState<string>(initialQty);
 
   const [liveMacros, setLiveMacros] = useState<{ calories: number; protein: number; carbs: number; fats: number } | null>(() => {
-    const base = profile?.estimatedMacros;
+    const base = profile.estimatedMacros;
     if (!base) return null;
     const queryStr = `${initialQty} ${cleaned}`.trim();
     const cacheKey = "recompass_macros_v4_" + queryStr.toLowerCase();
@@ -446,7 +637,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
   // Asynchronously fetch tailored AI portion presets if not cached
   useEffect(() => {
     let isCurrent = true;
-    if (!profile) {
+    if (!getCachedPortionProfile(cleaned)) {
       setIsLoadingProfile(true);
       getFoodPortionProfile(cleaned)
         .then(p => {
@@ -454,14 +645,14 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
           setProfile(p);
           setIsLoadingProfile(false);
           const def = p.defaultQuantity || p.presets[0] || "1 serving";
-          setSelected(def);
+          setSelected(prev => (presets.includes(prev) ? prev : def));
         })
         .catch(() => {
           if (isCurrent) setIsLoadingProfile(false);
         });
     }
     return () => { isCurrent = false; };
-  }, [cleaned, profile]);
+  }, [cleaned]);
 
   // Live macro calculation preview: 0ms instant multiplier scaling + debounced AI verification
   useEffect(() => {
@@ -568,27 +759,20 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
 
         {/* Dynamic Portion Presets */}
         <div className="flex flex-wrap gap-2 pt-1 min-h-[38px] items-center">
-          {isLoadingProfile || presets.length === 0 ? (
-            <div className="flex items-center gap-2 py-1 text-xs text-white/40 animate-pulse font-mono">
-              <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
-              <span>Sizing presets with AI...</span>
-            </div>
-          ) : (
-            presets.map(p => (
-              <button 
-                key={p} 
-                type="button"
-                onClick={() => { setSelected(p); setCustom(""); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                  selected === p && !custom 
-                    ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]" 
-                    : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
-                }`}
-              >
-                {p}
-              </button>
-            ))
-          )}
+          {presets.map(p => (
+            <button 
+              key={p} 
+              type="button"
+              onClick={() => { setSelected(p); setCustom(""); }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                selected === p && !custom 
+                  ? "bg-white text-black border-white shadow-sm font-bold scale-[1.02]" 
+                  : "bg-white/[0.03] text-white/70 border-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
         </div>
 
         <input 
@@ -834,7 +1018,7 @@ function EditLogItemModal({
               value={quantity}
               onChange={e => setQuantity(e.target.value)}
               className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"
-              placeholder="e.g. 1 bowl, 2 pieces"
+              placeholder="e.g. 1 ladle, 2 pieces, 1 glass"
             />
           </div>
 
@@ -1281,7 +1465,7 @@ function StaplesManagerModal({
             <div className="rounded-2xl border border-dashed border-white/[0.08] p-8 text-center space-y-3">
               <p className="text-sm font-medium text-white/60">No daily staples saved yet.</p>
               <p className="text-xs text-white/35 max-w-sm mx-auto leading-relaxed">
-                Add your daily protein shakes, custom oats bowls, or recurring snacks once. They stay saved forever, even when you upload a new mess menu.
+                Add your daily protein shakes, custom oats, or recurring snacks once. They stay saved forever, even when you upload a new mess menu.
               </p>
               <button
                 onClick={onAddStaple}
@@ -1549,7 +1733,7 @@ export default function DailyLog() {
           },
           {
             id: "staple_seed_2",
-            name: "PROTEIN OATS BOWL",
+            name: "PROTEIN OATS",
             recipe: "50g oats with 15g protein powder, 10g honey, 5g chia seeds, 250ml milk",
             mealType: "breakfast",
             calories: 485,
@@ -1690,12 +1874,23 @@ export default function DailyLog() {
   };
 
   const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom = false) => {
+    let finalFood = foodName;
+    let finalQty = quantity;
+
+    if (isCustom && !finalQty) {
+      const parsed = parseCustomFoodInput(foodName);
+      if (parsed.quantity) {
+        finalQty = parsed.quantity;
+        finalFood = parsed.foodName;
+      }
+    }
+
     const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
     try {
-      const macros = await estimateMacros(foodName, quantity, isCustom);
-      const cleanName = (macros as any).name || foodName;
+      const macros = await estimateMacros(finalFood, finalQty, isCustom);
+      const cleanName = (macros as any).name || finalFood;
       const { name: _, ...macroValues } = macros as any;
-      const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity, loggedAt: new Date().toISOString(), ...macroValues };
+      const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity: finalQty || "1 serving", loggedAt: new Date().toISOString(), ...macroValues };
       const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
       setLog(newLog); await persist(newLog);
     } catch(e: any){
@@ -2177,19 +2372,20 @@ export default function DailyLog() {
             <div className="flex gap-2 pt-1">
               <input 
                 type="text" 
-                placeholder="Add custom item or describe what you ate..."
+                placeholder="Add custom item (e.g. 2 chapatis, 1 glass milk, 2 ladles dal)..."
                 value={customInput[key]||""}
                 onChange={e => setCustomInput(prev => ({...prev, [key]: e.target.value}))}
                 onKeyDown={e => {
                   if (e.key === "Enter" && customInput[key]?.trim()) {
                     const text = customInput[key]!.trim();
+                    const parsed = parseCustomFoodInput(text);
                     const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
-                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
+                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings|ladle|ladles|glass|glasses|roti|rotis|chapati|chapatis|egg|eggs)\b/i.test(text);
                     const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
                     const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
 
                     if (isDirectAI) {
-                      logWithQuantity(key, text, "", true);
+                      logWithQuantity(key, parsed.foodName || text, parsed.quantity, true);
                     } else {
                       setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
                     }
@@ -2202,13 +2398,14 @@ export default function DailyLog() {
                 onClick={() => {
                   if (customInput[key]?.trim()) {
                     const text = customInput[key]!.trim();
+                    const parsed = parseCustomFoodInput(text);
                     const hasMeasurement = /\d+\s*(g|gm|gms|gram|grams|ml|l|ltr|kg)\b/i.test(text);
-                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|bowl|bowls|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings)\b/i.test(text);
+                    const hasPortionCount = /\b(\d+|half|one|two|three|four|five)\s*(box|boxes|packet|packets|plate|plates|piece|pieces|slice|slices|scoop|scoops|tbsp|tsp|cup|cups|serving|servings|ladle|ladles|glass|glasses|roti|rotis|chapati|chapatis|egg|eggs)\b/i.test(text);
                     const isComplexMeal = text.length > 25 || text.split(/\s+/).length > 3 || /\b(with|and|from|plus|\+)\b/i.test(text);
                     const isDirectAI = hasMeasurement || hasPortionCount || isComplexMeal;
 
                     if (isDirectAI) {
-                      logWithQuantity(key, text, "", true);
+                      logWithQuantity(key, parsed.foodName || text, parsed.quantity, true);
                     } else {
                       setPicker({ mealType: key, foodName: text.toUpperCase(), isCustom: true });
                     }
