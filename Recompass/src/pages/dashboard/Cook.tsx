@@ -146,7 +146,7 @@ export default function Cook() {
     }
   });
   const [showAllIngredients, setShowAllIngredients] = useState(false);
-  const [expandedInstructions, setExpandedInstructions] = useState<Record<string, boolean>>({});
+  const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
 
   const recipesSectionRef = useRef<HTMLDivElement>(null);
   const carouselContainerRef = useRef<HTMLDivElement>(null);
@@ -183,13 +183,6 @@ export default function Cook() {
 
   const isRecipeSaved = (recipeId: string, title: string) => {
     return savedRecipes.some(r => r.id === recipeId || r.title.toLowerCase() === title.toLowerCase());
-  };
-
-  const toggleInstructions = (recipeId: string) => {
-    setExpandedInstructions(prev => ({
-      ...prev,
-      [recipeId]: !prev[recipeId]
-    }));
   };
 
   const handleClearGeneratedRecipes = () => {
@@ -379,7 +372,6 @@ export default function Cook() {
       }));
 
       setRecipes(stampedRecipes);
-      setExpandedInstructions({});
       setActiveRecipeTab("generated");
       setActiveMobileCardIndex(0);
       setIsFormCollapsed(true);
@@ -1065,24 +1057,23 @@ export default function Cook() {
             </div>
           )}
 
-          {/* Recipes Display: Desktop Grid + Mobile Swipeable Snap Carousel */}
+          {/* Recipes Display: Responsive Grid on iPad/Desktop + Smooth Snap Carousel on Phone */}
           {((activeRecipeTab === "generated" && recipes.length > 0) || (activeRecipeTab === "saved" && savedRecipes.length > 0)) && (
             <div
               ref={carouselContainerRef}
               onScroll={handleCarouselScroll}
-              className="flex md:grid md:grid-cols-3 items-start md:items-start overflow-x-auto snap-x snap-mandatory gap-3.5 pb-4 no-scrollbar scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
+              className="flex md:grid md:grid-cols-2 lg:grid-cols-3 items-stretch gap-4 pb-4 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
             >
               {(activeRecipeTab === "generated" ? recipes : savedRecipes).map(recipe => {
                 const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems, recipe.pantryDeductions);
                 const saved = isRecipeSaved(recipe.id, recipe.title);
-                const isExpanded = expandedInstructions[recipe.id] ?? false;
 
                 return (
                   <div
                     key={recipe.id}
                     data-recipe-card
                     id={`recipe-card-${recipe.id}`}
-                    className="w-[88vw] max-w-[360px] sm:w-[70vw] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl self-start h-fit"
+                    className="w-[88vw] max-w-[360px] sm:w-[70vw] md:w-auto md:max-w-none shrink-0 snap-center rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl"
                   >
                     <div>
                       {/* Header: Badge Pills + Save for Later Button */}
@@ -1164,7 +1155,7 @@ export default function Cook() {
                             <li key={idx} className="flex items-center justify-between gap-2 py-0.5 border-b border-white/[0.02] last:border-0">
                               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                 <span className="text-orange-400 font-bold shrink-0">•</span>
-                                <span className="text-xs text-white/80 font-medium leading-tight">{imp.ingredientStr}</span>
+                                <span className="text-xs text-white/80 font-medium leading-tight truncate">{imp.ingredientStr}</span>
                               </div>
                               {imp.matchedItem ? (
                                 imp.willDeplete ? (
@@ -1192,45 +1183,22 @@ export default function Cook() {
                         </ul>
                       </div>
 
-                      {/* Clean Accordion Instructions */}
-                      <div className="space-y-2 mb-4">
+                      {/* Cooking Mode Instructions Trigger Button */}
+                      <div className="mb-4">
                         <button
                           type="button"
-                          onClick={() => toggleInstructions(recipe.id)}
-                          className="w-full flex items-center justify-between text-xs font-semibold py-2 px-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-white/70 hover:text-white transition-all"
+                          onClick={() => setActiveCookingRecipe(recipe)}
+                          className="w-full flex items-center justify-between text-xs font-semibold py-2.5 px-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white transition-all group"
                         >
                           <span className="flex items-center gap-2">
                             <BookOpen className="w-3.5 h-3.5 text-orange-400" />
                             <span>{recipe.instructions.length} Step Instructions</span>
                           </span>
-                          <span className="flex items-center gap-1 text-[11px] text-orange-400 font-bold">
-                            <span>{isExpanded ? "Hide" : "View Steps"}</span>
-                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          <span className="flex items-center gap-1 text-[11px] text-orange-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                            <span>View Steps</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
                           </span>
                         </button>
-
-                        {isExpanded && (
-                          <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-                            <ol className="text-xs text-white/75 space-y-2">
-                              {recipe.instructions.map((step, idx) => (
-                                <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                                  <span className="text-[10px] font-bold text-orange-400/80 shrink-0 mt-0.5">{idx + 1}.</span>
-                                  <span>{step}</span>
-                                </li>
-                              ))}
-                            </ol>
-
-                            {recipe.hostelHack && (
-                              <div className="p-3 rounded-2xl bg-amber-500/[0.06] border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
-                                <Lightbulb className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
-                                <div className="min-w-0">
-                                  <span className="font-bold text-[10px] uppercase tracking-wider block text-amber-400">Hostel Hack</span>
-                                  <p className="text-[11px] text-amber-200/80 leading-relaxed mt-0.5">{recipe.hostelHack}</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -1347,6 +1315,155 @@ export default function Cook() {
             </div>
           )}
 
+      {/* Step-by-Step Cooking Mode Modal */}
+      {activeCookingRecipe && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setActiveCookingRecipe(null)}
+        >
+          <div 
+            className="relative w-full max-w-xl max-h-[88vh] rounded-3xl bg-[#121418] border border-white/[0.1] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 border-b border-white/[0.08] flex items-start justify-between gap-3 bg-white/[0.02]">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  {activeCookingRecipe.tag && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                      {activeCookingRecipe.tag}
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {activeCookingRecipe.time}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                    {activeCookingRecipe.method}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-snug">
+                  {activeCookingRecipe.title}
+                </h2>
+                {/* Macro Strip */}
+                <div className="flex items-center gap-2 sm:gap-3 pt-1 text-[11px] sm:text-xs">
+                  <span className="text-white font-bold">{activeCookingRecipe.macros.calories} kcal</span>
+                  <span className="text-orange-400 font-bold">• {activeCookingRecipe.macros.protein}g protein</span>
+                  <span className="text-cyan-400 font-medium">• {activeCookingRecipe.macros.carbs}g carbs</span>
+                  <span className="text-amber-400 font-medium">• {activeCookingRecipe.macros.fats}g fat</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveCookingRecipe(null)}
+                className="w-8 h-8 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
+              {/* Ingredients Checklist */}
+              <div>
+                <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2.5">
+                  Ingredients Needed
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {getRecipePantryImpact(activeCookingRecipe.ingredients, pantryItems, activeCookingRecipe.pantryDeductions).map((imp, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs">
+                      <span className="text-white/90 font-medium truncate mr-2">{imp.ingredientStr}</span>
+                      {imp.matchedItem ? (
+                        <span className="text-[10px] text-emerald-400 font-semibold shrink-0">
+                          ✓ {imp.remainingDisplay}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-white/35 shrink-0">
+                          not stocked
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step-by-Step Instructions */}
+              <div>
+                <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-3">
+                  Step-by-Step Instructions
+                </h3>
+                <ol className="space-y-2.5 sm:space-y-3">
+                  {activeCookingRecipe.instructions.map((step, idx) => (
+                    <li key={idx} className="flex items-start gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                      <span className="w-6 h-6 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-sans font-medium">
+                        {step}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Hostel Hack */}
+              {activeCookingRecipe.hostelHack && (
+                <div className="p-4 rounded-2xl bg-amber-500/[0.08] border border-amber-500/20 flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">Hostel Pro Hack</span>
+                    <p className="text-xs text-amber-200/90 leading-relaxed mt-1 font-sans">
+                      {activeCookingRecipe.hostelHack}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-white/[0.08] flex items-center justify-between gap-3 bg-[#0e1014]">
+              <button
+                type="button"
+                onClick={() => toggleSaveRecipe(activeCookingRecipe)}
+                className={`h-11 px-4 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
+                  isRecipeSaved(activeCookingRecipe.id, activeCookingRecipe.title)
+                    ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
+                    : "bg-white/[0.04] border-white/[0.08] text-white/70 hover:text-white"
+                }`}
+              >
+                <Bookmark className={`w-4 h-4 ${isRecipeSaved(activeCookingRecipe.id, activeCookingRecipe.title) ? "fill-orange-400" : ""}`} />
+                <span className="hidden sm:inline">Save</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleLogMeal(activeCookingRecipe)}
+                disabled={loggingRecipeId === activeCookingRecipe.id}
+                className="flex-1 h-11 rounded-xl bg-white text-black font-extrabold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-40"
+              >
+                {loggingRecipeId === activeCookingRecipe.id ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                    <span>Logging Meal...</span>
+                  </>
+                ) : loggedStatus[activeCookingRecipe.id] ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
+                    <span className="truncate">{loggedStatus[activeCookingRecipe.id]}</span>
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-4 h-4" />
+                    <span>Log to Today's Meals</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+
+    </div>
   );
 }

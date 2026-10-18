@@ -355,31 +355,10 @@ export default function Groceries() {
           </p>
         </div>
         
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Mobile Sort Pills */}
-          <div className="md:hidden flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.06] rounded-full px-2.5 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/30">Sort:</span>
-            <button
-              onClick={() => handleSort("name")}
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
-                sortBy === "name" ? "bg-white text-black" : "text-white/50 hover:text-white"
-              }`}
-            >
-              Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
-            </button>
-            <button
-              onClick={() => handleSort("category")}
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
-                sortBy === "category" ? "bg-white text-black" : "text-white/50 hover:text-white"
-              }`}
-            >
-              Category {sortBy === "category" && (sortOrder === "asc" ? "↑" : "↓")}
-            </button>
-          </div>
-
+        <div className="flex items-center gap-2">
           <Link
             to="/app/pantry"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
+            className="h-9 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-semibold hover:bg-white/[0.08] hover:text-white transition-all flex items-center gap-2 shadow-sm"
           >
             <Package className="w-3.5 h-3.5 text-orange-400" />
             <span>Pantry</span>
@@ -388,7 +367,7 @@ export default function Groceries() {
           {purchasedCount > 0 && (
             <button 
               onClick={clearPurchased}
-              className="text-xs font-semibold text-white/40 hover:text-rose-400 px-3.5 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] hover:bg-rose-500/10 hover:border-rose-500/20 transition-all"
+              className="h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.02] text-white/50 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 text-xs font-semibold transition-all"
             >
               Clear Purchased
             </button>
@@ -417,7 +396,7 @@ export default function Groceries() {
           </div>
           <button
             onClick={handleAddLowPantryToGroceries}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm shrink-0 self-end sm:self-auto"
+            className="h-9 px-4 rounded-xl bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm shrink-0 self-end sm:self-auto flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add All to Shopping List</span>
@@ -443,7 +422,7 @@ export default function Groceries() {
           </div>
           <button
             onClick={transferPurchasedToPantry}
-            className="px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 shadow-sm"
+            className="h-9 px-4 rounded-xl bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all flex items-center gap-2 shrink-0 shadow-sm"
           >
             <span>Transfer to Pantry</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -455,8 +434,8 @@ export default function Groceries() {
       <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
         
         {/* Quick Add Row */}
-        <form onSubmit={handleAddItem} className="flex items-center px-4 sm:px-5 h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5 sm:gap-3">
-          <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
+        <form onSubmit={handleAddItem} className="flex items-center px-3.5 sm:px-5 h-13 sm:h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2.5 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
             {addingItem ? (
               <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
             ) : (
@@ -474,30 +453,30 @@ export default function Groceries() {
           <button 
             type="submit" 
             disabled={!newItem.trim() || addingItem}
-            className="px-3.5 sm:px-4 py-1.5 rounded-full bg-white text-black text-[11px] sm:text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0"
+            className="h-8 px-4 rounded-xl bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 shadow-sm"
           >
             {addingItem ? "Adding..." : "Add"}
           </button>
         </form>
 
-        {/* Table Column Sorting Header (Desktop Only) */}
-        <div className="hidden md:grid md:grid-cols-[64px_1fr_180px_110px] items-center px-4 py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/35 uppercase tracking-widest">
+        {/* Table Column Sorting Header (Visible on ALL Devices & Screens) */}
+        <div className="grid grid-cols-[36px_1fr_125px_40px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-white/[0.02] border-b border-white/[0.06] text-[10px] font-bold text-white/40 uppercase tracking-widest">
           <div className="text-center">Status</div>
           <button 
             onClick={() => handleSort("name")}
-            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+            className="flex items-center gap-1 hover:text-white transition-colors justify-start uppercase tracking-widest font-bold"
           >
             <span>Item</span>
-            {sortBy === "name" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+            {sortBy === "name" ? (sortOrder === "asc" ? <ChevronUp className="w-3 h-3 text-white" /> : <ChevronDown className="w-3 h-3 text-white" />) : <span className="text-white/20 text-[9px]">↕</span>}
           </button>
           <button 
             onClick={() => handleSort("category")}
-            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+            className="flex items-center gap-1 hover:text-white transition-colors justify-start uppercase tracking-widest font-bold"
           >
             <span>Category</span>
-            {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+            {sortBy === "category" ? (sortOrder === "asc" ? <ChevronUp className="w-3 h-3 text-white" /> : <ChevronDown className="w-3 h-3 text-white" />) : <span className="text-white/20 text-[9px]">↕</span>}
           </button>
-          <div className="text-right pr-2">Actions</div>
+          <div className="text-center">Del</div>
         </div>
 
         {/* Table Body */}
@@ -513,16 +492,15 @@ export default function Groceries() {
             sortedItems.map(item => (
               <div 
                 key={item.id} 
-                className={`group transition-colors hover:bg-white/[0.02] ${
+                className={`group grid grid-cols-[36px_1fr_125px_40px] sm:grid-cols-[48px_1fr_160px_48px] items-center px-3 sm:px-4 min-h-[50px] transition-colors hover:bg-white/[0.02] ${
                   item.purchased ? "bg-black/20 opacity-60" : ""
                 }`}
               >
-                {/* Mobile View (< md): High-density spacious card row */}
-                <div className="md:hidden flex items-center gap-3 px-4 py-3.5">
-                  {/* Checkbox */}
+                {/* Checkbox Col */}
+                <div className="flex justify-center">
                   <button 
                     onClick={() => togglePurchased(item.id)}
-                    className={`w-6 h-6 rounded-lg flex items-center justify-center border shrink-0 transition-all ${
+                    className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
                       item.purchased 
                         ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
                         : "border-white/20 hover:border-white/40 bg-transparent"
@@ -530,94 +508,42 @@ export default function Groceries() {
                   >
                     {item.purchased && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </button>
-
-                  {/* Name & Category */}
-                  <div className="flex-1 min-w-0 pr-2">
-                    <p className={`text-sm font-semibold truncate ${
-                      item.purchased ? "text-white/40 line-through" : "text-white"
-                    }`}>
-                      {item.name}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <CategoryDropdown
-                        category={item.category}
-                        onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {item.purchased && (
-                      <button
-                        onClick={() => transferSingleToPantry(item)}
-                        className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-all"
-                        title="Move to Pantry"
-                      >
-                        <Package className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => deleteItem(item.id)}
-                      className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
-                      title="Delete item"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
-
-                {/* Desktop View (>= md): Structured tabular columns */}
-                <div className="hidden md:grid md:grid-cols-[64px_1fr_180px_110px] items-center px-4 min-h-[52px]">
-                  {/* Checkbox Col */}
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={() => togglePurchased(item.id)}
-                      className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
-                        item.purchased 
-                          ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400" 
-                          : "border-white/20 hover:border-white/40 bg-transparent"
-                      }`}
+                
+                {/* Item Name Col */}
+                <div className={`text-xs sm:text-sm font-semibold truncate pr-2 ${
+                  item.purchased ? "text-white/40 line-through" : "text-white"
+                }`}>
+                  {item.name}
+                </div>
+                
+                {/* Category Badge Col */}
+                <div className="flex items-center justify-start min-w-0">
+                  <CategoryDropdown
+                    category={item.category}
+                    onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
+                  />
+                </div>
+                
+                {/* Actions Col */}
+                <div className="flex items-center justify-center gap-1">
+                  {item.purchased && (
+                    <button
+                      onClick={() => transferSingleToPantry(item)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                      title="Move directly to Pantry"
                     >
-                      {item.purchased && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      <Package className="w-3.5 h-3.5" />
                     </button>
-                  </div>
-                  
-                  {/* Item Name Col */}
-                  <div className={`text-sm font-medium truncate pr-4 ${
-                    item.purchased ? "text-white/40 line-through" : "text-white/90"
-                  }`}>
-                    {item.name}
-                  </div>
-                  
-                  {/* Category Badge Col */}
-                  <div className="flex items-center justify-start">
-                    <CategoryDropdown
-                      category={item.category}
-                      onChange={(newCat) => handleUpdateCategory(item.id, newCat)}
-                    />
-                  </div>
-                  
-                  {/* Actions Col */}
-                  <div className="flex items-center justify-end gap-1.5 pr-2">
-                    {item.purchased && (
-                      <button
-                        onClick={() => transferSingleToPantry(item)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
-                        title="Move directly to Pantry"
-                      >
-                        <Package className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                  )}
 
-                    <button 
-                      onClick={() => deleteItem(item.id)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
-                      title="Delete item"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => deleteItem(item.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                    title="Delete item"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))

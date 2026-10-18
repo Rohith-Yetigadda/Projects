@@ -42,7 +42,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-full border-r border-white/[0.06] bg-[#0c0e12]/95 backdrop-blur-2xl px-4 py-6 relative z-30 select-none">
+    <aside className="hidden lg:flex flex-col w-64 h-full border-r border-white/[0.06] bg-[#0c0e12]/95 backdrop-blur-2xl px-4 py-6 relative z-30 select-none">
       {/* Brand Header */}
       <div className="mb-8 px-2 flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-black shadow-sm">
@@ -144,7 +144,7 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="md:hidden flex items-center justify-between h-14 px-4 bg-[#0a0b0e]/90 backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-40 sticky top-0">
+      <header className="lg:hidden flex items-center justify-between h-14 px-4 bg-[#0a0b0e]/90 backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-40 sticky top-0">
         <button
           onClick={() => setMenuOpen(true)}
           className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/70 hover:text-white transition-colors"
@@ -168,7 +168,7 @@ export function MobileHeader() {
       </header>
 
       {/* Side Drawer Menu Overlay */}
-      <div className={`md:hidden fixed inset-0 z-[100] flex justify-start transition-all duration-300 ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
+      <div className={`lg:hidden fixed inset-0 z-[100] flex justify-start transition-all duration-300 ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
         <div 
           className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} 
           onClick={() => setMenuOpen(false)} 
@@ -240,7 +240,7 @@ export function MobileHeader() {
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-3 inset-x-4 max-w-md mx-auto z-50 bg-[#121418]/90 backdrop-blur-2xl border border-white/[0.08] rounded-full px-2 py-1.5 shadow-2xl shadow-black/80">
+    <nav className="lg:hidden fixed bottom-3 inset-x-4 max-w-md mx-auto z-50 bg-[#121418]/90 backdrop-blur-2xl border border-white/[0.08] rounded-full px-2 py-1.5 shadow-2xl shadow-black/80">
       <div className="flex items-center justify-around">
         {mobileNav.map(({ to, label, icon: Icon }) => (
           <NavLink

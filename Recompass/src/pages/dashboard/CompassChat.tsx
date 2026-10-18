@@ -1463,7 +1463,7 @@ Instructions:
       )}
 
       {/* Main Header */}
-      <header className="sticky top-0 z-30 bg-[#0a0b0e]/90 backdrop-blur-xl pt-4 pb-4 -mt-4 md:-mt-6 -mx-4 px-4 md:-mx-6 md:px-6 mb-8 border-b border-white/[0.06] flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#0a0b0e]/90 backdrop-blur-xl pt-4 pb-4 -mt-3.5 md:-mt-6 -mx-3.5 sm:-mx-4 md:-mx-6 px-3.5 sm:px-4 md:px-6 mb-8 border-b border-white/[0.06] flex items-center justify-between">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-sm shrink-0">
             <Compass className="w-5 h-5 stroke-[2.2]" />

@@ -201,28 +201,34 @@ export default function Profile() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-2 sm:grid-cols-4 gap-1">
             {[
-              { id: "fat_loss", label: "Fat Loss", desc: "Deficit • High Protein" },
-              { id: "muscle_gain", label: "Build Muscle", desc: "Surplus • 2.2g/kg Protein" },
-              { id: "recomp", label: "Recomp", desc: "Maintenance • Lean Mass" },
-              { id: "maintain", label: "Maintenance", desc: "Energy Balance" }
+              { id: "fat_loss", label: "Fat Loss" },
+              { id: "muscle_gain", label: "Build Muscle" },
+              { id: "recomp", label: "Recomp" },
+              { id: "maintain", label: "Maintenance" }
             ].map(g => (
               <button 
                 key={g.id} 
                 type="button"
                 onClick={() => setData({...data, goal: g.id})}
-                className={`py-3 px-3 rounded-2xl text-left transition-all duration-200 border flex flex-col justify-between min-h-[72px] ${
+                className={`py-2 px-2.5 rounded-xl text-center text-xs font-bold transition-all ${
                   data.goal === g.id 
-                    ? "bg-white text-black border-white shadow-sm" 
-                    : "bg-white/[0.03] border-white/[0.06] text-white/60 hover:text-white hover:bg-white/[0.06]"
+                    ? "bg-white text-black shadow-sm font-extrabold" 
+                    : "text-white/50 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <span className={`text-xs font-bold ${data.goal === g.id ? "text-black" : "text-white"}`}>{g.label}</span>
-                <span className={`text-[10px] mt-1 line-clamp-1 ${data.goal === g.id ? "text-black/60 font-medium" : "text-white/35"}`}>{g.desc}</span>
+                {g.label}
               </button>
             ))}
           </div>
+          
+          <p className="text-[11px] text-white/40 text-center font-medium">
+            {data.goal === "fat_loss" && "Fat Loss • Caloric deficit with elevated protein to preserve lean muscle."}
+            {data.goal === "muscle_gain" && "Build Muscle • Controlled surplus with 2.2g/kg protein for hypertrophy."}
+            {data.goal === "recomp" && "Body Recomp • Near-maintenance calories with high protein (2.2g/kg) for lean mass."}
+            {data.goal === "maintain" && "Maintenance • True energy balance (1.6g/kg protein) to sustain current physique."}
+          </p>
         </section>
 
         {/* Nutrition Targets */}
