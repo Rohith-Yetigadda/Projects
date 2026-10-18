@@ -179,11 +179,17 @@ export function AppleActivityRing({
         <defs>
           {rings.map((ring, idx) => {
             const gradId = `ring-grad-${compId}-${idx}`;
+            const glowId = `ring-glow-${compId}-${idx}`;
             return (
-              <linearGradient key={idx} id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={ring.gradientStart || "#FF2D55"} />
-                <stop offset="100%" stopColor={ring.gradientEnd || ring.gradientStart || "#FF2D55"} />
-              </linearGradient>
+              <React.Fragment key={idx}>
+                <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={ring.gradientStart || "#FF2442"} />
+                  <stop offset="100%" stopColor={ring.gradientEnd || ring.gradientStart || "#FF0055"} />
+                </linearGradient>
+                <filter id={glowId} x="-25%" y="-25%" width="150%" height="150%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor={ring.gradientStart || "#FF2442"} floodOpacity="0.4" />
+                </filter>
+              </React.Fragment>
             );
           })}
         </defs>
@@ -204,7 +210,8 @@ export function AppleActivityRing({
           const hasProgress = clampedRatio > 0.005;
 
           const gradUrl = `url(#ring-grad-${compId}-${idx})`;
-          const ringColor = ring.gradientStart || "#FF2D55";
+          const glowUrl = `url(#ring-glow-${compId}-${idx})`;
+          const ringColor = ring.gradientStart || "#FF2442";
 
           return (
             <g key={ring.id || idx}>
@@ -219,7 +226,7 @@ export function AppleActivityRing({
                 opacity={0.16}
               />
 
-              {/* 2. Concentric Ring (0% to 100% Capped) */}
+              {/* 2. Concentric Ring (0% to 100% Capped with Neon Glow) */}
               {hasProgress && (
                 <circle
                   cx={center}
@@ -229,6 +236,7 @@ export function AppleActivityRing({
                   strokeWidth={strokeWidth}
                   strokeLinecap={isComplete ? "butt" : "round"}
                   fill="none"
+                  filter={glowUrl}
                   strokeDasharray={circumference}
                   strokeDashoffset={
                     loading
@@ -251,26 +259,26 @@ export function AppleActivityRing({
   );
 }
 
-// ─── Refined Studio Health Macro Palettes (Harmonious Dark Theme) ───────
+// ─── Authentic Ultra-Vibrant Apple Fitness & Studio Neon Macro Palettes ────────
 export const APPLE_FITNESS_MACRO_PALETTES = {
   calories: {
-    gradientStart: "#F43F5E", // Refined Coral Rose
-    gradientEnd: "#BE123C",   // Deep Crimson
-    trackColor: "#F43F5E",
+    gradientStart: "#FF2442", // Laser Electric Neon Red / Hot Coral (Apple Move)
+    gradientEnd: "#FF0055",   // Ultra-Vivid Fluorescent Crimson
+    trackColor: "#FF2442",
   },
   protein: {
-    gradientStart: "#F97316", // Warm Vibrant Orange
-    gradientEnd: "#EA580C",   // Deep Rust Orange
-    trackColor: "#F97316",
+    gradientStart: "#FFA000", // Dazzling Electric Amber-Gold
+    gradientEnd: "#FF5E00",   // Hyper-Vibrant Radiant Tangerine
+    trackColor: "#FFA000",
   },
   carbs: {
-    gradientStart: "#38BDF8", // Refined Ocean Azure / Sky Blue
-    gradientEnd: "#0284C7",   // Deep Sapphire
-    trackColor: "#38BDF8",
+    gradientStart: "#00F5FF", // Laser Electric Neon Cyan
+    gradientEnd: "#0099FF",   // Dazzling High-Vibrancy Cobalt Azure
+    trackColor: "#00F5FF",
   },
   fats: {
-    gradientStart: "#10B981", // Recompass Signature Emerald Green
-    gradientEnd: "#047857",   // Deep Forest Emerald
-    trackColor: "#10B981",
+    gradientStart: "#00FF87", // Laser Electric Neon Spring Green (Apple Exercise)
+    gradientEnd: "#00E676",   // Vibrant Fluorescent Emerald
+    trackColor: "#00FF87",
   },
 };
