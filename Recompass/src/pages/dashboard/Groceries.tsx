@@ -12,11 +12,13 @@ import {
   ChevronUp,
   Sparkles,
   Package,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle
 } from "lucide-react";
 import { classifyFoodWithAI, fastClassifyFood } from "@/lib/geminiClassifier";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
+import { getStockStatus, type PantryItem } from "./Pantry";
 
 type GroceryItem = {
   id: string;
@@ -32,6 +34,7 @@ export default function Groceries() {
   const [loading, setLoading] = useState(!cachedItems);
   const [addingItem, setAddingItem] = useState(false);
   const [newItem, setNewItem] = useState("");
+  const [lowPantryItems, setLowPantryItems] = useState<PantryItem[]>([]);
 
   const [sortBy, setSortBy] = useState<"name" | "category">("category");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -47,7 +50,10 @@ export default function Groceries() {
     let isMounted = true;
     const fetchGroceries = async () => {
       try {
-        const snap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
+        const [snap, pantrySnap] = await Promise.all([
+          getDoc(doc(db, "users", currentUser.uid, "groceries", "current")),
+          getDoc(doc(db, "users", currentUser.uid, "pantry", "current"))
+        ]);
         if (!isMounted) return;
         if (snap.exists()) {
           const loaded: GroceryItem[] = snap.data().items || [];
@@ -60,8 +66,14 @@ export default function Groceries() {
           });
           setCachedData("grocery_items", []);
         }
+
+        if (pantrySnap.exists()) {
+          const pItems: PantryItem[] = pantrySnap.data().items || [];
+          const low = pItems.filter(p => getStockStatus(p) !== "in_stock");
+          setLowPantryItems(low);
+        }
       } catch (err) {
-        console.error("Error fetching groceries:", err);
+        console.error("Error fetching groceries & pantry:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -69,6 +81,24 @@ export default function Groceries() {
     fetchGroceries();
     return () => { isMounted = false; };
   }, [currentUser]);
+
+  // Restock all low-stock pantry items to Groceries
+  const handleAddLowPantryToGroceries = () => {
+    const unadded = lowPantryItems.filter(
+      p => !items.some(g => g.name.toLowerCase() === p.name.toLowerCase() && !g.purchased)
+    );
+    if (unadded.length === 0) return;
+
+    const toAdd = unadded.map(p => ({
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      name: p.name,
+      category: p.category || "Other",
+      purchased: false,
+    }));
+    const updated = [...items, ...toAdd];
+    saveItems(updated);
+    showNotification(`Added ${toAdd.length} low-stock item(s) from Pantry to Groceries!`);
+  };
 
   const saveItems = async (newItems: GroceryItem[]) => {
     setItems(newItems);
@@ -253,6 +283,9 @@ export default function Groceries() {
 
   const pendingCount = items.filter(i => !i.purchased).length;
   const purchasedCount = items.filter(i => i.purchased).length;
+  const unaddedLowPantry = lowPantryItems.filter(
+    p => !items.some(g => g.name.toLowerCase() === p.name.toLowerCase() && !g.purchased)
+  );
 
   const sortedItems = [...items].sort((a, b) => {
     if (a.purchased !== b.purchased) return a.purchased ? 1 : -1;
@@ -313,6 +346,35 @@ export default function Groceries() {
           )}
         </div>
       </div>
+
+      {/* Pantry Restock Suggestion Banner */}
+      {unaddedLowPantry.length > 0 && (
+        <div className="rounded-3xl bg-amber-500/[0.08] border border-amber-500/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Pantry Restock Suggestions</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {unaddedLowPantry.length} low in hostel
+                </span>
+              </p>
+              <p className="text-[11px] text-white/50 mt-0.5">
+                {unaddedLowPantry.map(p => `${p.name} (${p.quantity} ${p.unit})`).join(" • ")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleAddLowPantryToGroceries}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm shrink-0 self-end sm:self-auto"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add All to Shopping List</span>
+          </button>
+        </div>
+      )}
 
       {/* Transfer Purchased to Pantry CTA Banner */}
       {purchasedCount > 0 && (

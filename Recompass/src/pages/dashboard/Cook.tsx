@@ -13,9 +13,16 @@ import {
   BookOpen,
   Lightbulb,
   Zap,
-  Info
+  Info,
+  ShoppingCart,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2
 } from "lucide-react";
-import type { PantryItem } from "./Pantry";
+import type { PantryItem, StockStatus } from "./Pantry";
+import { getStockStatus } from "./Pantry";
+import { getRecipePantryImpact, applyPantryDeductions } from "@/lib/pantryDeduction";
+import { setCachedData } from "@/lib/dataCache";
 
 type Recipe = {
   id: string;
@@ -53,6 +60,12 @@ export default function Cook() {
   const [generating, setGenerating] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Synergy States: Auto-deduct & Low-Stock Alerts
+  const [autoDeductPantry, setAutoDeductPantry] = useState(true);
+  const [restockAlertItems, setRestockAlertItems] = useState<{ id: string; name: string; quantity: number; unit: string; category: string; status: StockStatus }[] | null>(null);
+  const [addedToGroceries, setAddedToGroceries] = useState(false);
+  const [addingToGroceries, setAddingToGroceries] = useState(false);
 
   // Meal logging states
   const [loggingRecipeId, setLoggingRecipeId] = useState<string | null>(null);
@@ -141,7 +154,43 @@ export default function Cook() {
     }
   };
 
-  // Direct Log Meal to Today's Daily Log
+  // Add Low-Stock Pantry Items to Groceries
+  const handleAddLowStockToGroceries = async () => {
+    if (!currentUser || !restockAlertItems || restockAlertItems.length === 0) return;
+    setAddingToGroceries(true);
+    try {
+      const snap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
+      const currentGroceries: any[] = snap.exists() ? (snap.data().items || []) : [];
+
+      let updated = [...currentGroceries];
+      let addedCount = 0;
+      restockAlertItems.forEach(item => {
+        const exists = updated.some(g => g.name.toLowerCase() === item.name.toLowerCase() && !g.purchased);
+        if (!exists) {
+          updated.push({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+            name: item.name,
+            category: item.category || "Other",
+            purchased: false
+          });
+          addedCount++;
+        }
+      });
+
+      await setDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
+        items: updated,
+        lastUpdated: new Date().toISOString()
+      });
+      setCachedData("grocery_items", updated);
+      setAddedToGroceries(true);
+    } catch (gErr) {
+      console.error("Error adding low stock items to groceries:", gErr);
+    } finally {
+      setAddingToGroceries(false);
+    }
+  };
+
+  // Direct Log Meal to Today's Daily Log & Auto-Deduct from Pantry
   const handleLogMeal = async (recipe: Recipe) => {
     if (!currentUser) return;
     setLoggingRecipeId(recipe.id);
@@ -195,7 +244,50 @@ export default function Cook() {
       );
 
       await setDoc(logRef, logData);
-      setLoggedStatus(prev => ({ ...prev, [recipe.id]: `Logged to ${mealType.toUpperCase()}` }));
+
+      // Handle Pantry Deductions & Low-Stock Alerts
+      let deductedSummary = "";
+      if (autoDeductPantry && pantryItems.length > 0) {
+        const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems);
+        const updatedPantry = applyPantryDeductions(pantryItems, impacts);
+        
+        // Find items that are now low stock or depleted
+        const newlyLowOrDepleted = updatedPantry.filter(p => {
+          const status = getStockStatus(p);
+          const impact = impacts.find(imp => imp.matchedItem?.id === p.id);
+          return impact && impact.deductQuantity > 0 && (status === "low_stock" || status === "depleted");
+        });
+
+        try {
+          await setDoc(doc(db, "users", currentUser.uid, "pantry", "current"), {
+            items: updatedPantry,
+            lastUpdated: new Date().toISOString()
+          });
+          setCachedData("pantry_items", updatedPantry);
+          setPantryItems(updatedPantry.filter(i => i.quantity > 0)); // Update in-memory state
+
+          const deductedCount = impacts.filter(i => i.matchedItem && i.deductQuantity > 0).length;
+          if (deductedCount > 0) {
+            deductedSummary = ` • Deducted ${deductedCount} item${deductedCount > 1 ? "s" : ""}`;
+          }
+
+          if (newlyLowOrDepleted.length > 0) {
+            setRestockAlertItems(newlyLowOrDepleted.map(p => ({
+              id: p.id,
+              name: p.name,
+              quantity: p.quantity,
+              unit: p.unit,
+              category: p.category,
+              status: getStockStatus(p)
+            })));
+            setAddedToGroceries(false);
+          }
+        } catch (pErr) {
+          console.error("Error updating pantry on recipe log:", pErr);
+        }
+      }
+
+      setLoggedStatus(prev => ({ ...prev, [recipe.id]: `Logged to ${mealType.toUpperCase()}${deductedSummary}` }));
     } catch (err) {
       console.error("Error logging recipe meal:", err);
     } finally {
@@ -335,11 +427,26 @@ export default function Cook() {
           </div>
         </div>
 
-        {/* Step 3: Trigger Action */}
-        <div className="border-t border-white/[0.06] pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-white/40 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-            <span>Optimized for student goal: <strong className="text-white capitalize">{userProfile?.goal?.replace(/_/g, " ") || "Balanced Nutrition"}</strong></span>
+        {/* Step 3: Trigger Action & Synergy Settings */}
+        <div className="border-t border-white/[0.06] pt-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="text-xs text-white/40 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+              <span>Goal: <strong className="text-white capitalize">{userProfile?.goal?.replace(/_/g, " ") || "Balanced Nutrition"}</strong></span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAutoDeductPantry(!autoDeductPantry)}
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-all flex items-center gap-2 self-start ${
+                autoDeductPantry
+                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                  : "bg-white/[0.03] border-white/[0.08] text-white/40 hover:text-white/60"
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Auto-deduct Pantry: <strong>{autoDeductPantry ? "ON" : "OFF"}</strong></span>
+            </button>
           </div>
 
           <button
@@ -382,7 +489,9 @@ export default function Cook() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {recipes.map(recipe => (
+            {recipes.map(recipe => {
+              const impacts = getRecipePantryImpact(recipe.ingredients, pantryItems);
+              return (
               <div
                 key={recipe.id}
                 className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 flex flex-col justify-between hover:border-white/15 transition-all shadow-xl"
@@ -435,16 +544,40 @@ export default function Cook() {
                     </div>
                   </div>
 
-                  {/* Ingredients Checklist */}
+                  {/* Ingredients with Pantry Stock Impact */}
                   <div className="space-y-1.5 mb-4">
-                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                      Ingredients
+                    <div className="flex items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                      <span>Ingredients</span>
+                      <span className="text-white/30 lowercase">pantry stock</span>
                     </div>
-                    <ul className="text-xs text-white/70 space-y-1">
-                      {recipe.ingredients.map((ing, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-orange-400 font-bold">•</span>
-                          <span>{ing}</span>
+                    <ul className="text-xs text-white/70 space-y-1.5">
+                      {impacts.map((imp, idx) => (
+                        <li key={idx} className="flex items-center justify-between gap-2 py-0.5 border-b border-white/[0.02] last:border-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-orange-400 font-bold">•</span>
+                            <span className="truncate">{imp.ingredientStr}</span>
+                          </div>
+                          {imp.matchedItem ? (
+                            imp.willDeplete ? (
+                              <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-semibold flex items-center gap-1">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                <span>Depletes</span>
+                              </span>
+                            ) : imp.willBeLowStock || imp.statusAfter === "low_stock" ? (
+                              <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-1">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                <span>Low ({imp.remainingQuantity} {imp.matchedItem.unit})</span>
+                              </span>
+                            ) : (
+                              <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400/90 border border-emerald-500/20 font-medium">
+                                ✓ {imp.remainingQuantity} {imp.matchedItem.unit} left
+                              </span>
+                            )
+                          ) : (
+                            <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.03] text-white/35 border border-white/[0.06]">
+                              not stocked
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -480,9 +613,9 @@ export default function Cook() {
                 {/* Log Meal Button */}
                 <div className="pt-3 border-t border-white/[0.06]">
                   {loggedStatus[recipe.id] ? (
-                    <div className="w-full py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>{loggedStatus[recipe.id]}</span>
+                    <div className="w-full py-2.5 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 text-center">
+                      <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+                      <span className="truncate">{loggedStatus[recipe.id]}</span>
                     </div>
                   ) : (
                     <button
@@ -506,8 +639,85 @@ export default function Cook() {
                 </div>
 
               </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Restock Alert Banner */}
+          {restockAlertItems && restockAlertItems.length > 0 && (
+            <div className="rounded-3xl bg-amber-500/[0.08] border border-amber-500/20 p-5 mt-4 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                      <span>Pantry Restock Alert</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {restockAlertItems.length} item{restockAlertItems.length > 1 ? "s" : ""} low
+                      </span>
+                    </h3>
+                    <p className="text-xs text-white/50 mt-1">
+                      Cooking your meal left these essentials low or depleted:
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {restockAlertItems.map(item => (
+                        <span
+                          key={item.id}
+                          className={`px-2.5 py-1 rounded-xl text-xs font-semibold border flex items-center gap-1.5 ${
+                            item.quantity <= 0
+                              ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                              : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                          }`}
+                        >
+                          <span>{item.name}</span>
+                          <span className="text-[10px] opacity-75">
+                            ({item.quantity} {item.unit} left • {item.quantity <= 0 ? "Depleted" : "Low"})
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  {addedToGroceries ? (
+                    <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Added to Groceries</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleAddLowStockToGroceries}
+                      disabled={addingToGroceries}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md disabled:opacity-40"
+                    >
+                      {addingToGroceries ? (
+                        <>
+                          <div className="w-3 h-3 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                          <span>Adding...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          <span>Add to Grocery List</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  <Link
+                    to="/app/groceries"
+                    className="p-2.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                    title="View Groceries"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
