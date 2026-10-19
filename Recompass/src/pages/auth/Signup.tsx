@@ -22,7 +22,7 @@ export default function Signup() {
 
   // If already logged in, redirect to app or onboarding
   if (currentUser) {
-    if (userProfile && !userProfile.onboardingComplete) {
+    if (!userProfile?.onboardingComplete) {
       return <Navigate to="/onboarding" replace />;
     }
     return <Navigate to="/app" replace />;
@@ -78,6 +78,8 @@ export default function Signup() {
           onboardingComplete: false,
           createdAt: new Date().toISOString(),
         });
+        navigate("/onboarding");
+      } else if (!docSnap.data()?.onboardingComplete) {
         navigate("/onboarding");
       } else {
         navigate("/app");

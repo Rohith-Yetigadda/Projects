@@ -34,7 +34,7 @@ function GuestRoute({ children }: { children: ReactElement }) {
 
   // If user is already authenticated, redirect immediately into the app
   if (currentUser) {
-    if (userProfile && !userProfile.onboardingComplete) {
+    if (!userProfile?.onboardingComplete) {
       return <Navigate to="/onboarding" replace />;
     }
     return <Navigate to="/app" replace />;
@@ -78,7 +78,7 @@ function AppRoute({ children }: { children: ReactElement }) {
   }
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (userProfile && !userProfile.onboardingComplete) return <Navigate to="/onboarding" replace />;
+  if (!userProfile?.onboardingComplete) return <Navigate to="/onboarding" replace />;
   return <AppShell>{children}</AppShell>;
 }
 
@@ -87,7 +87,7 @@ function FallbackRoute() {
   const { currentUser, userProfile, loading } = useAuth();
   if (loading) return null;
   if (currentUser) {
-    if (userProfile && !userProfile.onboardingComplete) return <Navigate to="/onboarding" replace />;
+    if (!userProfile?.onboardingComplete) return <Navigate to="/onboarding" replace />;
     return <Navigate to="/app" replace />;
   }
   return <Navigate to="/" replace />;

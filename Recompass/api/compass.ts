@@ -20,8 +20,8 @@ const DEFAULT_FALLBACK_CHAIN = [
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
+  "gemini-1.5-pro",
   "gemini-2.5-flash-lite",
-  "gemini-2.0-flash-lite",
 ];
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {
@@ -126,6 +126,18 @@ OUTPUT STRICTLY AS JSON (no markdown formatting, no commentary):
               displayName: "Menu PDF",
             });
             
+            // Wait for Google AI file processing to complete
+            let fileState = await fileManager.getFile(uploadResponse.file.name);
+            let attempts = 0;
+            while (fileState.state === "PROCESSING" && attempts < 10) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              fileState = await fileManager.getFile(uploadResponse.file.name);
+              attempts++;
+            }
+            if (fileState.state === "FAILED") {
+              throw new Error("PDF processing failed by Google AI.");
+            }
+
             fileParts.push({
               fileData: {
                 mimeType: uploadResponse.file.mimeType,

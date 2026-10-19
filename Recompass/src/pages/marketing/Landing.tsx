@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     {
       q: "How does Recompass calculate calories if the hostel mess doesn't publish nutritional info?",
-      a: "Recompass uses a calibrated Indian mess and institutional dining database. We calibrate typical mess hall recipes into discrete units like rotis, paddles, and ladles so your estimates are accurate without needing a food scale."
+      a: "Recompass uses a calibrated Indian mess and institutional dining database. We calibrate typical mess hall recipes into discrete units like rotis, paddles, and ladles so you can track accurately even when you don't have a kitchen scale on hand."
     },
     {
       q: "Can I log my dorm room snacks and whey protein alongside mess food?",
@@ -202,7 +202,7 @@ export default function Landing() {
             <p className="text-white font-bold text-xs flex items-center gap-1.5">
               <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-400" /> Mess Portions
             </p>
-            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Rotis, paddles, and ladles without a food scale</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Rotis, paddles, ladles, or exact grams</p>
           </div>
           <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
             <p className="text-white font-bold text-xs flex items-center gap-1.5">
@@ -348,7 +348,7 @@ export default function Landing() {
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">Why standard calorie trackers fail students</h2>
           <p className="text-white/50 text-xs sm:text-sm mt-3 leading-relaxed">
-            Regular apps are built for people with their own kitchens and electronic scales. Here is how Recompass fixes the student reality.
+            Regular apps don't understand Indian mess schedules or student dorm routines. Here is how Recompass fixes the student reality.
           </p>
         </div>
 
@@ -435,9 +435,9 @@ export default function Landing() {
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
-            <h3 className="text-base font-bold text-white">Zero-Scale Mess Calibration</h3>
+            <h3 className="text-base font-bold text-white">Intuitive Mess Calibration</h3>
             <p className="text-xs text-white/50 leading-relaxed">
-              Count rotis, rice paddles, dal ladles, and eggs naturally. Calibrated nutrition values modeled specifically for institutional cooking.
+              Count rotis, rice paddles, dal ladles, and eggs naturally, or log exact grams. Calibrated nutrition values modeled specifically for institutional cooking.
             </p>
           </div>
 
@@ -527,7 +527,7 @@ export default function Landing() {
             Stop guessing what you eat in the mess hall.
           </h2>
           <p className="mt-3 text-xs sm:text-sm text-white/60 max-w-lg mx-auto leading-relaxed">
-            Join students hitting their daily macros and transforming their fitness without ever touching a kitchen scale.
+            Join students hitting their daily macros and staying consistent with campus meals, dorm cooking, and clear nutrition tracking.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link

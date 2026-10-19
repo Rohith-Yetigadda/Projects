@@ -13,7 +13,8 @@ import {
   Sparkles,
   Package,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  Wallet
 } from "lucide-react";
 import { classifyFoodWithAI, fastClassifyFood } from "@/lib/geminiClassifier";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
@@ -28,7 +29,7 @@ type GroceryItem = {
 };
 
 export default function Groceries() {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const cachedItems = getCachedData<GroceryItem[]>("grocery_items");
   const [items, setItems] = useState<GroceryItem[]>(cachedItems || []);
   const [loading, setLoading] = useState(!cachedItems);
@@ -356,6 +357,15 @@ export default function Groceries() {
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            to="/app/profile"
+            title="Edit Monthly Food & Grocery Budget in Profile"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-500/[0.08] border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/30 transition-all text-xs font-bold shadow-sm"
+          >
+            <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+            <span>₹{userProfile?.budget ? Number(userProfile.budget).toLocaleString('en-IN') : "3,000"}/mo Budget</span>
+          </Link>
+
           <Link
             to="/app/pantry"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm"

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { auth, db } from "@/lib/firebase/config";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Compass, Eye, EyeOff, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
@@ -18,7 +19,7 @@ export default function Login() {
 
   // If already logged in, redirect to app or onboarding
   if (currentUser) {
-    if (userProfile && !userProfile.onboardingComplete) {
+    if (!userProfile?.onboardingComplete) {
       return <Navigate to="/onboarding" replace />;
     }
     return <Navigate to="/app" replace />;
@@ -30,8 +31,14 @@ export default function Login() {
     try {
       setError("");
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigate("/app");
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const profRef = doc(db, "users", userCredential.user.uid, "profile", "main");
+      const profSnap = await getDoc(profRef);
+      if (!profSnap.exists() || !profSnap.data()?.onboardingComplete) {
+        navigate("/onboarding");
+      } else {
+        navigate("/app");
+      }
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
@@ -50,8 +57,22 @@ export default function Login() {
     try {
       setError("");
       setGoogleLoading(true);
-      await signInWithPopup(auth, provider);
-      navigate("/app");
+      const result = await signInWithPopup(auth, provider);
+      const profRef = doc(db, "users", result.user.uid, "profile", "main");
+      const profSnap = await getDoc(profRef);
+      if (!profSnap.exists()) {
+        await setDoc(profRef, {
+          name: result.user.displayName || "Student",
+          email: result.user.email || "",
+          onboardingComplete: false,
+          createdAt: new Date().toISOString(),
+        });
+        navigate("/onboarding");
+      } else if (!profSnap.data()?.onboardingComplete) {
+        navigate("/onboarding");
+      } else {
+        navigate("/app");
+      }
     } catch (err: any) {
       if (err.code !== "auth/popup-closed-by-user") {
         setError(`Google sign-in error: ${err.message || "Could not sign in"}`);
