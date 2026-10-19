@@ -21,6 +21,7 @@ export default function Profile() {
     age: "",
     weight: "",
     height: "",
+    bodyFat: "",
     goal: "maintain",
     budget: "3000",
     customTargetsEnabled: false,
@@ -37,6 +38,7 @@ export default function Profile() {
         age: userProfile.age || "",
         weight: userProfile.weight || "",
         height: userProfile.height || "",
+        bodyFat: userProfile.bodyFat?.toString() || "",
         goal: userProfile.goal || "maintain",
         budget: userProfile.budget || "3000",
         customTargetsEnabled: userProfile.targetOverrides?.enabled || false,
@@ -58,6 +60,7 @@ export default function Profile() {
         age: data.age,
         weight: data.weight,
         height: data.height,
+        bodyFat: parseFloat(data.bodyFat) || null,
         goal: data.goal,
         budget: data.budget,
         targetOverrides: {
@@ -158,7 +161,7 @@ export default function Profile() {
             />
           </div>
           
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div>
               <label className="text-[10px] sm:text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Age</label>
               <input 
@@ -189,7 +192,20 @@ export default function Profile() {
                 placeholder="175" 
               />
             </div>
+            <div>
+              <label className="text-[10px] sm:text-[11px] font-semibold text-white/40 uppercase tracking-widest block mb-2">Body Fat %</label>
+              <input 
+                type="number" 
+                value={data.bodyFat} 
+                onChange={e=>setData({...data, bodyFat: e.target.value})} 
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-3 sm:px-4 py-3 text-white font-sans font-semibold text-sm focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all" 
+                placeholder="18" 
+              />
+            </div>
           </div>
+          <p className="text-[11px] text-white/35 font-medium">
+            Body Fat % enables the Katch-McArdle formula for lean-mass caloric and protein targeting.
+          </p>
         </section>
 
         {/* Goal Settings */}
@@ -248,10 +264,10 @@ export default function Profile() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {[
-              { id: "1500", label: "₹1,500 / mo", desc: "Basic essentials (eggs, bananas, bread, milk)" },
-              { id: "3000", label: "₹3,000 / mo", desc: "Balanced student pantry (whey, oats, peanut butter)" },
-              { id: "5000", label: "₹5,000 / mo", desc: "High-protein athlete (whey, nuts, supplements)" },
-              { id: "8000", label: "₹8,000+ / mo", desc: "Premium pantry & dining flexibility" }
+              { id: "1500", label: "₹1,500 / mo", desc: "Lean essentials (eggs, bananas, bread, milk)" },
+              { id: "3000", label: "₹3,000 / mo", desc: "Whole-food protein (eggs, curd, oats, peanut butter, sattu)" },
+              { id: "5000", label: "₹5,000 / mo", desc: "Whey & essentials (1kg whey, eggs, oats, peanut butter)" },
+              { id: "8000", label: "₹8,000+ / mo", desc: "Athlete & fitness stack (premium whey, creatine, supplements)" }
             ].map(b => {
               const isSelected = data.budget === b.id;
               return (

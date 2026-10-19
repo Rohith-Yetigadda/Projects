@@ -9,6 +9,7 @@ export interface UserVitals {
   weight?: number | string;
   height?: number | string;
   age?: number | string;
+  bodyFat?: number | string;
   gender?: "male" | "female" | string;
   activity?: "sedentary" | "light" | "moderate" | "very_active" | string;
   goal?: FitnessGoal | string;
@@ -54,12 +55,21 @@ export function calculateMacroTargets(profile: UserVitals | null | undefined): C
   const weight = Math.max(35, parseFloat(String(profile?.weight || 70)) || 70);
   const height = Math.max(120, parseFloat(String(profile?.height || 170)) || 170);
   const age = Math.max(14, parseFloat(String(profile?.age || 21)) || 21);
+  const bodyFat = parseFloat(String(profile?.bodyFat || 0));
   const isFemale = profile?.gender === "female";
 
-  // Mifflin-St Jeor Equation
-  const bmr = isFemale
-    ? (10 * weight) + (6.25 * height) - (5 * age) - 161
-    : (10 * weight) + (6.25 * height) - (5 * age) + 5;
+  // BMR calculation:
+  // If valid body fat percentage is provided (between 5% and 55%), use Katch-McArdle formula based on Lean Body Mass (LBM)
+  let bmr: number;
+  if (bodyFat >= 5 && bodyFat <= 55) {
+    const lbm = weight * (1 - (bodyFat / 100));
+    bmr = 370 + (21.6 * lbm);
+  } else {
+    // Mifflin-St Jeor Equation fallback
+    bmr = isFemale
+      ? (10 * weight) + (6.25 * height) - (5 * age) - 161
+      : (10 * weight) + (6.25 * height) - (5 * age) + 5;
+  }
 
   let activityMultiplier = 1.45; // Default active student (walking campus, hostel life)
   if (profile?.activity === "sedentary") activityMultiplier = 1.2;

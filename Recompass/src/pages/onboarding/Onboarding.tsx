@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { db } from "@/lib/firebase/config";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Compass, 
@@ -61,14 +61,16 @@ export default function Onboarding() {
     if (!currentUser) return;
     setLoading(true);
     try {
-      await updateDoc(doc(db, "users", currentUser.uid, "profile", "main"), {
+      await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), {
         ...data,
+        name: currentUser.displayName || "Student",
+        email: currentUser.email || "",
         weight: parseFloat(data.weight) || 70,
         height: parseFloat(data.height) || 175,
         age: parseInt(data.age) || 20,
         bodyFat: parseFloat(data.bodyFat) || 18,
         onboardingComplete: true,
-      });
+      }, { merge: true });
       await refreshProfile();
       navigate("/app");
     } catch (e: any) {
@@ -138,10 +140,10 @@ export default function Onboarding() {
   ];
 
   const budgetOptions = [
-    { id: "1500", label: "₹1,500 / month", desc: "Basic essentials (eggs, bananas, bread, milk)" },
-    { id: "3000", label: "₹3,000 / month", desc: "Balanced student pantry (whey protein, oats, peanut butter)" },
-    { id: "5000", label: "₹5,000 / month", desc: "High-protein athlete budget (quality whey, nuts, supplements)" },
-    { id: "8000", label: "₹8,000+ / month", desc: "Premium pantry & dining flexibility" },
+    { id: "1500", label: "₹1,500 / month", desc: "Lean essentials (eggs, bananas, bread, milk)" },
+    { id: "3000", label: "₹3,000 / month", desc: "Whole-food protein pantry (eggs, milk, curd, oats, peanut butter, sattu)" },
+    { id: "5000", label: "₹5,000 / month", desc: "Whey protein & essentials (1kg whey protein, eggs, oats, peanut butter)" },
+    { id: "8000", label: "₹8,000+ / month", desc: "Athlete & fitness stack (premium whey isolate, creatine, nuts, supplements)" },
   ];
 
   return (
