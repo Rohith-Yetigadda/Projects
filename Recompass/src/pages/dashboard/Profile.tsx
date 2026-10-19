@@ -226,7 +226,7 @@ export default function Profile() {
           <p className="text-[11px] text-white/40 text-center font-medium">
             {data.goal === "fat_loss" && "Fat Loss • Caloric deficit with elevated protein to preserve lean muscle."}
             {data.goal === "muscle_gain" && "Build Muscle • Controlled surplus with 2.2g/kg protein for hypertrophy."}
-            {data.goal === "recomp" && "Body Recomp • Near-maintenance calories with high protein (2.2g/kg) for lean mass."}
+            {data.goal === "recomp" && "Body Recomp • Near-maintenance calories with high protein (1.6g/kg) for lean mass."}
             {data.goal === "maintain" && "Maintenance • True energy balance (1.6g/kg protein) to sustain current physique."}
           </p>
         </section>

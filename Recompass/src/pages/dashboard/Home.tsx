@@ -17,27 +17,16 @@ import {
 type MacroEntry = { id?: string; name: string; quantity: string; calories: number; protein: number; carbs: number; fats: number; loggedAt?: string };
 type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry[]; snacks: MacroEntry[]; totals?: { calories: number; protein: number; carbs: number; fats: number } };
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
+import { calculateMacroTargets } from "@/lib/nutritionCalculator";
 
 function calcTargets(profile: any) {
-  if (profile?.targetOverrides?.enabled) {
-    return {
-      calories: profile.targetOverrides.calories || 2000,
-      protein: profile.targetOverrides.protein || 120,
-      carbs: profile.targetOverrides.carbs || 200,
-      fats: profile.targetOverrides.fats || 60
-    };
-  }
-  const weight = parseFloat(profile?.weight) || 70;
-  const height = parseFloat(profile?.height) || 170;
-  const age    = parseFloat(profile?.age)    || 20;
-  const bmr    = 10 * weight + 6.25 * height - 5 * age + 5;
-  const tdee   = bmr * 1.55;
-  const goal   = profile?.goal || "maintain_weight";
-  const kcal   = goal.includes("muscle") ? tdee + 300 : goal.includes("lose") ? tdee - 300 : tdee;
-  const protein = goal.includes("muscle") ? weight * 2.2 : weight * 1.6;
-  const fats    = (kcal * 0.25) / 9;
-  const carbs   = (kcal - protein * 4 - fats * 9) / 4;
-  return { calories: Math.round(kcal), protein: Math.round(protein), carbs: Math.round(carbs), fats: Math.round(fats) };
+  const targets = calculateMacroTargets(profile);
+  return {
+    calories: targets.calories,
+    protein: targets.protein,
+    carbs: targets.carbs,
+    fats: targets.fats
+  };
 }
 
 const mealLabels: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };

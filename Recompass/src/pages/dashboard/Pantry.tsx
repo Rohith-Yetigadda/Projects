@@ -429,9 +429,30 @@ export default function Pantry() {
     );
   }
 
-  // Summary Metrics (Clean & Accurate)
+  // Summary Metrics (Clean & Accurate: Only genuine protein sources)
   const lowStockCount = items.filter(i => getStockStatus(i) !== "in_stock").length;
-  const proteinCount = items.filter(i => i.category === "Protein" || i.category === "Supplements").length;
+
+  const isActualProteinStaple = (item: PantryItem): boolean => {
+    const cat = (item.category || "").toLowerCase();
+    const name = (item.name || "").toLowerCase();
+
+    // Explicit non-protein supplements should NEVER count as protein staples
+    if (/\b(creatine|pre[- ]?workout|multivitamin|vitamin|fish[- ]?oil|omega|ashwagandha|zinc|magnesium|caffeine|melatonin|electrolyte|bcaa|eaa|glutamine)\b/i.test(name)) {
+      return false;
+    }
+
+    // If categorized as Protein
+    if (cat === "protein") return true;
+
+    // If categorized under other groups (e.g. Supplements, Dairy, Spreads), verify it is genuinely a protein food
+    if (/\b(protein|whey|casein|isolate|plant protein|egg|eggs|egg white|paneer|tofu|soya|soy chunks|chicken|fish|tuna|meat|greek yogurt|cottage cheese)\b/i.test(name)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const proteinCount = items.filter(isActualProteinStaple).length;
 
   // Filtered & Sorted Items
   const filteredItems = items.filter(item => {

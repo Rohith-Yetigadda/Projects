@@ -554,10 +554,10 @@ export default function Cook() {
 
         <Link
           to="/app/pantry"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm self-start sm:self-auto"
         >
-          <Package className="w-3.5 h-3.5" />
-          <span>Manage Pantry</span>
+          <Package className="w-3.5 h-3.5 text-orange-400" />
+          <span>Pantry</span>
         </Link>
       </div>
 

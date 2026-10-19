@@ -355,10 +355,10 @@ export default function Groceries() {
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/app/pantry"
-            className="h-9 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-semibold hover:bg-white/[0.08] hover:text-white transition-all flex items-center gap-2 shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm"
           >
             <Package className="w-3.5 h-3.5 text-orange-400" />
             <span>Pantry</span>
@@ -367,7 +367,7 @@ export default function Groceries() {
           {purchasedCount > 0 && (
             <button 
               onClick={clearPurchased}
-              className="h-9 px-4 rounded-xl border border-white/[0.08] bg-white/[0.02] text-white/50 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 text-xs font-semibold transition-all"
+              className="inline-flex items-center px-4 py-2 rounded-full border border-white/[0.08] bg-white/[0.02] text-white/50 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 text-xs font-bold uppercase tracking-wider transition-all"
             >
               Clear Purchased
             </button>
