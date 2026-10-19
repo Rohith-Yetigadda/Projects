@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
@@ -38,6 +38,24 @@ export default function Progress() {
   const [stats, setStats] = useState(cachedProgress?.stats || { avgCals: 0, avgPro: 0, activeDays: 0 });
   const [chartTab, setChartTab] = useState<"calories" | "protein">("calories");
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
+
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
+  const [isTooltipDismissed, setIsTooltipDismissed] = useState(false);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (chartWrapperRef.current && !chartWrapperRef.current.contains(e.target as Node)) {
+        setIsTooltipDismissed(true);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, []);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -424,7 +442,14 @@ export default function Progress() {
       </div>
 
       {/* Interactive Segmented Chart Card (Eliminates 60% of Vertical Scroll) */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 shadow-xl">
+      <div 
+        ref={chartWrapperRef}
+        onPointerDown={() => setIsTooltipDismissed(false)}
+        onMouseMove={() => setIsTooltipDismissed(false)}
+        onTouchStart={() => setIsTooltipDismissed(false)}
+        onMouseLeave={() => setIsTooltipDismissed(true)}
+        className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 shadow-xl"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-base font-bold text-white tracking-tight">
@@ -491,6 +516,15 @@ export default function Progress() {
                   dx={-5}
                 />
                 <Tooltip 
+                  active={isTooltipDismissed ? false : undefined}
+                  isAnimationActive={true}
+                  animationDuration={250}
+                  animationEasing="ease-out"
+                  wrapperStyle={{ 
+                    transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease",
+                    pointerEvents: "none",
+                    outline: "none"
+                  }}
                   contentStyle={{ 
                     backgroundColor: '#161920', 
                     borderColor: 'rgba(255,255,255,0.1)', 
@@ -545,6 +579,15 @@ export default function Progress() {
                   dx={-5}
                 />
                 <Tooltip 
+                  active={isTooltipDismissed ? false : undefined}
+                  isAnimationActive={true}
+                  animationDuration={250}
+                  animationEasing="ease-out"
+                  wrapperStyle={{ 
+                    transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease",
+                    pointerEvents: "none",
+                    outline: "none"
+                  }}
                   cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                   contentStyle={{ 
                     backgroundColor: '#161920', 
@@ -563,6 +606,7 @@ export default function Progress() {
                       <Cell 
                         key={`cell-${index}`} 
                         fill={entry.protein > 0 ? (metTarget ? '#fb923c' : 'rgba(251, 146, 60, 0.35)') : 'transparent'} 
+                        className="transition-colors duration-200"
                       />
                     );
                   })}

@@ -1905,8 +1905,6 @@ export default function DailyLog() {
     await persistStaples(updated);
     setIsStapleModalOpen(false);
     setEditingStaple(null);
-    setToast(exists ? `Updated "${stapleToSave.name}"` : `Saved "${stapleToSave.name}" to Daily Staples!`);
-    setTimeout(() => setToast(null), 3000);
   };
 
   const handleDeleteStaple = async (id: string) => {
@@ -1915,8 +1913,6 @@ export default function DailyLog() {
     await persistStaples(updated);
     setIsStapleModalOpen(false);
     setEditingStaple(null);
-    setToast("Staple deleted");
-    setTimeout(() => setToast(null), 3000);
   };
 
   const logStaple = async (targetMeal: MealType, staple: StapleMeal) => {

@@ -129,7 +129,11 @@ export default function Cook() {
     }
     try {
       const genSaved = localStorage.getItem(`recompass_generated_recipes_${currentUser.uid}`);
-      setRecipes(genSaved ? JSON.parse(genSaved) : []);
+      const loadedRecipes: Recipe[] = genSaved ? JSON.parse(genSaved) : [];
+      setRecipes(loadedRecipes);
+      if (loadedRecipes.length > 0) {
+        setIsFormCollapsed(true);
+      }
       const saved = localStorage.getItem(`recompass_saved_recipes_${currentUser.uid}`);
       setSavedRecipes(saved ? JSON.parse(saved) : []);
     } catch {
@@ -140,7 +144,7 @@ export default function Cook() {
 
   const [activeRecipeTab, setActiveRecipeTab] = useState<"generated" | "saved">("generated");
   const [activeMobileCardIndex, setActiveMobileCardIndex] = useState(0);
-  const [isFormCollapsed, setIsFormCollapsed] = useState(false);
+  const [isFormCollapsed, setIsFormCollapsed] = useState(true);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
 
