@@ -1430,7 +1430,7 @@ Instructions:
       
       {/* Session History Modal Overlay */}
       {showHistory && (
-        <div className="fixed inset-0 md:left-72 z-50 flex justify-center bg-black/80 backdrop-blur-sm p-4 md:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 lg:left-64 z-50 flex justify-center bg-black/80 backdrop-blur-sm p-4 md:p-6 animate-in fade-in duration-200">
           <div className="w-full max-w-3xl h-full flex flex-col bg-[#0a0a0a] rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2"><History className="w-5 h-5 text-emerald-400" /> Chat History</h2>
@@ -1463,29 +1463,31 @@ Instructions:
         </div>
       )}
 
-      {/* Main Header */}
-      <header className="flex items-center justify-between pb-4 mb-6 border-b border-white/[0.06]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-sm shrink-0">
-            <Compass className="w-5 h-5 stroke-[2.2]" />
+      {/* Main Sticky Header (Persists while scrolling so History button is always accessible) */}
+      <header className="sticky top-0 z-30 -mt-3.5 md:-mt-6 pt-3.5 md:pt-6 pb-3 mb-6 bg-[#0a0b0e]/95 backdrop-blur-xl border-b border-white/[0.06] -mx-3.5 sm:-mx-4 md:-mx-6 px-3.5 sm:px-4 md:px-6 transition-all">
+        <div className="max-w-3xl mx-auto flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-sm shrink-0">
+              <Compass className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white font-sans">Compass AI</h1>
+              <p className="text-white/40 font-medium text-xs flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Nutrition Intelligence</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">Compass AI</h1>
-            <p className="text-white/40 font-medium text-xs flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Nutrition Intelligence</span>
-            </p>
-          </div>
+          
+          {/* History Toggle Button */}
+          <button 
+            onClick={() => setShowHistory(true)} 
+            className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shadow-sm"
+            title="Chat History"
+          >
+            <History className="w-4 h-4" />
+          </button>
         </div>
-        
-        {/* History Toggle Button */}
-        <button 
-          onClick={() => setShowHistory(true)} 
-          className="w-9 h-9 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-          title="Chat History"
-        >
-          <History className="w-4 h-4" />
-        </button>
       </header>
 
       <div className="flex-1 space-y-6">
