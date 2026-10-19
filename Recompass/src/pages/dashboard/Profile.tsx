@@ -127,30 +127,13 @@ export default function Profile() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button 
-            type="button"
-            onClick={handleSave} 
-            disabled={saving} 
-            className="h-10 px-4 rounded-2xl bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-          >
-            {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : saveSuccess ? (
-              <><Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> <span className="hidden sm:inline">Saved</span></>
-            ) : (
-              <span>Save</span>
-            )}
-          </button>
-
-          <button 
-            onClick={() => setShowSignOutConfirm(true)} 
-            title="Sign out"
-            className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowSignOutConfirm(true)} 
+          title="Sign out"
+          className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all shrink-0"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </header>
 
       <div className="space-y-6">
@@ -237,24 +220,25 @@ export default function Profile() {
             </div>
           </div>
           
-          <div className="p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-2 sm:grid-cols-4 gap-1">
+          <div className="p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] grid grid-cols-4 gap-1">
             {[
-              { id: "fat_loss", label: "Fat Loss" },
-              { id: "muscle_gain", label: "Build Muscle" },
-              { id: "recomp", label: "Recomp" },
-              { id: "maintain", label: "Maintenance" }
+              { id: "fat_loss", label: "Fat Loss", short: "Fat Loss" },
+              { id: "muscle_gain", label: "Build Muscle", short: "Muscle" },
+              { id: "recomp", label: "Recomp", short: "Recomp" },
+              { id: "maintain", label: "Maintenance", short: "Maintain" }
             ].map(g => (
               <button 
                 key={g.id} 
                 type="button"
                 onClick={() => setData({...data, goal: g.id})}
-                className={`py-2 px-2.5 rounded-xl text-center text-xs font-bold transition-all ${
+                className={`py-2 px-1 sm:px-2.5 rounded-xl text-center text-[11px] sm:text-xs font-bold transition-all truncate select-none ${
                   data.goal === g.id 
                     ? "bg-white text-black shadow-sm font-extrabold" 
                     : "text-white/50 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                {g.label}
+                <span className="hidden sm:inline">{g.label}</span>
+                <span className="sm:hidden">{g.short}</span>
               </button>
             ))}
           </div>
