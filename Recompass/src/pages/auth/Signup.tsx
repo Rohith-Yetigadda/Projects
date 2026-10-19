@@ -4,13 +4,15 @@ import { auth, db } from "@/lib/firebase/config";
 import { setDoc, doc, getDoc } from "firebase/firestore";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Compass, Eye, EyeOff, AlertCircle, ArrowLeft, Loader2, Check } from "lucide-react";
+import { Compass, Eye, EyeOff, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -29,6 +31,14 @@ export default function Signup() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name) return;
+    if (password.length < 6) {
+      setError("Password should be at least 6 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     try {
       setError("");
       setLoading(true);
@@ -159,7 +169,7 @@ export default function Signup() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Rohith Kumar"
+                placeholder="Aarav Sharma"
                 className="w-full h-11 px-3.5 rounded-xl bg-[#0c0e12] border border-white/[0.08] focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 text-white placeholder-white/25 text-xs transition-all outline-none"
               />
             </div>
@@ -202,15 +212,27 @@ export default function Signup() {
               </div>
             </div>
 
-            {/* Quick value props */}
-            <div className="pt-1 space-y-1 text-[11px] text-white/50">
-              <div className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Zero food scales needed — log in rotis and paddles</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Instant AI mess menu timetable scanner</span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-white/70 block uppercase tracking-wider">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="w-full h-11 px-3.5 pr-10 rounded-xl bg-[#0c0e12] border border-white/[0.08] focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 text-white placeholder-white/25 text-xs transition-all outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

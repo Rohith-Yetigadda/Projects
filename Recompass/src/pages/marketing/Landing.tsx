@@ -27,7 +27,7 @@ export default function Landing() {
   const faqs = [
     {
       q: "How does Recompass calculate calories if the hostel mess doesn't publish nutritional info?",
-      a: "Recompass uses a proprietary Indian mess and institutional dining database. We calibrate typical mess hall recipes (oil usage, dal dilution, flour weights per roti, rice ladle volumes) into discrete units like rotis, paddles, and katoris so your estimates are accurate without needing a food scale."
+      a: "Recompass uses a calibrated Indian mess and institutional dining database. We calibrate typical mess hall recipes into discrete units like rotis, paddles, and ladles so your estimates are accurate without needing a food scale."
     },
     {
       q: "Can I log my dorm room snacks and whey protein alongside mess food?",
@@ -154,71 +154,67 @@ export default function Landing() {
       </header>
 
       {/* ── Hero Section ─────────────────────────────────────────── */}
-      <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center">
+      <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center">
         
         {/* Pill Tagline */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-white/80 text-[11px] font-semibold tracking-wide backdrop-blur-md mb-6 animate-in fade-in duration-500 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-white/60">Campus Nutrition</span>
-          <span className="text-white/30">•</span>
-          <span className="text-emerald-400 font-semibold">Engineered for Hostel Living</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-[11px] font-semibold tracking-wide backdrop-blur-md mb-6 animate-in fade-in duration-500 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span>Built for Campus &amp; Hostel Dining</span>
         </div>
 
-        {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tightest leading-[1.08] text-white max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Master your macros. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-            Even when you don't cook.
-          </span>
+        {/* Main Headline (Clean, authoritative, high-contrast typography) */}
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tightest leading-[1.12] text-white max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-3 duration-700 font-sans">
+          Hit your daily macros. <br className="hidden sm:inline" />
+          <span className="text-white/60">Even with hostel mess food.</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="mt-6 text-sm sm:text-base md:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-          Traditional fitness apps expect you to weigh raw chicken with a scale. Recompass is built for hostel students: log rotis in pieces, rice in mess paddles, and dal in katoris. Scan your hostel timetable and hit your daily protein goal effortlessly.
+        <p className="mt-5 text-sm sm:text-base text-white/55 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
+          Log rotis in pieces, rice in paddles, and dal in ladles. Built for campus dining so you stay consistent and hit your fitness targets all semester.
         </p>
 
-        {/* Action Buttons (Clean & Normal) */}
-        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300">
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300">
           <Link
             to="/signup"
-            className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-white text-black font-bold text-sm hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2 group"
           >
             <span>Get Started Free</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <Link
             to="/login"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-sm transition-all flex items-center justify-center"
+            className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center"
           >
-            Sign In to Account
+            Sign In
           </Link>
         </div>
 
         {/* Highlights Bar */}
-        <div className="mt-14 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-3.5 max-w-4xl mx-auto text-left">
-          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5" /> Notice Board AI
+        <div className="mt-12 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto text-left">
+          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
+            <p className="text-white font-bold text-xs flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-emerald-400" /> Timetable AI
             </p>
-            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Parses photo/PDF mess timetables into daily meals</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Turn timetable photos into your weekly schedule</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <UtensilsCrossed className="w-3.5 h-3.5" /> Mess Portions
+          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
+            <p className="text-white font-bold text-xs flex items-center gap-1.5">
+              <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-400" /> Mess Portions
             </p>
-            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Rotis, paddles, katoris & ladles without a food scale</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Rotis, paddles, and ladles without a food scale</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5" /> Plate AI Scanner
+          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
+            <p className="text-white font-bold text-xs flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5 text-emerald-400" /> Plate Scanner
             </p>
-            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Snap your hostel plate for instant macro breakdown</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Snap your lunch plate for instant estimates</p>
           </div>
-          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5" /> Dorm Pantry
+          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
+            <p className="text-white font-bold text-xs flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5 text-emerald-400" /> Dorm Pantry
             </p>
-            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Track whey protein, oats & peanut butter inventory</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Track whey, oats, and personal snacks</p>
           </div>
         </div>
       </section>
@@ -318,11 +314,11 @@ export default function Landing() {
                 <p className="text-[11px] text-white/40 font-mono">200 kcal • 4g P</p>
               </div>
               <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                <p className="font-semibold text-white truncate">1 Katori Dal Tadka</p>
+                <p className="font-semibold text-white truncate">1 Ladle Dal Tadka</p>
                 <p className="text-[11px] text-white/40 font-mono">150 kcal • 8g P</p>
               </div>
               <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                <p className="font-semibold text-white truncate">1 Bowl Curd / Dahi</p>
+                <p className="font-semibold text-white truncate">1 Cup Curd / Dahi</p>
                 <p className="text-[11px] text-white/40 font-mono">100 kcal • 6g P</p>
               </div>
             </div>
@@ -336,7 +332,7 @@ export default function Landing() {
             <div>
               <p className="text-xs font-bold text-emerald-300">Compass AI Recommendation</p>
               <p className="text-xs text-white/70 mt-0.5 leading-relaxed">
-                You're only <span className="font-bold text-white">12g protein</span> away from your daily goal. Tonight's mess dinner features Paneer Bhurji and Mixed Dal — having 2 katoris of Paneer Bhurji will close your protein ring with zero extra shakes required.
+                You're only <span className="font-bold text-white">12g protein</span> away from your daily goal. Tonight's mess dinner features Paneer Bhurji and Mixed Dal — having 2 servings of Paneer Bhurji will close your protein ring with zero extra shakes required.
               </p>
             </div>
           </div>
@@ -392,7 +388,7 @@ export default function Landing() {
             <ul className="space-y-3 text-xs sm:text-sm text-white/70">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 font-bold">✓</span>
-                <span>Portions in real mess units: rotis in pieces, rice in paddles, and dal in katoris.</span>
+                <span>Portions in real mess units: rotis in pieces, rice in paddles, and dal in ladles.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 font-bold">✓</span>
@@ -441,7 +437,7 @@ export default function Landing() {
             </div>
             <h3 className="text-base font-bold text-white">Zero-Scale Mess Calibration</h3>
             <p className="text-xs text-white/50 leading-relaxed">
-              Count rotis, rice paddles, dal katoris, and eggs naturally. Calibrated nutrition values modeled specifically for institutional cooking.
+              Count rotis, rice paddles, dal ladles, and eggs naturally. Calibrated nutrition values modeled specifically for institutional cooking.
             </p>
           </div>
 

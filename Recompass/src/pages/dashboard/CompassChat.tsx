@@ -211,22 +211,23 @@ export default function CompassChat() {
         if (todayMenu) menuStr = JSON.stringify(todayMenu);
       }
 
-      // Pantry
-      const pantrySnap = await getDoc(doc(db, "users", currentUser.uid, "pantry", "current"));
+      // Parallelize Pantry, Groceries, and Staples fetches for instant response
+      const [pantrySnap, grocSnap, staplesSnap] = await Promise.all([
+        getDoc(doc(db, "users", currentUser.uid, "pantry", "current")),
+        getDoc(doc(db, "users", currentUser.uid, "groceries", "current")),
+        getDocs(collection(db, "users", currentUser.uid, "staples"))
+      ]);
+
       const pantryItems = pantrySnap.exists() ? (pantrySnap.data().items || []) : [];
       const pantryStr = pantryItems.length > 0
         ? pantryItems.map((p: any) => `${p.name}: ${p.quantity} ${p.unit} (${p.category})`).join(", ")
         : "No items currently logged in pantry.";
 
-      // Groceries
-      const grocSnap = await getDoc(doc(db, "users", currentUser.uid, "groceries", "current"));
       const grocItems = grocSnap.exists() ? (grocSnap.data().items || []) : [];
       const grocStr = grocItems.length > 0
         ? grocItems.map((g: any) => `${g.name} (${g.category})${g.purchased ? " [Purchased]" : ""}`).join(", ")
         : "No grocery items currently on list.";
 
-      // Custom Reusable Staples
-      const staplesSnap = await getDocs(collection(db, "users", currentUser.uid, "staples"));
       const staplesList: any[] = [];
       staplesSnap.docs.forEach(d => staplesList.push({ id: d.id, ...d.data() }));
       const staplesStr = staplesList.length > 0

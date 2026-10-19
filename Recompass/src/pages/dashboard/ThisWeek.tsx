@@ -81,7 +81,7 @@ export default function ThisWeek() {
   const dayPlan = sortedMenu[selectedDay] || sortedMenu[0];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-2 sm:pb-4 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 pb-2 sm:pb-4 animate-in fade-in duration-500">
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

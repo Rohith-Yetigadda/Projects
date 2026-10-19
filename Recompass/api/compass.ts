@@ -14,70 +14,32 @@ export const config = {
 
 const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
-let cachedWorkingModel: string | null = null;
-let lastDiscoveryTime = 0;
-let discoveredModelsCache: string[] = [];
+let cachedWorkingModel: string | null = "gemini-2.5-flash";
 
 const DEFAULT_FALLBACK_CHAIN = [
-  "gemini-flash-latest",
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.5-flash",
-  "gemini-flash-lite-latest",
   "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash-lite",
 ];
-
-async function getCandidateModels(key: string): Promise<string[]> {
-  const now = Date.now();
-  // Refresh model discovery every 6 hours
-  if (discoveredModelsCache.length > 0 && now - lastDiscoveryTime < 6 * 60 * 60 * 1000) {
-    return cachedWorkingModel 
-      ? [cachedWorkingModel, ...discoveredModelsCache.filter(m => m !== cachedWorkingModel)]
-      : discoveredModelsCache;
-  }
-
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-    if (res.ok) {
-      const data: any = await res.json();
-      if (Array.isArray(data?.models)) {
-        const live = data.models
-          .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-          .map((m: any) => m.name.replace(/^models\//, ""))
-          .filter((name: string) => name.includes("flash") && !name.includes("tts") && !name.includes("preview-tts"));
-
-        if (live.length > 0) {
-          discoveredModelsCache = Array.from(new Set(["gemini-flash-latest", ...live, ...DEFAULT_FALLBACK_CHAIN]));
-          lastDiscoveryTime = now;
-          return cachedWorkingModel 
-            ? [cachedWorkingModel, ...discoveredModelsCache.filter(m => m !== cachedWorkingModel)]
-            : discoveredModelsCache;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("[compass] Live model discovery failed, using fallback chain:", err);
-  }
-
-  return cachedWorkingModel
-    ? [cachedWorkingModel, ...DEFAULT_FALLBACK_CHAIN.filter(m => m !== cachedWorkingModel)]
-    : DEFAULT_FALLBACK_CHAIN;
-}
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {
   const config = isJson ? { responseMimeType: "application/json" } : {};
-  const candidates = await getCandidateModels(apiKey!);
+  const candidates = cachedWorkingModel 
+    ? [cachedWorkingModel, ...DEFAULT_FALLBACK_CHAIN.filter(m => m !== cachedWorkingModel)]
+    : DEFAULT_FALLBACK_CHAIN;
 
   let lastErr: any = null;
   for (const m of candidates) {
     try {
       const model = genAI.getGenerativeModel({ model: m, generationConfig: config });
       const result = await model.generateContent({ contents });
-      cachedWorkingModel = m; // Remember successful model for 0ms retry penalty
+      cachedWorkingModel = m; // Remember working model for instant 0ms subsequent calls
       return result;
     } catch (err: any) {
       lastErr = err;
-      console.warn(`[compass] Model ${m} unavailable or error (${err?.message || err}). Trying next candidate...`);
+      console.warn(`[compass] Model ${m} error (${err?.message || err}). Trying next candidate...`);
     }
   }
 
