@@ -197,6 +197,28 @@ export function fastClassifyFood(
 }
 
 /**
+ * Automatically migrates legacy or misclassified food categories.
+ * e.g. Peanut butter, mayo, jam, ketchup, nutella, hummus stored under Dairy, Snacks, or Other -> Spreads.
+ */
+export function migrateFoodCategory(name: string, currentCategory: string): FoodCategory {
+  const n = (name || "").toLowerCase().trim();
+  const c = (currentCategory || "").trim();
+
+  // Spreads check
+  if (/\b(peanut butter|pb|mayo|mayonnaise|ketchup|tomato ketchup|jam|jams|marmalade|chocolate spread|nutella|hummus|cream cheese spread|spreads?)\b/i.test(n)) {
+    return "Spreads";
+  }
+
+  // Return valid category or fast-classified fallback
+  const matched = FOOD_CATEGORIES.find(cat => cat.toLowerCase() === c.toLowerCase());
+  if (matched) {
+    return matched;
+  }
+
+  return fastClassifyFood(name).category;
+}
+
+/**
  * Classifies food inputs dynamically using Gemini AI with instant local fast-path fallback.
  * Checks local cache first; if known staple, returns in <1ms; otherwise queries /api/compass.
  */

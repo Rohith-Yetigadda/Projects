@@ -16,7 +16,7 @@ import {
   AlertTriangle,
   Wallet
 } from "lucide-react";
-import { classifyFoodWithAI, fastClassifyFood } from "@/lib/geminiClassifier";
+import { classifyFoodWithAI, fastClassifyFood, migrateFoodCategory } from "@/lib/geminiClassifier";
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
 import { getStockStatus, type PantryItem } from "./Pantry";
@@ -78,8 +78,23 @@ export default function Groceries() {
         if (!isMounted) return;
         if (snap.exists()) {
           const loaded: GroceryItem[] = snap.data().items || [];
-          setItems(loaded);
-          setCachedData("grocery_items", loaded);
+          let hadMigrations = false;
+          const migrated: GroceryItem[] = loaded.map(item => {
+            const newCat = migrateFoodCategory(item.name, item.category);
+            if (newCat !== item.category) {
+              hadMigrations = true;
+              return { ...item, category: newCat };
+            }
+            return item;
+          });
+          setItems(migrated);
+          setCachedData("grocery_items", migrated);
+          if (hadMigrations && currentUser) {
+            updateDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
+              items: migrated,
+              lastUpdated: new Date().toISOString()
+            }).catch(console.error);
+          }
         } else {
           await setDoc(doc(db, "users", currentUser.uid, "groceries", "current"), {
             items: [],
@@ -346,13 +361,13 @@ export default function Groceries() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
             <Sparkles className="w-3 h-3 text-emerald-400" />
-            <span>Pantry & Groceries</span>
+            <span>Shopping & Restock List</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
-            Shopping List
+            Groceries
           </h1>
           <p className="text-sm font-normal text-white/45 mt-1.5">
-            {pendingCount === 0 ? "All items purchased and stocked." : pendingCount === 1 ? "1 item remaining to purchase" : `${pendingCount} items remaining to purchase`}
+            {pendingCount === 0 ? "All items purchased and stocked." : pendingCount === 1 ? "1 item remaining on shopping list" : `${pendingCount} items remaining on shopping list`}
           </p>
         </div>
         
@@ -409,7 +424,7 @@ export default function Groceries() {
             className="h-9 px-4 rounded-xl bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm shrink-0 self-end sm:self-auto flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add All to Shopping List</span>
+            <span>Add All to Groceries</span>
           </button>
         </div>
       )}

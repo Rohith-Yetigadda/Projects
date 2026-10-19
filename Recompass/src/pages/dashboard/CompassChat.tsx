@@ -1058,8 +1058,8 @@ Instructions:
               executedActions.push({
                 id: createActionId(),
                 type: "ADD_GROCERIES",
-                title: "Grocery Shopping List Updated",
-                description: `Added ${filteredNew.length} items to your shopping list`,
+                title: "Groceries Updated",
+                description: `Added ${filteredNew.length} items to your groceries list`,
                 store: "groceries",
                 status: "success"
               });
@@ -1086,7 +1086,7 @@ Instructions:
                   id: createActionId(),
                   type: "REMOVE_GROCERIES",
                   title: "Grocery Items Removed",
-                  description: `Removed ${currentItems.length - filtered.length} items from your shopping list`,
+                  description: `Removed ${currentItems.length - filtered.length} items from your groceries list`,
                   store: "groceries",
                   status: "success"
                 });
@@ -1138,7 +1138,7 @@ Instructions:
                   id: createActionId(),
                   type: "UNCHECK_GROCERIES",
                   title: "Groceries Unchecked",
-                  description: `Unchecked ${itemsToUncheck.length} items on shopping list`,
+                  description: `Unchecked ${itemsToUncheck.length} items on groceries list`,
                   store: "groceries",
                   status: "success"
                 });
@@ -1155,7 +1155,7 @@ Instructions:
               id: createActionId(),
               type: "CLEAR_GROCERIES",
               title: "Grocery List Cleared",
-              description: "Emptied your entire shopping list",
+              description: "Emptied your groceries list",
               store: "groceries",
               status: "success"
             });
@@ -1574,7 +1574,7 @@ Instructions:
             </div>
           </div>
         )}
-        <div ref={endRef} className="h-16 lg:h-12 shrink-0" />
+        <div ref={endRef} className="h-32 lg:h-16 shrink-0" />
       </div>
 
       <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-0 lg:left-64 right-0 px-4 lg:px-0 z-40 pointer-events-none">

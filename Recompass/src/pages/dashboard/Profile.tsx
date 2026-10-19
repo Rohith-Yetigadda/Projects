@@ -127,13 +127,30 @@ export default function Profile() {
           </p>
         </div>
 
-        <button 
-          onClick={() => setShowSignOutConfirm(true)} 
-          title="Sign out"
-          className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            type="button"
+            onClick={handleSave} 
+            disabled={saving} 
+            className="h-10 px-4 rounded-2xl bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : saveSuccess ? (
+              <><Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" /> <span className="hidden sm:inline">Saved</span></>
+            ) : (
+              <span>Save</span>
+            )}
+          </button>
+
+          <button 
+            onClick={() => setShowSignOutConfirm(true)} 
+            title="Sign out"
+            className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-rose-400 hover:border-rose-500/20 hover:bg-rose-500/10 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </header>
 
       <div className="space-y-6">
@@ -245,7 +262,7 @@ export default function Profile() {
           <p className="text-[11px] text-white/40 text-center font-medium">
             {data.goal === "fat_loss" && "Fat Loss • Caloric deficit with elevated protein to preserve lean muscle."}
             {data.goal === "muscle_gain" && "Build Muscle • Controlled surplus with 2.2g/kg protein for hypertrophy."}
-            {data.goal === "recomp" && "Body Recomp • Near-maintenance calories with high protein (1.6g/kg) for lean mass."}
+            {data.goal === "recomp" && "Body Recomp • Slight deficit (-175 kcal) with high protein (2.0g/kg) to build muscle and burn fat."}
             {data.goal === "maintain" && "Maintenance • True energy balance (1.6g/kg protein) to sustain current physique."}
           </p>
         </section>
@@ -460,12 +477,13 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Desktop Save Button */}
-        <div className="hidden md:block">
+        {/* Save Button (Accessible on both Mobile and Desktop) */}
+        <div className="pt-2 pb-6">
           <button 
+            type="button"
             onClick={handleSave} 
             disabled={saving} 
-            className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            className="w-full h-12 bg-white text-black rounded-2xl font-bold text-xs tracking-wider uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />

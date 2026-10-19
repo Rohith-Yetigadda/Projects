@@ -88,9 +88,9 @@ export function calculateMacroTargets(profile: UserVitals | null | undefined): C
     targetCals = tdee + 300;
     targetProtein = weight * 2.2;
   } else if (rawGoal.includes("recomp")) {
-    // Body Recomposition: Near-maintenance (-100 kcal) with high protein (1.6g/kg)
-    targetCals = Math.max(1200, tdee - 100);
-    targetProtein = weight * 1.6;
+    // Body Recomposition: Slight deficit (-175 kcal) with high protein (2.0g/kg) for concurrent muscle synthesis & fat loss
+    targetCals = Math.max(1200, tdee - 175);
+    targetProtein = weight * 2.0;
   } else if (rawGoal.includes("fat") || rawGoal.includes("lose")) {
     // Fat Loss deficit: -350 kcal, 2.0g/kg protein (prevent muscle loss during deficit)
     targetCals = Math.max(1200, tdee - 350);

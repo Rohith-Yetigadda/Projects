@@ -110,7 +110,7 @@ export default function Onboarding() {
     {
       id: "recomp",
       label: "Body Recomp",
-      desc: "Near-maintenance calories with high protein (1.6g/kg) to build muscle and drop fat.",
+      desc: "Near-maintenance calories with high protein (2.0g/kg) to build muscle and drop fat.",
       icon: Target,
       color: "text-emerald-400",
       borderActive: "border-emerald-500/50 bg-emerald-500/[0.06]"
