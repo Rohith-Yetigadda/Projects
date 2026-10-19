@@ -45,31 +45,11 @@ export default function Progress() {
 
     const fetchLast7Days = async () => {
       try {
-        // Calculate user's target calories via centralized sports nutrition target engine
-        let targetCals = 2000;
-        let targetPro = 120;
-        let targetCarbs = 200;
-        let targetFats = 55;
-
-        if (userProfile && userProfile.targetOverrides?.enabled && userProfile.targetOverrides.calories) {
-          targetCals = Number(userProfile.targetOverrides.calories);
-          targetPro = Number(userProfile.targetOverrides.protein || 120);
-          targetCarbs = Number(userProfile.targetOverrides.carbs || 200);
-          targetFats = Number(userProfile.targetOverrides.fats || 55);
-        } else if (userProfile) {
-          const calc = calculateMacroTargets({
-            weight: userProfile.weight,
-            height: userProfile.height,
-            age: userProfile.age,
-            goal: userProfile.goal,
-            gender: userProfile.gender,
-            activity: userProfile.activity
-          });
-          targetCals = calc.calories;
-          targetPro = calc.protein;
-          targetCarbs = calc.carbs;
-          targetFats = calc.fats;
-        }
+        const calc = calculateMacroTargets(userProfile);
+        const targetCals = calc.calories;
+        const targetPro = calc.protein;
+        const targetCarbs = calc.carbs;
+        const targetFats = calc.fats;
 
         if (isMounted) {
           setTargetCalories(targetCals);
