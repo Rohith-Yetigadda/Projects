@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
-  Sparkles, 
   ArrowRight, 
   Compass, 
   UtensilsCrossed, 
@@ -12,11 +11,14 @@ import {
   ChevronDown, 
   Zap, 
   Sun, 
-  TrendingUp 
+  TrendingUp,
+  Menu,
+  X
 } from "lucide-react";
 
 export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -41,7 +43,7 @@ export default function Landing() {
     },
     {
       q: "Is Recompass free to use?",
-      a: "Yes! Recompass was created by students, for students. You can sign up, scan your menu, and track your daily macros without a credit card."
+      a: "Yes! Recompass was created by students, for students. You can sign up, scan your menu, and track your daily macros completely free."
     }
   ];
 
@@ -49,18 +51,18 @@ export default function Landing() {
     <div className="min-h-screen bg-[#0a0b0e] text-white selection:bg-emerald-500/30 selection:text-emerald-300 font-sans antialiased overflow-x-hidden">
       
       {/* Ambient background glows */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-emerald-500/[0.04] blur-[150px] pointer-events-none rounded-full" />
-      <div className="fixed top-1/3 -left-40 w-[500px] h-[500px] bg-blue-500/[0.03] blur-[160px] pointer-events-none rounded-full" />
-      <div className="fixed bottom-10 -right-40 w-[600px] h-[600px] bg-purple-500/[0.03] blur-[180px] pointer-events-none rounded-full" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-emerald-500/[0.045] blur-[160px] pointer-events-none rounded-full" />
+      <div className="fixed top-1/3 -left-48 w-[550px] h-[550px] bg-teal-500/[0.03] blur-[170px] pointer-events-none rounded-full" />
+      <div className="fixed bottom-10 -right-48 w-[650px] h-[650px] bg-cyan-500/[0.03] blur-[190px] pointer-events-none rounded-full" />
 
       {/* ── Top Navbar ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0b0e]/80 border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0b0e]/80 border-b border-white/[0.06] transition-all">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <Compass className="w-5 h-5 stroke-[2.2]" />
+            <div className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.15)] group-hover:scale-105 transition-transform duration-200">
+              <Compass className="w-4.5 h-4.5 stroke-[2.2]" />
             </div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base tracking-tight text-white font-sans">Recompass</span>
@@ -70,40 +72,96 @@ export default function Landing() {
             </div>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-white/60">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#calibration" className="hover:text-white transition-colors">Mess Calibration</a>
-            <a href="#preview" className="hover:text-white transition-colors">Product Preview</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+          {/* Desktop Nav Links (Clean, 100% relevant to page sections) */}
+          <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-white/60">
+            <a href="#features" className="hover:text-white transition-colors py-1">Features</a>
+            <a href="#how-it-works" className="hover:text-white transition-colors py-1">How It Works</a>
+            <a href="#faq" className="hover:text-white transition-colors py-1">FAQ</a>
           </nav>
 
           {/* Right CTAs */}
-          <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3">
             <Link 
               to="/login" 
-              className="text-xs font-semibold text-white/70 hover:text-white px-3 py-2 rounded-xl transition-colors"
+              className="text-xs font-semibold text-white/70 hover:text-white px-3.5 py-2 rounded-xl hover:bg-white/[0.04] transition-all"
             >
               Sign In
             </Link>
             <Link 
               to="/signup" 
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-[0.98] transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-bold hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-sm"
             >
               <span>Get Started</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <Link 
+              to="/login" 
+              className="text-xs font-semibold text-white/70 hover:text-white px-2.5 py-1.5"
+            >
+              Sign In
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 hover:text-white transition-all"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
+
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t border-white/[0.06] bg-[#0a0b0e]/95 backdrop-blur-2xl px-4 py-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <nav className="flex flex-col space-y-2 text-sm font-medium text-white/70">
+              <a 
+                href="#features" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-xl hover:bg-white/[0.04] hover:text-white transition-colors"
+              >
+                Features
+              </a>
+              <a 
+                href="#how-it-works" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-xl hover:bg-white/[0.04] hover:text-white transition-colors"
+              >
+                How It Works
+              </a>
+              <a 
+                href="#faq" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-xl hover:bg-white/[0.04] hover:text-white transition-colors"
+              >
+                FAQ
+              </a>
+            </nav>
+            <div className="pt-2 border-t border-white/[0.06] flex flex-col gap-2">
+              <Link 
+                to="/signup"
+                className="w-full py-2.5 rounded-full bg-white text-black text-xs font-bold text-center hover:bg-neutral-200 transition-all shadow-sm"
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── Hero Section ─────────────────────────────────────────── */}
       <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center">
         
         {/* Pill Tagline */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tracking-wider uppercase mb-6 animate-in fade-in duration-500">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Engineered for University Hostels & Campus Dining</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-white/80 text-[11px] font-semibold tracking-wide backdrop-blur-md mb-6 animate-in fade-in duration-500 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-white/60">Campus Nutrition</span>
+          <span className="text-white/30">•</span>
+          <span className="text-emerald-400 font-semibold">Engineered for Hostel Living</span>
         </div>
 
         {/* Main Headline */}
@@ -119,60 +177,65 @@ export default function Landing() {
           Traditional fitness apps expect you to weigh raw chicken with a scale. Recompass is built for hostel students: log rotis in pieces, rice in mess paddles, and dal in katoris. Scan your hostel timetable and hit your daily protein goal effortlessly.
         </p>
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Clean & Normal) */}
         <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300">
           <Link
             to="/signup"
-            className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-white text-black font-bold text-sm hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2 group"
           >
-            <span>Start Free — No Card Needed</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Get Started Free</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <Link
             to="/login"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#121418] hover:bg-white/[0.06] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-sm transition-all flex items-center justify-center"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-sm transition-all flex items-center justify-center"
           >
-            Sign In to Existing Account
+            Sign In to Account
           </Link>
         </div>
 
         {/* Highlights Bar */}
-        <div className="mt-12 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-          <div className="p-3.5 rounded-2xl bg-[#121418]/60 border border-white/[0.04]">
+        <div className="mt-14 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-3.5 max-w-4xl mx-auto text-left">
+          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
             <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" /> Notice Board AI
             </p>
-            <p className="text-white/50 text-[11px] mt-1">Parses photo/PDF mess timetables into daily meals</p>
+            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Parses photo/PDF mess timetables into daily meals</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418]/60 border border-white/[0.04]">
+          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
             <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
               <UtensilsCrossed className="w-3.5 h-3.5" /> Mess Portions
             </p>
-            <p className="text-white/50 text-[11px] mt-1">Rotis, paddles, katoris & ladles without a food scale</p>
+            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Rotis, paddles, katoris & ladles without a food scale</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418]/60 border border-white/[0.04]">
+          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
             <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
               <Camera className="w-3.5 h-3.5" /> Plate AI Scanner
             </p>
-            <p className="text-white/50 text-[11px] mt-1">Snap your hostel plate for instant macro breakdown</p>
+            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Snap your hostel plate for instant macro breakdown</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418]/60 border border-white/[0.04]">
+          <div className="p-4 rounded-2xl bg-[#121418]/60 border border-white/[0.05] hover:border-white/[0.1] transition-all">
             <p className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
               <Package className="w-3.5 h-3.5" /> Dorm Pantry
             </p>
-            <p className="text-white/50 text-[11px] mt-1">Track whey protein, oats & peanut butter inventory</p>
+            <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">Track whey protein, oats & peanut butter inventory</p>
           </div>
         </div>
       </section>
 
       {/* ── App Live Preview Mockup ──────────────────────────────── */}
-      <section id="preview" className="px-4 sm:px-6 max-w-5xl mx-auto my-12 sm:my-16">
-        <div className="rounded-3xl bg-gradient-to-b from-[#121418] to-[#0c0e12] border border-white/[0.08] p-4 sm:p-7 shadow-2xl relative overflow-hidden">
+      <section id="preview" className="scroll-mt-24 px-4 sm:px-6 max-w-5xl mx-auto my-12 sm:my-16">
+        <div className="rounded-3xl bg-gradient-to-b from-[#14171d] via-[#101217] to-[#0a0b0e] border border-white/[0.08] p-4 sm:p-7 shadow-[0_20px_70px_-10px_rgba(0,0,0,0.8)] relative overflow-hidden">
           
           {/* Top Bar of Mockup */}
           <div className="flex flex-wrap items-center justify-between pb-5 border-b border-white/[0.06] gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center font-bold text-xs">
+              <div className="flex items-center gap-1.5 pr-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/40 border border-rose-500/50" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/40 border border-amber-500/50" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/40 border border-emerald-500/50" />
+              </div>
+              <div className="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs">
                 R
               </div>
               <div>
@@ -180,7 +243,7 @@ export default function Landing() {
                 <p className="text-[11px] text-white/40">Target: Muscle Gain • 2,450 kcal • 140g Protein</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[11px] font-semibold text-emerald-400">Live Campus Mess Sync</span>
             </div>
@@ -281,19 +344,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Problem vs Solution ─────────────────────────────────── */}
-      <section id="calibration" className="px-4 sm:px-6 max-w-5xl mx-auto py-16 border-t border-white/[0.06]">
+      {/* ── How It Works (Problem vs Solution) ───────────────────── */}
+      <section id="how-it-works" className="scroll-mt-24 px-4 sm:px-6 max-w-5xl mx-auto py-16 sm:py-20 border-t border-white/[0.06]">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-2">The Hostel Nutrition Dilemma</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-3">
+            <span>How It Works</span>
+          </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">Why standard calorie trackers fail students</h2>
-          <p className="text-white/50 text-xs sm:text-sm mt-3">
+          <p className="text-white/50 text-xs sm:text-sm mt-3 leading-relaxed">
             Regular apps are built for people with their own kitchens and electronic scales. Here is how Recompass fixes the student reality.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Old Way */}
-          <div className="p-6 rounded-3xl bg-[#121418]/60 border border-rose-500/20 space-y-4">
+          <div className="p-6 sm:p-7 rounded-3xl bg-[#121418]/60 border border-rose-500/20 space-y-4 hover:border-rose-500/30 transition-all">
             <div className="flex items-center gap-2.5 text-rose-400 font-bold text-sm">
               <XCircle className="w-5 h-5 shrink-0" />
               <span>Standard Tracking Apps</span>
@@ -319,7 +384,7 @@ export default function Landing() {
           </div>
 
           {/* Recompass Way */}
-          <div className="p-6 rounded-3xl bg-emerald-950/20 border border-emerald-500/30 space-y-4">
+          <div className="p-6 sm:p-7 rounded-3xl bg-emerald-950/20 border border-emerald-500/30 space-y-4 shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)] hover:border-emerald-500/40 transition-all">
             <div className="flex items-center gap-2.5 text-emerald-400 font-bold text-sm">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
               <span>The Recompass Experience</span>
@@ -347,16 +412,21 @@ export default function Landing() {
       </section>
 
       {/* ── Feature Pillars Grid ─────────────────────────────────── */}
-      <section id="features" className="px-4 sm:px-6 max-w-5xl mx-auto py-16 border-t border-white/[0.06]">
+      <section id="features" className="scroll-mt-24 px-4 sm:px-6 max-w-5xl mx-auto py-16 sm:py-20 border-t border-white/[0.06]">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-2">Complete Toolkit</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-3">
+            <span>Features</span>
+          </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">Everything you need to hit your fitness targets</h2>
+          <p className="text-white/50 text-xs sm:text-sm mt-3 leading-relaxed">
+            Built from the ground up for students who eat in mess halls, live in dorms, and want serious results.
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
               <Zap className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Notice Board Timetable Parser</h3>
@@ -365,8 +435,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Zero-Scale Mess Calibration</h3>
@@ -375,8 +445,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
               <Compass className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Compass AI Nutritionist</h3>
@@ -385,8 +455,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
               <Camera className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Visual Plate AI Recognition</h3>
@@ -395,8 +465,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
               <Package className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Dorm Pantry & Smart Groceries</h3>
@@ -405,8 +475,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+          <div className="p-6 rounded-3xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.14] transition-all space-y-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-105 transition-transform">
               <TrendingUp className="w-5 h-5" />
             </div>
             <h3 className="text-base font-bold text-white">Metabolic Weight Trends</h3>
@@ -419,9 +489,11 @@ export default function Landing() {
       </section>
 
       {/* ── FAQ Section ──────────────────────────────────────────── */}
-      <section id="faq" className="px-4 sm:px-6 max-w-3xl mx-auto py-16 border-t border-white/[0.06]">
+      <section id="faq" className="scroll-mt-24 px-4 sm:px-6 max-w-3xl mx-auto py-16 sm:py-20 border-t border-white/[0.06]">
         <div className="text-center mb-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-2">Answers</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-3">
+            <span>FAQ</span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Frequently Asked Questions</h2>
         </div>
 
@@ -431,7 +503,7 @@ export default function Landing() {
             return (
               <div 
                 key={idx}
-                className="rounded-2xl bg-[#121418] border border-white/[0.06] overflow-hidden transition-all"
+                className="rounded-2xl bg-[#121418] border border-white/[0.06] hover:border-white/[0.1] overflow-hidden transition-all"
               >
                 <button
                   onClick={() => toggleFaq(idx)}
@@ -452,8 +524,8 @@ export default function Landing() {
       </section>
 
       {/* ── Final Call to Action ─────────────────────────────────── */}
-      <section className="px-4 sm:px-6 max-w-4xl mx-auto my-16 text-center">
-        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-[#121418] to-[#0a0b0e] border border-emerald-500/20 shadow-2xl relative overflow-hidden">
+      <section className="px-4 sm:px-6 max-w-4xl mx-auto my-16 sm:my-20 text-center">
+        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-[#14171d] via-[#101217] to-[#0a0b0e] border border-emerald-500/20 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/[0.06] rounded-full blur-[80px] pointer-events-none" />
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
             Stop guessing what you eat in the mess hall.
@@ -464,14 +536,14 @@ export default function Landing() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/signup"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-white text-black font-bold text-sm hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-black font-bold text-sm hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2 group"
             >
-              <span>Create Free Account</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>Get Started Free</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Link>
             <Link
               to="/login"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white/[0.05] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-sm transition-all flex items-center justify-center"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-sm transition-all flex items-center justify-center"
             >
               Sign In
             </Link>
