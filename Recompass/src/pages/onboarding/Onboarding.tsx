@@ -33,7 +33,7 @@ export default function Onboarding() {
     bodyFat: "18",
     diet: "eggetarian",
     cookingSkill: "basic",
-    budget: "1000",
+    budget: "3000",
   });
 
   const updateData = (key: string, value: string) => {
@@ -138,10 +138,10 @@ export default function Onboarding() {
   ];
 
   const budgetOptions = [
-    { id: "500", label: "₹500 / week", desc: "Basic hostel staples (eggs, fruits, bread)" },
-    { id: "1000", label: "₹1,000 / week", desc: "Balanced groceries (whey protein, oats, peanut butter)" },
-    { id: "1500", label: "₹1,500 / week", desc: "Optimal sports pantry (quality whey, nuts, supplements)" },
-    { id: "2000", label: "₹2,000+ / week", desc: "Full flexibility nutrition and dining out" },
+    { id: "1500", label: "₹1,500 / month", desc: "Basic essentials (eggs, bananas, bread, milk)" },
+    { id: "3000", label: "₹3,000 / month", desc: "Balanced student pantry (whey protein, oats, peanut butter)" },
+    { id: "5000", label: "₹5,000 / month", desc: "High-protein athlete budget (quality whey, nuts, supplements)" },
+    { id: "8000", label: "₹8,000+ / month", desc: "Premium pantry & dining flexibility" },
   ];
 
   return (
@@ -371,10 +371,10 @@ export default function Onboarding() {
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-2">
                   <Wallet className="w-3 h-3 text-emerald-400" />
-                  <span>Grocery Budget</span>
+                  <span>Monthly Grocery Budget</span>
                 </div>
-                <h2 className="text-2xl font-extrabold text-white tracking-tight">Weekly grocery spending</h2>
-                <p className="text-xs text-white/50 mt-1">For your dorm pantry (protein powders, fruits, peanut butter, oats).</p>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">Monthly grocery & food budget</h2>
+                <p className="text-xs text-white/50 mt-1">Helps Compass assist with dorm pantry restocking and smart grocery planning.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-2.5 pt-2">

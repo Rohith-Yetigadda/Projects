@@ -4,7 +4,7 @@ import { db, auth } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { User, Target, Activity, LogOut, Check, Loader2, Sparkles, PieChart, Flame } from "lucide-react";
+import { User, Target, Activity, LogOut, Check, Loader2, Sparkles, PieChart, Flame, Wallet } from "lucide-react";
 import { calculateMacroTargets } from "@/lib/nutritionCalculator";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -22,6 +22,7 @@ export default function Profile() {
     weight: "",
     height: "",
     goal: "maintain",
+    budget: "3000",
     customTargetsEnabled: false,
     customCalories: "",
     customProtein: "",
@@ -37,6 +38,7 @@ export default function Profile() {
         weight: userProfile.weight || "",
         height: userProfile.height || "",
         goal: userProfile.goal || "maintain",
+        budget: userProfile.budget || "3000",
         customTargetsEnabled: userProfile.targetOverrides?.enabled || false,
         customCalories: userProfile.targetOverrides?.calories?.toString() || "",
         customProtein: userProfile.targetOverrides?.protein?.toString() || "",
@@ -57,6 +59,7 @@ export default function Profile() {
         weight: data.weight,
         height: data.height,
         goal: data.goal,
+        budget: data.budget,
         targetOverrides: {
           enabled: data.customTargetsEnabled,
           calories: parseInt(data.customCalories) || 2000,
@@ -229,6 +232,53 @@ export default function Profile() {
             {data.goal === "recomp" && "Body Recomp • Near-maintenance calories with high protein (1.6g/kg) for lean mass."}
             {data.goal === "maintain" && "Maintenance • True energy balance (1.6g/kg protein) to sustain current physique."}
           </p>
+        </section>
+
+        {/* Monthly Grocery Budget */}
+        <section className="rounded-3xl bg-[#121418] border border-white/[0.06] p-5 sm:p-7 space-y-5">
+          <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Wallet className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight">Monthly Grocery & Food Budget</h2>
+              <p className="text-[11px] text-white/40">Used for dorm pantry restocking, protein supplements, and grocery planning</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {[
+              { id: "1500", label: "₹1,500 / mo", desc: "Basic essentials (eggs, bananas, bread, milk)" },
+              { id: "3000", label: "₹3,000 / mo", desc: "Balanced student pantry (whey, oats, peanut butter)" },
+              { id: "5000", label: "₹5,000 / mo", desc: "High-protein athlete (whey, nuts, supplements)" },
+              { id: "8000", label: "₹8,000+ / mo", desc: "Premium pantry & dining flexibility" }
+            ].map(b => {
+              const isSelected = data.budget === b.id;
+              return (
+                <button 
+                  key={b.id} 
+                  type="button"
+                  onClick={() => setData({...data, budget: b.id})}
+                  className={`p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between ${
+                    isSelected 
+                      ? "bg-white text-black border-white shadow-sm" 
+                      : "bg-white/[0.02] border-white/[0.06] text-white/70 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <div>
+                    <p className="text-xs font-bold leading-tight">{b.label}</p>
+                    <p className={`text-[10px] mt-1 leading-normal ${isSelected ? "text-neutral-600 font-medium" : "text-white/40"}`}>{b.desc}</p>
+                  </div>
+                  {isSelected && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-black mt-2.5">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      <span>Active</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         {/* Nutrition Targets */}
