@@ -44,3 +44,19 @@ export function clearCachedData(key: string): void {
     // Ignore
   }
 }
+
+export function clearAllCachedData(): void {
+  memoryCache.clear();
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith(CACHE_PREFIX) || k.startsWith("recompass_"))) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (e) {
+    // Ignore
+  }
+}

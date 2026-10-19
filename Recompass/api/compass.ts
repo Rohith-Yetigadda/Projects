@@ -14,14 +14,12 @@ export const config = {
 
 const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
-let cachedWorkingModel: string | null = "gemini-2.5-flash";
+let cachedWorkingModel: string | null = "gemini-3.8-flash";
 
 const DEFAULT_FALLBACK_CHAIN = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-2.5-flash-lite",
+  "gemini-3.8-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
 ];
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {

@@ -118,33 +118,29 @@ export default function Cook() {
   
   const [loadingPantry, setLoadingPantry] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [recipes, setRecipes] = useState<Recipe[]>(() => {
-    try {
-      const saved = localStorage.getItem("recompass_generated_recipes");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setRecipes([]);
+      setSavedRecipes([]);
+      return;
     }
-  });
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>(() => {
     try {
-      const saved = localStorage.getItem("recompass_saved_recipes");
-      return saved ? JSON.parse(saved) : [];
+      const genSaved = localStorage.getItem(`recompass_generated_recipes_${currentUser.uid}`);
+      setRecipes(genSaved ? JSON.parse(genSaved) : []);
+      const saved = localStorage.getItem(`recompass_saved_recipes_${currentUser.uid}`);
+      setSavedRecipes(saved ? JSON.parse(saved) : []);
     } catch {
-      return [];
+      setRecipes([]);
+      setSavedRecipes([]);
     }
-  });
+  }, [currentUser]);
 
   const [activeRecipeTab, setActiveRecipeTab] = useState<"generated" | "saved">("generated");
   const [activeMobileCardIndex, setActiveMobileCardIndex] = useState(0);
-  const [isFormCollapsed, setIsFormCollapsed] = useState(() => {
-    try {
-      const saved = localStorage.getItem("recompass_generated_recipes");
-      return saved ? JSON.parse(saved).length > 0 : false;
-    } catch {
-      return false;
-    }
-  });
+  const [isFormCollapsed, setIsFormCollapsed] = useState(false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
 
@@ -173,7 +169,8 @@ export default function Cook() {
         updated = [recipe, ...prev];
       }
       try {
-        localStorage.setItem("recompass_saved_recipes", JSON.stringify(updated));
+        const key = currentUser ? `recompass_saved_recipes_${currentUser.uid}` : "recompass_saved_recipes";
+        localStorage.setItem(key, JSON.stringify(updated));
       } catch (e) {
         console.warn("Failed to persist saved recipes", e);
       }
@@ -188,6 +185,8 @@ export default function Cook() {
   const handleClearGeneratedRecipes = () => {
     setRecipes([]);
     try {
+      const key = currentUser ? `recompass_generated_recipes_${currentUser.uid}` : "recompass_generated_recipes";
+      localStorage.removeItem(key);
       localStorage.removeItem("recompass_generated_recipes");
     } catch {}
   };
@@ -376,7 +375,8 @@ export default function Cook() {
       setActiveMobileCardIndex(0);
       setIsFormCollapsed(true);
       try {
-        localStorage.setItem("recompass_generated_recipes", JSON.stringify(stampedRecipes));
+        const key = currentUser ? `recompass_generated_recipes_${currentUser.uid}` : "recompass_generated_recipes";
+        localStorage.setItem(key, JSON.stringify(stampedRecipes));
       } catch (err) {
         console.warn("Failed to persist recipes to localStorage:", err);
       }

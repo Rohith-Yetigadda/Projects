@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { type User, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
+import { clearAllCachedData } from "@/lib/dataCache";
 
 interface UserProfile {
   name?: string;
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fetchProfile(user);
       } else {
         setUserProfile(null);
+        clearAllCachedData();
       }
       setLoading(false); // always fires now
     });

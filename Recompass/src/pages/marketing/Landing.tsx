@@ -154,67 +154,78 @@ export default function Landing() {
       </header>
 
       {/* ── Hero Section ─────────────────────────────────────────── */}
-      <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center">
+      <section className="relative pt-18 sm:pt-28 pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center">
         
-        {/* Pill Tagline */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-[11px] font-semibold tracking-wide backdrop-blur-md mb-6 animate-in fade-in duration-500 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span>Built for Campus &amp; Hostel Dining</span>
+        {/* Ambient Hero Spotlight */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[320px] bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(16,185,129,0.18),rgba(255,255,255,0))] pointer-events-none" />
+
+        {/* SaaS Tagline Pill */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-white/70 text-[11px] font-medium tracking-wide backdrop-blur-xl mb-6 shadow-sm transition-all hover:border-white/[0.15]">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <span className="text-white/85 font-semibold">Campus Nutrition OS</span>
+          <span className="text-white/20">/</span>
+          <span className="text-white/50">Built for hostel dining</span>
         </div>
 
-        {/* Main Headline (Clean, authoritative, high-contrast typography) */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tightest leading-[1.12] text-white max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-3 duration-700 font-sans">
-          Hit your daily macros. <br className="hidden sm:inline" />
-          <span className="text-white/60">Even with hostel mess food.</span>
+        {/* Main Headline (SaaS High-Contrast Gradient Typography) */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tightest leading-[1.08] max-w-4xl mx-auto font-sans">
+          <span className="text-white">Hit your daily macros.</span> <br />
+          <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 bg-clip-text text-transparent">
+            Even with hostel mess food.
+          </span>
         </h1>
 
         {/* Subtitle */}
-        <p className="mt-5 text-sm sm:text-base text-white/55 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-          Log rotis in pieces, rice in paddles, and dal in ladles. Built for campus dining so you stay consistent and hit your fitness targets all semester.
+        <p className="mt-6 text-sm sm:text-base md:text-lg text-white/60 max-w-2xl mx-auto leading-relaxed font-normal">
+          The intelligent nutrition platform calibrated for Indian campus dining. Log rotis, paddles, and ladles with zero guesswork.
         </p>
 
         {/* Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto">
           <Link
             to="/signup"
-            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 group"
           >
-            <span>Get Started Free</span>
+            <span>Start Tracking Free</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <Link
             to="/login"
-            className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/80 hover:text-white font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-white/[0.14] text-white/80 hover:text-white font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center"
           >
             Sign In
           </Link>
         </div>
 
-        {/* Highlights Bar */}
-        <div className="mt-12 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto text-left">
-          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-white font-bold text-xs flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-emerald-400" /> Timetable AI
-            </p>
-            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Turn timetable photos into your weekly schedule</p>
+        {/* SaaS Highlights Bento Row */}
+        <div className="mt-14 pt-8 border-t border-white/[0.06] grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto text-left">
+          <div className="p-4 rounded-2xl bg-[#111317]/80 backdrop-blur-md border border-white/[0.06] hover:border-white/[0.14] transition-all group">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-2.5 group-hover:scale-105 transition-transform">
+              <Zap className="w-4 h-4" />
+            </div>
+            <p className="text-white font-bold text-xs">Timetable AI</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Extract mess schedules from photos &amp; PDFs</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-white font-bold text-xs flex items-center gap-1.5">
-              <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-400" /> Mess Portions
-            </p>
+          <div className="p-4 rounded-2xl bg-[#111317]/80 backdrop-blur-md border border-white/[0.06] hover:border-white/[0.14] transition-all group">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2.5 group-hover:scale-105 transition-transform">
+              <UtensilsCrossed className="w-4 h-4" />
+            </div>
+            <p className="text-white font-bold text-xs">Mess Portions</p>
             <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Rotis, paddles, ladles, or exact grams</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-white font-bold text-xs flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5 text-emerald-400" /> Plate Scanner
-            </p>
+          <div className="p-4 rounded-2xl bg-[#111317]/80 backdrop-blur-md border border-white/[0.06] hover:border-white/[0.14] transition-all group">
+            <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-2.5 group-hover:scale-105 transition-transform">
+              <Camera className="w-4 h-4" />
+            </div>
+            <p className="text-white font-bold text-xs">Plate Scanner</p>
             <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Snap your lunch plate for instant estimates</p>
           </div>
-          <div className="p-3.5 rounded-2xl bg-[#121418] border border-white/[0.05] hover:border-white/[0.1] transition-all">
-            <p className="text-white font-bold text-xs flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5 text-emerald-400" /> Dorm Pantry
-            </p>
-            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Track whey, oats, and personal snacks</p>
+          <div className="p-4 rounded-2xl bg-[#111317]/80 backdrop-blur-md border border-white/[0.06] hover:border-white/[0.14] transition-all group">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-2.5 group-hover:scale-105 transition-transform">
+              <Package className="w-4 h-4" />
+            </div>
+            <p className="text-white font-bold text-xs">Dorm Pantry</p>
+            <p className="text-white/45 text-[11px] mt-1 leading-relaxed">Stock whey, oats, peanut butter &amp; snacks</p>
           </div>
         </div>
       </section>

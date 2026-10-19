@@ -1846,35 +1846,11 @@ export default function DailyLog() {
         setStaples(loaded);
         setCachedData("user_staples", loaded);
       } else {
-        // Fast instant seed with precomputed AI macros for the user's two exact daily recipes!
-        const seededStaples: StapleMeal[] = [
-          {
-            id: "staple_seed_1",
-            name: "BANANA PROTEIN SHAKE",
-            recipe: "1 banana shake with 20g plant protein, 20g peanut butter, 15g honey, 250ml milk",
-            mealType: "breakfast",
-            calories: 530,
-            protein: 36,
-            carbs: 63,
-            fats: 16,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "staple_seed_2",
-            name: "PROTEIN OATS",
-            recipe: "50g oats with 15g protein powder, 10g honey, 5g chia seeds, 250ml milk",
-            mealType: "breakfast",
-            calories: 485,
-            protein: 33,
-            carbs: 61,
-            fats: 11,
-            createdAt: new Date().toISOString(),
-          },
-        ];
-        setStaples(seededStaples);
-        setCachedData("user_staples", seededStaples);
+        // Clean empty state for new users
+        setStaples([]);
+        setCachedData("user_staples", []);
         await setDoc(staplesDocRef, {
-          items: seededStaples,
+          items: [],
           lastUpdated: new Date().toISOString(),
         });
       }

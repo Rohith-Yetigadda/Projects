@@ -256,7 +256,7 @@ export async function classifyFoodWithAI(
   if (CLIENT_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(CLIENT_API_KEY);
-      let model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
+      let model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
 
       const prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${trimmed}".
