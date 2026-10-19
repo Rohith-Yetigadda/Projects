@@ -210,7 +210,7 @@ export default function MenuUpload() {
       : [{ plan: extractedMenu[selectedDayIndex] || extractedMenu[0], realIdx: typeof selectedDayIndex === "number" ? selectedDayIndex : 0 }];
 
     return (
-      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-36">
+      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-6">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-2.5">
@@ -221,6 +221,28 @@ export default function MenuUpload() {
             <p className="text-sm font-normal text-white/45 mt-1.5">
               Review each day before confirming your weekly timetable.
             </p>
+          </div>
+
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+            <Button
+              variant="ghost"
+              onClick={() => setExtractedMenu(null)}
+              className="text-white/60 hover:text-white hover:bg-white/[0.06] text-xs uppercase tracking-wider font-bold rounded-full px-4 h-10 border border-white/[0.08] transition-all"
+            >
+              Start Over
+            </Button>
+            <Button
+              onClick={confirmMenu}
+              disabled={isExtracting}
+              className="bg-white text-black font-bold text-xs uppercase tracking-wider rounded-full px-5 h-10 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-md"
+            >
+              {isExtracting ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</>
+              ) : (
+                <><Check className="w-4 h-4 mr-1.5 text-emerald-600 stroke-[3]" /> Confirm Menu</>
+              )}
+            </Button>
           </div>
         </header>
 
@@ -317,20 +339,24 @@ export default function MenuUpload() {
           ))}
         </div>
 
-        {/* Sticky Mobile & Desktop Action Bar (Full-width, high contrast, accessible on all screens) */}
-        <div className="fixed bottom-0 inset-x-0 z-[60] bg-[#0c0e12]/95 backdrop-blur-2xl border-t border-white/[0.08] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+        {/* In-Flow Confirmation Footer (No fixed overlay leaking into desktop sidebar or mobile quick access) */}
+        <div className="rounded-3xl bg-[#111317]/90 border border-white/[0.08] p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+          <div className="text-center sm:text-left">
+            <h3 className="text-white text-sm font-bold tracking-tight">Ready with your weekly menu?</h3>
+            <p className="text-white/45 text-xs mt-0.5">Confirming updates your weekly schedule, automated meal notifications, and daily macro targets.</p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end shrink-0">
             <Button
               variant="ghost"
               onClick={() => setExtractedMenu(null)}
-              className="text-white/60 hover:text-white hover:bg-white/[0.06] text-xs uppercase tracking-wider font-bold rounded-full px-5 h-10 transition-all"
+              className="flex-1 sm:flex-none text-white/60 hover:text-white hover:bg-white/[0.06] text-xs uppercase tracking-wider font-bold rounded-full px-5 h-11 border border-white/[0.08] transition-all"
             >
               Start Over
             </Button>
             <Button
               onClick={confirmMenu}
               disabled={isExtracting}
-              className="bg-white text-black font-bold text-xs uppercase tracking-wider rounded-full px-7 h-10 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl"
+              className="flex-1 sm:flex-none bg-white text-black font-bold text-xs uppercase tracking-wider rounded-full px-6 h-11 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-xl"
             >
               {isExtracting ? (
                 <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving Schedule...</>

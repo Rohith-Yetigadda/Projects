@@ -1481,10 +1481,10 @@ Instructions:
         {/* History Toggle Button */}
         <button 
           onClick={() => setShowHistory(true)} 
-          className="w-9 h-9 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all relative"
+          className="w-9 h-9 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+          title="Chat History"
         >
           <History className="w-4 h-4" />
-          {sessions.length > 0 && <div className="absolute top-0 right-0 w-2 h-2 bg-emerald-400 rounded-full" />}
         </button>
       </header>
 

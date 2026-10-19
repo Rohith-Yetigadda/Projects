@@ -479,22 +479,7 @@ export default function Profile() {
 
       </div>
 
-      {/* Sticky Mobile Save Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0a0a0c]/90 backdrop-blur-2xl border-t border-white/[0.08] z-30 md:hidden animate-in slide-in-from-bottom duration-300">
-        <button 
-          onClick={handleSave} 
-          disabled={saving} 
-          className="w-full h-12 bg-white text-black rounded-full font-bold text-xs tracking-wide uppercase hover:bg-white/90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xl disabled:opacity-50"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saveSuccess ? (
-            <><Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> Saved Successfully</>
-          ) : (
-            "Save Changes"
-          )}
-        </button>
-      </div>
+
 
       {/* Sign Out Confirmation Modal */}
       <ConfirmDialog
