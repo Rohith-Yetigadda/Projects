@@ -5,12 +5,8 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -73,24 +69,24 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0b0e] text-white relative overflow-hidden font-sans">
       {/* Background Orbs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
+      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-emerald-500/[0.04] rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -left-40 w-96 h-96 bg-purple-500/[0.04] rounded-full blur-[140px] pointer-events-none" />
 
-      <Card className="w-full max-w-lg glass-card border-none text-white relative z-10 animate-in fade-in zoom-in-95 duration-500">
-        <CardHeader className="pb-8">
-          <CardTitle className="text-3xl font-extrabold tracking-tight">
+      <div className="w-full max-w-lg rounded-3xl bg-[#121418] border border-white/[0.08] shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
+        <div className="p-6 sm:p-8 pb-4">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Welcome, {userProfile?.name?.split(" ")[0] ?? "User"}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground font-medium text-base mt-2">
-            Let's personalize your experience — Step {step} of 4
-          </CardDescription>
+          </h2>
+          <p className="text-white/50 font-medium text-xs sm:text-sm mt-1.5">
+            Let's personalize your metabolic targets — Step {step} of 4
+          </p>
           {/* Progress bar */}
-          <div className="w-full h-1 bg-white/10 rounded-full mt-6 overflow-hidden">
-            <div className="h-full bg-white transition-all duration-500 ease-out" style={{ width: `${(step / 4) * 100}%` }}></div>
+          <div className="w-full h-1.5 bg-white/[0.06] rounded-full mt-5 overflow-hidden">
+            <div className="h-full bg-emerald-400 transition-all duration-500 ease-out rounded-full" style={{ width: `${(step / 4) * 100}%` }} />
           </div>
-        </CardHeader>
+        </div>
 
         <CardContent className="min-h-[300px]">
           {step === 1 && (
@@ -225,7 +221,7 @@ export default function Onboarding() {
             </Button>
           )}
         </CardFooter>
-      </Card>
+      </div>
     </div>
   );
 }
