@@ -1425,7 +1425,7 @@ Instructions:
   }
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full flex flex-col relative pb-2 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto flex flex-col relative animate-in fade-in duration-500">
       
       {/* Session History Modal Overlay */}
       {showHistory && (
@@ -1571,7 +1571,7 @@ Instructions:
             </div>
           </div>
         )}
-        <div ref={endRef} className="h-28 lg:h-24 shrink-0" />
+        <div ref={endRef} className="h-16 lg:h-12 shrink-0" />
       </div>
 
       <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-0 lg:left-64 right-0 px-4 lg:px-0 z-40 pointer-events-none">

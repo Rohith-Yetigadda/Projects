@@ -101,7 +101,7 @@ export function Sidebar() {
       {/* Sign Out */}
       <button
         onClick={() => setShowSignOutConfirm(true)}
-        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white/40 hover:text-rose-400 hover:bg-rose-500/[0.06] transition-all duration-200 mt-auto"
+        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white/40 border border-transparent hover:border-rose-500/30 hover:text-rose-400 hover:bg-rose-500/[0.08] transition-all duration-200 mt-auto"
       >
         <LogOut size={16} />
         <span>Sign out</span>
@@ -124,11 +124,11 @@ export function Sidebar() {
 
 // --- Mobile Navigation -------------------------------------------
 const mobileNav = [
-  { to: "/app",           label: "Home",      icon: Home },
-  { to: "/app/log",       label: "Log",       icon: BookOpen },
-  { to: "/app/compass",   label: "Compass",   icon: Compass },
-  { to: "/app/groceries", label: "Groceries", icon: ShoppingCart },
-  { to: "/app/progress",  label: "Trends",    icon: TrendingUp },
+  { to: "/app",          label: "Home",     icon: Home },
+  { to: "/app/log",      label: "Log",      icon: BookOpen },
+  { to: "/app/compass",  label: "Compass",  icon: Compass },
+  { to: "/app/week",     label: "Menu",     icon: CalendarDays },
+  { to: "/app/progress", label: "Trends",   icon: TrendingUp },
 ];
 
 export function MobileHeader() {

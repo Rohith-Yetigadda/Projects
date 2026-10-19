@@ -1318,11 +1318,11 @@ export default function Cook() {
       {/* Step-by-Step Cooking Mode Modal */}
       {activeCookingRecipe && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => setActiveCookingRecipe(null)}
         >
           <div 
-            className="relative w-full max-w-xl max-h-[88vh] rounded-3xl bg-[#121418] border border-white/[0.1] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-xl max-h-[78vh] sm:max-h-[85vh] rounded-3xl bg-[#121418] border border-white/[0.1] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1364,7 +1364,7 @@ export default function Cook() {
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 space-y-5 sm:space-y-6">
               {/* Ingredients Checklist */}
               <div>
                 <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2.5">
@@ -1422,7 +1422,7 @@ export default function Cook() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 sm:p-5 border-t border-white/[0.08] flex items-center justify-between gap-3 bg-[#0e1014]">
+            <div className="p-4 sm:p-5 border-t border-white/[0.08] flex items-center justify-between gap-3 bg-[#0e1014] shrink-0">
               <button
                 type="button"
                 onClick={() => toggleSaveRecipe(activeCookingRecipe)}
