@@ -15,7 +15,7 @@ export function AppShell({ children }: AppShellProps) {
       <main className="flex-1 flex flex-col min-w-0 h-full relative">
         <MobileHeader />
         <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="px-3.5 sm:px-4 md:px-6 py-3.5 md:py-6 pb-36 lg:pb-8 w-full max-w-full">
+          <div className="px-3.5 sm:px-4 md:px-6 py-3.5 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-6 w-full max-w-full">
             {children}
           </div>
         </div>

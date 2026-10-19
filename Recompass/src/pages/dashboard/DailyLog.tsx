@@ -2132,7 +2132,7 @@ export default function DailyLog() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin"/></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-32 lg:pb-8">
+    <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 max-w-full pb-2 sm:pb-4">
       {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
       {editingEntry && (

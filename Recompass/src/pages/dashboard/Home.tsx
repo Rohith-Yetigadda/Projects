@@ -268,7 +268,7 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8 w-full min-w-0">
+    <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-2 sm:pb-4 w-full min-w-0">
 
       {/* Editorial Header */}
       <header className="space-y-1 w-full min-w-0">
@@ -542,7 +542,7 @@ export default function Home() {
                     <div>
                       <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">{label}</p>
                       <p className="text-[11px] text-white/40">
-                        {loggedItems.length > 0 ? `${loggedItems.length} logged` : "Not logged yet"}
+                        {loggedItems.length > 0 ? "Logged" : "Not logged yet"}
                       </p>
                     </div>
                   </div>

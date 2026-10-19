@@ -262,7 +262,7 @@ export default function Progress() {
   const calPercent = Math.round((stats.avgCals / targetCalories) * 100);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-32 lg:pb-8">
+    <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500 pb-2 sm:pb-4">
       
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

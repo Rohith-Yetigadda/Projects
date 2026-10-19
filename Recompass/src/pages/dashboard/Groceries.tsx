@@ -330,7 +330,7 @@ export default function Groceries() {
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-32 lg:pb-8">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-2 sm:pb-4">
       
       {/* Toast Notification */}
       {notification && (

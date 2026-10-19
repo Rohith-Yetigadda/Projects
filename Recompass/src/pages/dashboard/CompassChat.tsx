@@ -1425,7 +1425,7 @@ Instructions:
   }
 
   return (
-    <div className="max-w-3xl mx-auto min-h-full flex flex-col relative pb-32 md:pb-28 animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto min-h-full flex flex-col relative pb-2 animate-in fade-in duration-500">
       
       {/* Session History Modal Overlay */}
       {showHistory && (
@@ -1463,8 +1463,8 @@ Instructions:
       )}
 
       {/* Main Header */}
-      <header className="sticky top-0 z-30 bg-[#0a0b0e]/90 backdrop-blur-xl pt-4 pb-4 -mt-3.5 md:-mt-6 -mx-3.5 sm:-mx-4 md:-mx-6 px-3.5 sm:px-4 md:px-6 mb-8 border-b border-white/[0.06] flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
+      <header className="flex items-center justify-between pb-4 mb-6 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-sm shrink-0">
             <Compass className="w-5 h-5 stroke-[2.2]" />
           </div>
@@ -1571,10 +1571,10 @@ Instructions:
             </div>
           </div>
         )}
-        <div ref={endRef} className="h-40 md:h-32 shrink-0" />
+        <div ref={endRef} className="h-28 lg:h-24 shrink-0" />
       </div>
 
-      <div className="fixed bottom-[76px] md:bottom-6 left-0 md:left-64 right-0 px-4 md:px-0 z-40 pointer-events-none">
+      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6 left-0 lg:left-64 right-0 px-4 lg:px-0 z-40 pointer-events-none">
         <div className="max-w-3xl mx-auto pointer-events-auto relative">
           
           {selectedImage && (

@@ -212,7 +212,7 @@ export default function MenuUpload() {
       : [{ plan: extractedMenu[selectedDayIndex] || extractedMenu[0], realIdx: typeof selectedDayIndex === "number" ? selectedDayIndex : 0 }];
 
     return (
-      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 md:pb-6">
+      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-2 sm:pb-4">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-emerald-400 mb-2.5">
@@ -345,7 +345,7 @@ export default function MenuUpload() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-6">
+    <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-2 sm:pb-4">
       <header>
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
           <Sparkles className="w-3 h-3 text-emerald-400" />

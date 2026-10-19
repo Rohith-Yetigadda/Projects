@@ -112,7 +112,7 @@ export function Sidebar() {
         title="Sign out?"
         description="You'll need to sign back in to access your nutrition data and meal plans."
         confirmLabel="Sign out"
-        cancelLabel="Stay signed in"
+        cancelLabel="Cancel"
         variant="danger"
         icon="logout"
         onConfirm={handleLogout}
@@ -174,7 +174,7 @@ export function MobileHeader() {
           onClick={() => setMenuOpen(false)} 
         />
         
-        <div className={`relative w-72 h-full bg-[#0d0f14] border-r border-white/[0.08] shadow-2xl transition-transform duration-300 flex flex-col pb-safe ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className={`relative w-72 h-full bg-[#0c0e12] border-r border-white/[0.08] shadow-2xl transition-transform duration-300 flex flex-col pb-safe ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
           <div className="p-5 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.02]">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-white font-bold text-sm">
@@ -228,7 +228,7 @@ export function MobileHeader() {
         title="Sign out?"
         description="You'll need to sign back in to access your nutrition data and meal plans."
         confirmLabel="Sign out"
-        cancelLabel="Stay signed in"
+        cancelLabel="Cancel"
         variant="danger"
         icon="logout"
         onConfirm={handleLogout}

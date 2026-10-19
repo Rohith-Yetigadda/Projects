@@ -104,7 +104,7 @@ export default function Profile() {
   const fatsPct = Math.max(0, 100 - proteinPct - carbsPct);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-32 lg:pb-8">
+    <div className="max-w-2xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-2 sm:pb-4">
       
       {/* Editorial Header */}
       <header className="flex items-end justify-between">
@@ -433,10 +433,10 @@ export default function Profile() {
       {/* Sign Out Confirmation Modal */}
       <ConfirmDialog
         open={showSignOutConfirm}
-        title="Sign Out"
-        description="Are you sure you want to sign out of your Recompass account on this device?"
-        confirmLabel="Sign Out"
-        cancelLabel="Stay Logged In"
+        title="Sign out?"
+        description="You'll need to sign back in to access your nutrition data and meal plans."
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
         variant="danger"
         icon="logout"
         onConfirm={handleLogout}
