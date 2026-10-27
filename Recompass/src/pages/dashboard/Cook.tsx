@@ -546,7 +546,7 @@ export default function Cook() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
             <ChefHat className="w-3 h-3 text-orange-400" />
-            <span>Hostel Kitchen</span>
+            <span>Recipe Engine</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
             Cook

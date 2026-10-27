@@ -12,6 +12,7 @@ import { clearCachedData } from "@/lib/dataCache";
 import { getLocalDateStr } from "@/lib/dateUtils";
 import { getStockStatus } from "@/pages/dashboard/Pantry";
 import { fastClassifyFood } from "@/lib/geminiClassifier";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export type AgentAction = {
   id: string;
@@ -93,6 +94,7 @@ export default function CompassChat() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
 
   // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
@@ -355,8 +357,7 @@ Instructions:
     setCurrentSessionId(null);
   };
 
-  const deleteSession = async (e: React.MouseEvent, id: string | null) => {
-    e.stopPropagation();
+  const deleteSession = async (id: string | null) => {
     if (!id || !currentUser) return;
     try {
       await deleteDoc(doc(db, "users", currentUser.uid, "compass_sessions", id));
@@ -1452,7 +1453,7 @@ Instructions:
                         <p className={`truncate font-semibold ${s.id === currentSessionId ? 'text-white' : 'text-white/70'}`}>{s.title}</p>
                       </div>
                     </button>
-                    <button onClick={(e) => deleteSession(e, s.id)} className="shrink-0 w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-400 text-white/40 border border-white/5 ml-2">
+                    <button onClick={(e) => { e.stopPropagation(); setSessionToDelete(s); }} className="shrink-0 w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-400 text-white/40 border border-white/5 ml-2">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -1616,6 +1617,19 @@ Instructions:
           </div>
         </div>
       </div>
+    
+      {/* Delete Chat Session Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!sessionToDelete}
+        title="Delete chat session?"
+        description={sessionToDelete ? `Are you sure you want to permanently delete "${sessionToDelete.title}"?` : ""}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        icon="warning"
+        onConfirm={() => deleteSession(sessionToDelete?.id || null)}
+        onCancel={() => setSessionToDelete(null)}
+      />
     </div>
   );
 }

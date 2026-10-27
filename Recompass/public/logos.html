@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RECOMPASS • Ceramic White & Angular Vector Logos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+    body {
+      background-color: #090a0f;
+      color: #f1f3f9;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .grid-bg {
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .card-matte {
+      background: #11131a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card-matte:hover {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: #141722;
+      transform: translateY(-2px);
+    }
+    .card-matte.selected {
+      border-color: #10b981;
+      background: #151a24;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+    .app-icon-squircle {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: #13161f;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+    }
+    .chrome-tab {
+      background: #181c26;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 grid-bg px-4 sm:px-8">
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto pt-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-white/15 text-white border border-white/20">
+          Ceramic White • Angular & Faceted
+        </span>
+        <span class="text-xs text-emerald-400 font-mono font-semibold">Zero Smooth Curves • Chiseled Geometry</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        Angular "Ceramic White" & Emerald Arrow Concepts
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+        Taking the <strong>Ceramic White</strong> high-contrast look and replacing the smooth circle with 
+        <strong>sharp, architectural, faceted silhouettes</strong> (Octagon, Hexagon, Chamfered Square, Rhombus, and Origami Prisms).
+      </p>
+    </div>
+
+    <!-- Badge Callout -->
+    <div class="flex items-center gap-3.5 p-3 rounded-xl bg-[#12151d] border border-white/10 self-start md:self-auto">
+      <div class="app-icon-squircle !w-12 !h-12 !rounded-xl">
+        <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+          <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+          <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+          <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+        </svg>
+      </div>
+      <div>
+        <span class="text-[10px] font-mono uppercase text-emerald-400 block font-semibold">Architectural Cuts</span>
+        <span class="text-xs text-white font-medium">Sharp 45° Chamfers</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Real Browser Tab Favicon Test Bench -->
+  <section class="max-w-6xl mx-auto my-6">
+    <div class="p-4 rounded-xl bg-[#10121a] border border-white/10">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+          Favicon Bench (Scale: 16px in Browser Tab)
+        </span>
+        <span class="text-[10px] text-emerald-400 font-mono">100% Crisp Angular Edges</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+        <!-- 01 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">01 Octagon</span>
+        </div>
+        <!-- 02 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="13,9 27,9 31,13 31,27 27,31 13,31 9,27 9,13" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">02 Chamfer</span>
+        </div>
+        <!-- 03 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="20,5 35,20 20,35 5,20" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">03 Rhombus</span>
+        </div>
+        <!-- 04 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="20,6 33,13 33,27 20,34 7,27 7,13" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">04 Hexagon</span>
+        </div>
+        <!-- 05 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <path d="M 12 28 L 28 12 L 28 28 Z" fill="#ffffff" />
+            <path d="M 12 28 L 28 12 L 12 12 Z" fill="#e2e8f0" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">05 Prisms</span>
+        </div>
+        <!-- 06 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="16,6 24,6 30,9 34,15 34,25 30,31 24,34 16,34 10,31 6,25 6,15 10,9" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">06 Bezel</span>
+        </div>
+        <!-- 07 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="12,8 28,8 32,20 28,32 12,32 8,20" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#181c26" stroke-width="3.5" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">07 Shield</span>
+        </div>
+        <!-- 08 -->
+        <div class="chrome-tab px-2.5 py-1.5 flex items-center gap-2 border border-white/5">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" class="shrink-0">
+            <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+            <polygon points="25,8 35,10 33,20 30,15 24,18" fill="#10b981" />
+          </svg>
+          <span class="text-[11px] text-slate-300 truncate">08 Solid Arrow</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 Angular Design Cards -->
+  <main class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+
+    <!-- ============================================== -->
+    <!-- 01: THE PRECISION OCTAGON (Top Pick) -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-emerald-400 font-bold uppercase">Concept 01 • Top Pick</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono">8-Sided Zenith</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Precision Octagon</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Crisp ceramic white octagon with 45° chamfered edges that mathematically align with the 45° upward arrow.
+        </p>
+
+        <!-- Big Display -->
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Octagon Base -->
+              <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+              <!-- Diagonal Slit (Negative Space) -->
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <!-- Sharp Arrowhead pointing Northeast -->
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <!-- Bottom Tail Cap -->
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+            <!-- Corner Sparkle -->
+            <polygon points="60,60 61.5,56 63,60 67,61.5 63,63 61.5,67 60,63 56,61.5" fill="#475569" class="opacity-60" />
+          </div>
+        </div>
+
+        <!-- 2 Variations -->
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+                <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3.5" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-emerald-400 font-mono">Precision 45°</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 02: THE CHAMFERED SQUIRCLE (Industrial Bevel) -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-cyan-400 font-bold uppercase">Concept 02</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-mono">Chamfer Bevel</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Industrial Chamfer</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Square geometry with crisp straight-angled cut corners instead of rounded curves. High-end Swiss tech.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Chamfered Square Base -->
+              <polygon points="13,9 27,9 31,13 31,27 27,31 13,31 9,27 9,13" fill="#ffffff" />
+              <!-- Diagonal Slit -->
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="13,9 27,9 31,13 31,27 27,31 13,31 9,27 9,13" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="13,9 27,9 31,13 31,27 27,31 13,31 9,27 9,13" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-cyan-400 font-mono">Modern Square</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 03: THE FACETED RHOMBUS / DIAMOND -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-purple-400 font-bold uppercase">Concept 03</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-mono">90° Diamond</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Ceramic Rhombus</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Rotated solid diamond in crisp ceramic white. Maximum razor edges, sharp corners, zero soft curves.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Rhombus Base -->
+              <polygon points="20,5 35,20 20,35 5,20" fill="#ffffff" />
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="20,5 35,20 20,35 5,20" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="20,5 35,20 20,35 5,20" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-purple-400 font-mono">Diamond Apex</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 04: THE ATHLETIC HEXAGON (6-Sided) -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-teal-400 font-bold uppercase">Concept 04</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-300 font-mono">6-Sided Hex</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Athletic Hexagon</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Solid 6-sided ceramic white hexagon pierced diagonally. Evokes barbell weight plates and molecular nutrition.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Hexagon Base -->
+              <polygon points="20,6 33,13 33,27 20,34 7,27 7,13" fill="#ffffff" />
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="20,6 33,13 33,27 20,34 7,27 7,13" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="20,6 33,13 33,27 20,34 7,27 7,13" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-teal-400 font-mono">Hex Plate</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 05: THE DUAL TRIANGULAR PRISMS (Origami Cut) -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-amber-400 font-bold uppercase">Concept 05</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono">Dual Prisms</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Dual Triangular Prisms</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Two razor-sharp ceramic white right-triangles facing each other across the 45° arrow channel. Ultra architectural.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Top-Right Triangle -->
+              <polygon points="12,12 28,12 28,28" fill="#ffffff" />
+              <!-- Bottom-Left Triangle -->
+              <polygon points="10,14 10,30 26,30" fill="#e2e8f0" />
+              <!-- Diagonal Arrow -->
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="12,12 28,12 28,28" fill="#ffffff" />
+                <polygon points="10,14 10,30 26,30" fill="#e2e8f0" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="12,12 28,12 28,28" fill="#ffffff" />
+                <polygon points="10,14 10,30 26,30" fill="#e2e8f0" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-amber-400 font-mono">Twin Prisms</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 06: THE 12-FACET CHRONO BEZEL (Dodecagon) -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-blue-400 font-bold uppercase">Concept 06</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 font-mono">12-Sided Bezel</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Chronograph Bezel</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          12 straight facets around the perimeter, inspired by luxury Swiss sports watches (Royal Oak aesthetic).
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- 12-sided Dodecagon -->
+              <polygon points="16,6 24,6 30,9 34,15 34,25 30,31 24,34 16,34 10,31 6,25 6,15 10,9" fill="#ffffff" />
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="16,6 24,6 30,9 34,15 34,25 30,31 24,34 16,34 10,31 6,25 6,15 10,9" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="16,6 24,6 30,9 34,15 34,25 30,31 24,34 16,34 10,31 6,25 6,15 10,9" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-blue-400 font-mono">12 Facets</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 07: THE ASYMMETRICAL VECTOR SHIELD -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-rose-400 font-bold uppercase">Concept 07</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 font-mono">Athletic Shield</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Angular Shield</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          Faceted geometric shield with sharp straight sides and integrated diagonal needle channel.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Shield Polygon -->
+              <polygon points="12,8 28,8 32,20 28,32 12,32 8,20" fill="#ffffff" />
+              <line x1="8" y1="32" x2="28" y2="12" stroke="#13161f" stroke-width="3" stroke-linecap="square" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="12,8 28,8 32,20 28,32 12,32 8,20" fill="#ffffff" />
+                <line x1="8" y1="32" x2="28" y2="12" stroke="#090a0f" stroke-width="3" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="12,8 28,8 32,20 28,32 12,32 8,20" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-rose-400 font-mono">Shield Vector</span>
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- 08: THE CHISELED MONOGRAM 'R' CUT -->
+    <!-- ============================================== -->
+    <div class="card-matte rounded-2xl p-5 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[11px] font-mono text-emerald-400 font-bold uppercase">Concept 08</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono">Architectural 'R'</span>
+        </div>
+        <h3 class="text-base font-bold text-white">The Chiseled 'R' Octagon</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-4">
+          White octagon with a negative-space letter "R" cutout where the right diagonal leg is the piercing arrow.
+        </p>
+
+        <div class="flex items-center justify-center py-6 bg-black/40 rounded-xl mb-4 relative">
+          <div class="app-icon-squircle">
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+              <!-- Octagon Base -->
+              <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+              <!-- Cutout of R -->
+              <line x1="14" y1="12" x2="14" y2="28" stroke="#13161f" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M 14 12 L 21 12 C 24 12 24 19 21 19 L 14 19" stroke="#13161f" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Piercing Arrow Leg in Emerald -->
+              <polygon points="18,18 31,31 24,31 14,21" fill="#10b981" />
+              <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center text-xs">
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Navbar 24px</span>
+            <div class="flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+          <div class="p-2 rounded bg-black/30 border border-white/5">
+            <span class="text-[10px] text-slate-400 block mb-1">Favicon 16px</span>
+            <div class="flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+                <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+        <span class="text-xs font-bold text-white tracking-wider">RECOMPASS</span>
+        <span class="text-[10px] text-emerald-400 font-mono">Brand Mark</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Live Navbar Simulation -->
+  <section class="max-w-6xl mx-auto mt-12 p-6 rounded-2xl bg-[#0f121a] border border-white/10">
+    <div class="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
+      <div>
+        <span class="text-[11px] font-mono uppercase text-emerald-400 font-semibold block">Live Navbar Simulation</span>
+        <h3 class="text-base font-bold text-white">How Concept 01 (Precision Octagon) Looks in the App Header</h3>
+      </div>
+      <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> 100% High Contrast
+      </div>
+    </div>
+
+    <!-- The Actual Navbar Layout -->
+    <div class="h-16 px-6 rounded-xl bg-[#090a0f] border border-white/10 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- Logo Mark in 30px -->
+        <div class="w-9 h-9 rounded-lg bg-[#141722] border border-white/10 flex items-center justify-center">
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+            <polygon points="14,7 26,7 33,14 33,26 26,33 14,33 7,26 7,14" fill="#ffffff" />
+            <line x1="8" y1="32" x2="28" y2="12" stroke="#141722" stroke-width="3" />
+            <polygon points="25,8 34,10 32,19 29,14 24,17" fill="#10b981" />
+            <rect x="6.5" y="30.5" width="2.8" height="3.2" transform="rotate(45 7.9 32.1)" fill="#10b981" />
+          </svg>
+        </div>
+        <span class="font-extrabold tracking-wider text-base text-white uppercase font-sans">RECOMPASS</span>
+      </div>
+
+      <!-- Menu Items -->
+      <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+        <span class="text-white">Daily Log</span>
+        <span>Pantry</span>
+        <span>Cook</span>
+        <span>Progress</span>
+        <div class="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-xs font-bold">
+          R
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

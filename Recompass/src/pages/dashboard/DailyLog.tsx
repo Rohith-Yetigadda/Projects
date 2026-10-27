@@ -19,6 +19,7 @@ type DayLog = { breakfast: MacroEntry[]; lunch: MacroEntry[]; dinner: MacroEntry
 type MealPlan = { day: string; breakfast: string[]; lunch: string[]; dinner: string[]; };
 
 import { calculateMacroTargets } from "@/lib/nutritionCalculator";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 function calcTargets(profile: any) {
   const targets = calculateMacroTargets(profile);
@@ -759,7 +760,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
         </div>
 
         {/* Live Macro Calculation Preview Ribbon */}
-        <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+        <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
           <span className="text-white/40 text-[11px] font-medium flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-emerald-400" />
             <span>AI Macro Estimate</span>
@@ -772,7 +773,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
           ) : estimating ? (
             <span className="text-[11px] text-white/40 animate-pulse font-mono">Refining...</span>
           ) : (
-            <div className="flex items-center gap-2 font-mono tabular-nums text-[11px]">
+            <div className="flex items-center gap-1.5 sm:gap-2 font-mono tabular-nums text-[10px] sm:text-[11px] flex-wrap">
               <span className="font-bold text-white">{liveMacros.calories} kcal</span>
               <span className="text-white/20">&middot;</span>
               <span className="text-orange-400 font-semibold">P {liveMacros.protein}g</span>
@@ -1510,7 +1511,7 @@ function StaplesManagerModal({
   loading?: boolean;
   onAddStaple: () => void;
   onEditStaple: (staple: StapleMeal) => void;
-  onDeleteStaple: (id: string) => void;
+  onDeleteStaple: (staple: StapleMeal) => void;
   onLogStaple: (mealType: MealType, staple: StapleMeal) => void;
   loggingKey: string | null;
 }) {
@@ -1608,7 +1609,7 @@ function StaplesManagerModal({
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => onDeleteStaple(staple.id)}
+                        onClick={() => onDeleteStaple(staple)}
                         title="Delete staple"
                         className="text-white/30 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
                       >
@@ -1745,6 +1746,8 @@ export default function DailyLog() {
   const [isStapleModalOpen, setIsStapleModalOpen] = useState(false);
   const [editingStaple, setEditingStaple] = useState<StapleMeal | null>(null);
   const [loggingStapleKey, setLoggingStapleKey] = useState<string | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<{ mealType: MealType; item: MacroEntry } | null>(null);
+  const [stapleToDelete, setStapleToDelete] = useState<StapleMeal | null>(null);
 
   const bfRef  = useRef<HTMLInputElement>(null);
   const lRef   = useRef<HTMLInputElement>(null);
@@ -2135,7 +2138,7 @@ export default function DailyLog() {
             setEditingStaple(staple);
             setIsStapleModalOpen(true);
           }}
-          onDeleteStaple={handleDeleteStaple}
+          onDeleteStaple={staple => setStapleToDelete(staple)}
           onLogStaple={logStaple}
           loggingKey={loggingStapleKey}
         />
@@ -2400,7 +2403,7 @@ export default function DailyLog() {
                         <Pencil className="w-3.5 h-3.5"/>
                       </button>
                       <button
-                        onClick={() => removeItem(key, item.id)}
+                        onClick={() => setEntryToDelete({ mealType: key, item })}
                         title="Delete item"
                         className="text-white/30 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10"
                       >
@@ -2515,6 +2518,42 @@ export default function DailyLog() {
           </div>
         );
       })}
+    
+      {/* Delete Logged Meal Item Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!entryToDelete}
+        title="Remove logged food?"
+        description={entryToDelete ? `Are you sure you want to remove "${entryToDelete.item.name}" from your ${entryToDelete.mealType}?` : ""}
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        variant="danger"
+        icon="warning"
+        onConfirm={() => {
+          if (entryToDelete) {
+            removeItem(entryToDelete.mealType, entryToDelete.item.id);
+            setEntryToDelete(null);
+          }
+        }}
+        onCancel={() => setEntryToDelete(null)}
+      />
+
+      {/* Delete Custom Staple Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!stapleToDelete}
+        title="Delete custom staple?"
+        description={stapleToDelete ? `Are you sure you want to permanently delete "${stapleToDelete.name}"?` : ""}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        variant="danger"
+        icon="warning"
+        onConfirm={() => {
+          if (stapleToDelete) {
+            handleDeleteStaple(stapleToDelete.id);
+            setStapleToDelete(null);
+          }
+        }}
+        onCancel={() => setStapleToDelete(null)}
+      />
     </div>
   );
 }

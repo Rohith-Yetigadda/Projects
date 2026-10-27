@@ -30,7 +30,8 @@ export default function Onboarding() {
     age: "20",
     weight: "70",
     height: "175",
-    bodyFat: "18",
+    gender: "male",
+    bodyFat: "",
     diet: "eggetarian",
     cookingSkill: "basic",
     budget: "3000",
@@ -61,6 +62,7 @@ export default function Onboarding() {
     if (!currentUser) return;
     setLoading(true);
     try {
+      const parsedBf = data.bodyFat && data.bodyFat.trim() !== "" ? parseFloat(data.bodyFat) : null;
       await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), {
         ...data,
         name: currentUser.displayName || "Student",
@@ -68,7 +70,8 @@ export default function Onboarding() {
         weight: parseFloat(data.weight) || 70,
         height: parseFloat(data.height) || 175,
         age: parseInt(data.age) || 20,
-        bodyFat: parseFloat(data.bodyFat) || 18,
+        gender: data.gender || "male",
+        bodyFat: parsedBf !== null && !isNaN(parsedBf) ? parsedBf : null,
         onboardingComplete: true,
       }, { merge: true });
       await refreshProfile();
@@ -239,10 +242,38 @@ export default function Onboarding() {
                   <span>Physical Vitals</span>
                 </div>
                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Your body measurements</h2>
-                <p className="text-xs text-white/50 mt-1">Used to accurately calculate your Basal Metabolic Rate (BMR) and TDEE.</p>
+                <p className="text-xs text-white/50 mt-1">Used to accurately calculate your Basal Metabolic Rate (BMR) and daily expenditure.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 pt-2">
+              {/* Gender Selection */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Biological Sex (for metabolic baseline)</label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { id: "male", label: "Male" },
+                    { id: "female", label: "Female" },
+                  ].map((sex) => {
+                    const isSelected = data.gender === sex.id;
+                    return (
+                      <button
+                        key={sex.id}
+                        type="button"
+                        onClick={() => updateData("gender", sex.id)}
+                        className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? "bg-white text-black border-white shadow-sm"
+                            : "bg-[#0c0e12] border-white/[0.08] text-white/70 hover:border-white/20 hover:text-white"
+                        }`}
+                      >
+                        {sex.label}
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3.5 pt-1">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Age</label>
                   <div className="relative">
@@ -288,19 +319,35 @@ export default function Onboarding() {
                   </div>
                 </div>
 
+                {/* Body Fat is purely optional */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Body Fat % (Est.)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Body Fat %</label>
+                    <span className="text-[10px] text-emerald-400 font-medium">Optional</span>
+                  </div>
                   <div className="relative">
                     <input
                       type="number"
                       value={data.bodyFat}
                       onChange={(e) => updateData("bodyFat", e.target.value)}
-                      placeholder="18"
+                      placeholder="Optional"
                       className="w-full h-11 px-3.5 pr-8 rounded-xl bg-[#0c0e12] border border-white/[0.08] focus:border-white/30 text-white text-xs font-semibold outline-none"
                     />
                     <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-white/40">%</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-white/45 leading-relaxed">
+                {data.bodyFat && data.bodyFat.trim() !== "" ? (
+                  <span className="text-emerald-400 font-medium">
+                    ✓ Body fat provided: BMR will be calculated using the Katch-McArdle formula (Lean Body Mass).
+                  </span>
+                ) : (
+                  <span>
+                    💡 <strong className="text-white/70">Body fat is optional:</strong> If left empty, BMR will be accurately derived using the standard Mifflin-St Jeor formula.
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -342,8 +389,8 @@ export default function Onboarding() {
               </div>
 
               <div className="space-y-3 pt-2">
-                <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Hostel Cooking Setup</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <label className="text-[11px] font-semibold text-white/70 uppercase tracking-wider block">Cooking Setup</label>
+                <div className="grid grid-cols-2 gap-2.5">
                   {cookingOptions.map((c) => {
                     const isSelected = data.cookingSkill === c.id;
                     return (
@@ -424,7 +471,7 @@ export default function Onboarding() {
               <button
                 type="button"
                 onClick={nextStep}
-                className="px-7 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-md flex items-center gap-2"
+                className="px-7 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-md flex items-center gap-2 cursor-pointer"
               >
                 <span>Continue</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -434,7 +481,7 @@ export default function Onboarding() {
                 type="button"
                 onClick={completeOnboarding}
                 disabled={loading}
-                className="px-8 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                className="px-8 py-2.5 rounded-full bg-white text-black font-bold text-xs hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <>

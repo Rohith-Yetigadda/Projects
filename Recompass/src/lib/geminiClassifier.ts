@@ -278,8 +278,6 @@ export async function classifyFoodWithAI(
   if (CLIENT_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(CLIENT_API_KEY);
-      let model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
-
       const prompt = `You are an expert grocery and nutrition database classifier.
 Analyze this food, ingredient, or pantry item input: "${trimmed}".
 
@@ -289,7 +287,19 @@ AVAILABLE CATEGORIES:
 OUTPUT STRICTLY AS JSON:
 {"name":"FOOD_NAME","category":"CATEGORY","quantity":${fallbackQty},"unit":"${defaultUnit}"}`;
 
-      const result = await model.generateContent(prompt);
+      const fallbackModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.8-flash"];
+      let result: any = null;
+      for (const m of fallbackModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: m });
+          result = await model.generateContent(prompt);
+          if (result) break;
+        } catch {
+          // try next model
+        }
+      }
+      if (!result) throw new Error("Generative models failed in client fallback");
+
       const text = result.response.text();
       const firstCurly = text.indexOf('{');
       const lastCurly = text.lastIndexOf('}');

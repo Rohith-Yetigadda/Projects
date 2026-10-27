@@ -21,6 +21,7 @@ import { classifyFoodWithAI, fastClassifyFood, migrateFoodCategory, FOOD_CATEGOR
 import { getCachedData, setCachedData } from "@/lib/dataCache";
 import { CategoryDropdown } from "@/components/ui/CategoryDropdown";
 import { UnitDropdown } from "@/components/ui/UnitDropdown";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export type PantryItem = {
   id: string;
@@ -144,6 +145,7 @@ export default function Pantry() {
   const [items, setItems] = useState<PantryItem[]>(cachedItems || []);
   const [loading, setLoading] = useState(!cachedItems);
   const [addingItem, setAddingItem] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<PantryItem | null>(null);
   
   // Direct quantity editing state
   const [editingQuantities, setEditingQuantities] = useState<{ [id: string]: string }>({});
@@ -348,11 +350,12 @@ export default function Pantry() {
     showNotification(`Category updated to ${newCat}`);
   };
 
-  // Delete Item
-  const handleDeleteItem = (id: string) => {
-    const target = items.find(i => i.id === id);
-    savePantry(items.filter(i => i.id !== id));
-    if (target) showNotification(`Removed ${target.name} from pantry`);
+  // Confirm and Execute Delete Item
+  const confirmDeleteItem = () => {
+    if (!itemToDelete) return;
+    savePantry(items.filter(i => i.id !== itemToDelete.id));
+    showNotification(`Removed ${itemToDelete.name} from pantry`);
+    setItemToDelete(null);
   };
 
   // Add Item to Groceries
@@ -490,7 +493,7 @@ export default function Pantry() {
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-2 sm:pb-4">
+    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in duration-500 pb-2 sm:pb-4">
       
       {/* Toast Notification */}
       {notification && (
@@ -500,33 +503,33 @@ export default function Pantry() {
         </div>
       )}
 
-      {/* Editorial Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* High-Density Header on Mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-2.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold tracking-widest uppercase text-white/50 mb-1.5">
             <Package className="w-3 h-3 text-orange-400" />
             <span>Food & Ingredient Inventory</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tightest font-sans">
             Pantry
           </h1>
-          <p className="text-sm font-normal text-white/45 mt-1.5">
+          <p className="text-xs sm:text-sm font-normal text-white/45 mt-0.5">
             Track your food inventory, protein staples, and ingredients.
           </p>
         </div>
 
         {/* Clean Header Action Pills */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/app/cook"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all shadow-sm"
           >
             <ChefHat className="w-3.5 h-3.5 text-orange-400" />
             <span>Cook</span>
           </Link>
           <Link
             to="/app/groceries"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/70 text-xs font-bold uppercase tracking-wider hover:bg-white/[0.08] hover:text-white transition-all"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>Groceries</span>
@@ -534,34 +537,34 @@ export default function Pantry() {
         </div>
       </div>
 
-      {/* Compact Minimal Metric Ribbon & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-0.5">
+      {/* High-Density Minimal Metric Ribbon & Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-0.5">
         
         {/* Metric Badges */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs font-semibold text-white/70">
-            <strong className="text-white font-sans">{items.length}</strong> items in pantry
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-[11px] sm:text-xs font-semibold text-white/70">
+            <strong className="text-white font-sans">{items.length}</strong> in pantry
           </span>
-          <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-xs font-semibold text-orange-400">
+          <span className="px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-[11px] sm:text-xs font-semibold text-orange-400">
             <strong className="text-orange-300 font-sans">{proteinCount}</strong> protein staples
           </span>
           {lowStockCount > 0 ? (
             <button
               onClick={handleRestockAllLow}
-              className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
+              className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] sm:text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
             >
               <AlertTriangle className="w-3 h-3 text-amber-400" />
-              <span>{lowStockCount} {lowStockCount === 1 ? "item" : "items"} low • Restock to Groceries</span>
+              <span>{lowStockCount} low • Restock</span>
             </button>
           ) : (
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
-              All staples stocked
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] sm:text-xs font-semibold text-emerald-400">
+              All stocked
             </span>
           )}
         </div>
 
         {/* Compact Search Bar */}
-        <div className="relative min-w-[200px]">
+        <div className="relative min-w-[180px] sm:min-w-[200px]">
           <Search className="w-3.5 h-3.5 text-white/35 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -580,7 +583,7 @@ export default function Pantry() {
           <button
             key={category}
             onClick={() => setActiveCategory(category)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
               activeCategory === category
                 ? "bg-white text-black font-bold shadow-sm"
                 : "bg-white/[0.02] text-white/45 hover:text-white border border-white/[0.05]"
@@ -592,7 +595,7 @@ export default function Pantry() {
         {lowStockCount > 0 && (
           <button
             onClick={() => setFilterLowStockOnly(!filterLowStockOnly)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 border transition-all flex items-center gap-1 ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 border transition-all flex items-center gap-1 cursor-pointer ${
               filterLowStockOnly
                 ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
                 : "bg-white/[0.02] border-white/[0.05] text-white/45 hover:text-white"
@@ -605,10 +608,10 @@ export default function Pantry() {
       </div>
 
       {/* Main Pantry Table Bento Container with Integrated Quick-Add Row */}
-      <div className="rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
+      <div className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] overflow-hidden shadow-2xl">
         
         {/* Streamlined Quick Add Row with Gemini AI Parsing */}
-        <form onSubmit={handleAddItem} className="flex items-center px-3 sm:px-5 h-13 sm:h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2 sm:gap-2.5">
+        <form onSubmit={handleAddItem} className="flex items-center px-3 sm:px-5 h-12 sm:h-14 border-b border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.02] transition-colors focus-within:bg-white/[0.03] gap-2 sm:gap-2.5">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
             {addingItem ? (
               <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -652,7 +655,7 @@ export default function Pantry() {
           <button
             type="submit"
             disabled={!newName.trim() || addingItem}
-            className="px-3 sm:px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1 shadow-sm"
+            className="px-3 sm:px-4 py-1.5 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wider disabled:opacity-30 hover:bg-white/90 active:scale-[0.98] transition-all shrink-0 flex items-center gap-1 shadow-sm cursor-pointer"
           >
             {addingItem ? (
               <span>Adding...</span>
@@ -669,7 +672,7 @@ export default function Pantry() {
               if (sortBy === "name") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
               else { setSortBy("name"); setSortOrder("asc"); }
             }}
-            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold cursor-pointer"
           >
             <span>Item</span>
             {sortBy === "name" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -680,7 +683,7 @@ export default function Pantry() {
               if (sortBy === "category") setSortOrder(sortOrder === "asc" ? "desc" : "asc");
               else { setSortBy("category"); setSortOrder("asc"); }
             }}
-            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold"
+            className="flex items-center gap-1 hover:text-white/70 transition-colors justify-start uppercase tracking-widest font-bold cursor-pointer"
           >
             <span>Category</span>
             {sortBy === "category" && (sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -692,7 +695,7 @@ export default function Pantry() {
 
         {/* Empty State */}
         {sortedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <div className="flex flex-col items-center justify-center py-16 sm:py-20 px-4 text-center">
             <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-3">
               <Package className="w-6 h-6 text-white/30" />
             </div>
@@ -708,7 +711,7 @@ export default function Pantry() {
             {items.length === 0 && (
               <button
                 onClick={handleLoadStarterStash}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-white/90 active:scale-[0.98] transition-all shadow-md cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-orange-600" />
                 <span>Load Starter Pantry</span>
@@ -717,7 +720,7 @@ export default function Pantry() {
           </div>
         ) : (
           <>
-            {/* Mobile Touch Cards Layout (sm:hidden) - Redesigned to maximize density & eliminate truncation */}
+            {/* Mobile Touch Cards Layout (sm:hidden) */}
             <div className="flex sm:hidden flex-col divide-y divide-white/[0.04]">
               {sortedItems.map(item => {
                 const status = getStockStatus(item);
@@ -759,7 +762,7 @@ export default function Pantry() {
                           <ShoppingCart className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteItem(item.id)}
+                          onClick={() => setItemToDelete(item)}
                           className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-rose-400 transition-all active:scale-95 cursor-pointer"
                           title="Remove item"
                         >
@@ -851,7 +854,7 @@ export default function Pantry() {
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => handleAdjustQuantity(item.id, -step)}
-                        className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0"
+                        className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0 cursor-pointer"
                         title={`Decrease by ${step} ${item.unit}`}
                       >
                         <Minus className="w-3 h-3" />
@@ -882,7 +885,7 @@ export default function Pantry() {
 
                       <button
                         onClick={() => handleAdjustQuantity(item.id, step)}
-                        className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0"
+                        className="w-6 h-6 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] active:scale-95 transition-all shrink-0 cursor-pointer"
                         title={`Increase by ${step} ${item.unit}`}
                       >
                         <Plus className="w-3 h-3" />
@@ -893,15 +896,15 @@ export default function Pantry() {
                     <div className="flex items-center justify-end gap-1.5 pr-2">
                       <button
                         onClick={() => handleAddToGroceries(item)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-all"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
                         title="Add to Groceries list"
                       >
                         <ShoppingCart className="w-3.5 h-3.5" />
                       </button>
 
                       <button
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                        onClick={() => setItemToDelete(item)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
                         title="Remove item"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -915,6 +918,20 @@ export default function Pantry() {
           </>
         )}
       </div>
+
+      {/* Delete Item Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!itemToDelete}
+        title="Remove pantry item?"
+        description={`Are you sure you want to remove "${itemToDelete?.name}" from your pantry?`}
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        variant="danger"
+        icon="warning"
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setItemToDelete(null)}
+      />
+
     </div>
   );
 }

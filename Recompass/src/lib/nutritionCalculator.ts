@@ -9,12 +9,12 @@ export interface UserVitals {
   weight?: number | string;
   height?: number | string;
   age?: number | string;
-  bodyFat?: number | string;
+  bodyFat?: number | string | null;
   gender?: "male" | "female" | string;
   activity?: "sedentary" | "light" | "moderate" | "very_active" | string;
   goal?: FitnessGoal | string;
   targetOverrides?: {
-    enabled?: boolean;
+    enabled?: boolean | string;
     calories?: number | string;
     protein?: number | string;
     carbs?: number | string;
@@ -30,15 +30,17 @@ export interface CalculatedTargets {
   bmr: number;
   tdee: number;
   isCustom: boolean;
+  formula: "katch_mcardle" | "mifflin_st_jeor";
 }
 
 export function calculateMacroTargets(profile: UserVitals | null | undefined): CalculatedTargets {
   // 1. If manual override is explicitly enabled
-  if (profile?.targetOverrides?.enabled) {
-    const calories = Number(profile.targetOverrides.calories) || 2000;
-    const protein = Number(profile.targetOverrides.protein) || 120;
-    const carbs = Number(profile.targetOverrides.carbs) || 200;
-    const fats = Number(profile.targetOverrides.fats) || 60;
+  const isCustomEnabled = profile?.targetOverrides?.enabled === true || String(profile?.targetOverrides?.enabled) === "true";
+  if (isCustomEnabled) {
+    const calories = Number(profile?.targetOverrides?.calories) || 2000;
+    const protein = Number(profile?.targetOverrides?.protein) || 120;
+    const carbs = Number(profile?.targetOverrides?.carbs) || 200;
+    const fats = Number(profile?.targetOverrides?.fats) || 60;
 
     return {
       calories: Math.max(800, Math.round(calories)),
@@ -46,31 +48,41 @@ export function calculateMacroTargets(profile: UserVitals | null | undefined): C
       carbs: Math.max(20, Math.round(carbs)),
       fats: Math.max(15, Math.round(fats)),
       bmr: 1600,
-      tdee: calories,
+      tdee: Math.max(800, Math.round(calories)),
       isCustom: true,
+      formula: "mifflin_st_jeor",
     };
   }
 
-  // 2. Parse biometric parameters
+  // 2. Parse biometric parameters with safe fallbacks
   const weight = Math.max(35, parseFloat(String(profile?.weight || 70)) || 70);
   const height = Math.max(120, parseFloat(String(profile?.height || 170)) || 170);
   const age = Math.max(14, parseFloat(String(profile?.age || 21)) || 21);
-  const bodyFat = parseFloat(String(profile?.bodyFat || 0));
   const isFemale = profile?.gender === "female";
 
-  // BMR calculation:
-  // If valid body fat percentage is provided (between 5% and 55%), use Katch-McArdle formula based on Lean Body Mass (LBM)
+  // Body Fat is OPTIONAL:
+  // Check if valid body fat percentage is supplied (between 5% and 55%)
+  const rawBf = profile?.bodyFat;
+  const hasValidBodyFat = rawBf !== undefined && rawBf !== null && String(rawBf).trim() !== "" && !isNaN(parseFloat(String(rawBf)));
+  const parsedBf = hasValidBodyFat ? parseFloat(String(rawBf)) : null;
+
   let bmr: number;
-  if (bodyFat >= 5 && bodyFat <= 55) {
-    const lbm = weight * (1 - (bodyFat / 100));
+  let formula: "katch_mcardle" | "mifflin_st_jeor";
+
+  if (parsedBf !== null && parsedBf >= 5 && parsedBf <= 55) {
+    // Katch-McArdle Formula (Lean Body Mass based)
+    const lbm = weight * (1 - (parsedBf / 100));
     bmr = 370 + (21.6 * lbm);
+    formula = "katch_mcardle";
   } else {
-    // Mifflin-St Jeor Equation fallback
+    // Mifflin-St Jeor Equation (Standard when body fat % is unknown/omitted)
     bmr = isFemale
       ? (10 * weight) + (6.25 * height) - (5 * age) - 161
       : (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    formula = "mifflin_st_jeor";
   }
 
+  // Activity Multiplier
   let activityMultiplier = 1.45; // Default active student (walking campus, hostel life)
   if (profile?.activity === "sedentary") activityMultiplier = 1.2;
   else if (profile?.activity === "light") activityMultiplier = 1.375;
@@ -88,11 +100,11 @@ export function calculateMacroTargets(profile: UserVitals | null | undefined): C
     targetCals = tdee + 300;
     targetProtein = weight * 2.2;
   } else if (rawGoal.includes("recomp")) {
-    // Body Recomposition: Slight deficit (-175 kcal) with high protein (2.0g/kg) for concurrent muscle synthesis & fat loss
+    // Body Recomposition: -175 kcal deficit, 2.0g/kg protein for simultaneous fat loss & muscle synthesis
     targetCals = Math.max(1200, tdee - 175);
     targetProtein = weight * 2.0;
   } else if (rawGoal.includes("fat") || rawGoal.includes("lose")) {
-    // Fat Loss deficit: -350 kcal, 2.0g/kg protein (prevent muscle loss during deficit)
+    // Fat Loss deficit: -350 kcal deficit, 2.0g/kg protein (prevent muscle loss during deficit)
     targetCals = Math.max(1200, tdee - 350);
     targetProtein = weight * 2.0;
   } else {
@@ -115,5 +127,6 @@ export function calculateMacroTargets(profile: UserVitals | null | undefined): C
     bmr: Math.round(bmr),
     tdee: Math.round(tdee),
     isCustom: false,
+    formula,
   };
 }
