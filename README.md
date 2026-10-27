@@ -7,7 +7,7 @@ Welcome! This repository houses my software engineering projects and application
 ## 🌟 Featured Project: RECOMPASS (Campus Nutrition OS)
 
 > **Submission for End-Term Software Project (October 2026)**  
-> **Direct Folder**: [`./Recompass`](./Recompass) &bull; **Live Production**: [recompass.vercel.app](https://recompass.vercel.app)
+> **Direct Folder**: [`./Recompass`](./Recompass) &bull; **Live Production**: [recompass-tracker.vercel.app](https://recompass-tracker.vercel.app)
 
 <div align="center">
   <h3>Hit your daily macros. Even with hostel mess food.</h3>
