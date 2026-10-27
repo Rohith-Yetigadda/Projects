@@ -1,3 +1,4 @@
+import { CabochonLogo } from "@/components/brand/CabochonLogo";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -61,9 +62,7 @@ export default function Landing() {
           
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.15)] group-hover:scale-105 transition-transform duration-200">
-              <Compass className="w-4.5 h-4.5 stroke-[2.2]" />
-            </div>
+            <CabochonLogo size={32} className="group-hover:scale-105 transition-transform duration-200" />
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base tracking-tight text-white font-sans">Recompass</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase">
@@ -157,7 +156,7 @@ export default function Landing() {
       <section className="relative pt-18 sm:pt-28 pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center">
         
         {/* Ambient Hero Spotlight */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[320px] bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(16,185,129,0.18),rgba(255,255,255,0))] pointer-events-none" />
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-[600px] sm:w-[850px] h-[360px] bg-emerald-500/[0.09] blur-[130px] rounded-full pointer-events-none" />
 
         {/* SaaS Tagline Pill */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-white/70 text-[11px] font-medium tracking-wide backdrop-blur-xl mb-6 shadow-sm transition-all hover:border-white/[0.15]">
@@ -562,9 +561,7 @@ export default function Landing() {
       <footer className="border-t border-white/[0.06] py-10 px-4 sm:px-6 text-center text-xs text-white/40">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-white text-black flex items-center justify-center font-bold text-xs">
-              <Compass className="w-3.5 h-3.5" />
-            </div>
+            <CabochonLogo size={24} />
             <span className="font-bold text-white text-xs">Recompass</span>
             <span className="text-white/30">• Built for student fitness</span>
           </div>

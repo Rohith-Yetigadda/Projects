@@ -1,10 +1,10 @@
+import { CabochonLogo } from "@/components/brand/CabochonLogo";
 import { useState } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { db } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
-  Compass, 
   Flame, 
   Dumbbell, 
   Target, 
@@ -161,9 +161,7 @@ export default function Onboarding() {
         {/* Top Branding & Progress */}
         <div className="flex items-center justify-between mb-6 px-1">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center shadow-md">
-              <Compass className="w-4 h-4 stroke-[2.2]" />
-            </div>
+            <CabochonLogo size={32} />
             <span className="font-extrabold text-sm tracking-tight text-white font-sans">Recompass</span>
           </Link>
 

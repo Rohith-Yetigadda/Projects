@@ -633,7 +633,7 @@ async function analyzePlate(base64: string, mimeType: string): Promise<{ items: 
 
 // ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
 // ─── Dynamic Quantity Picker with Pure Gemini AI Portioning ──────────
-function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string) => void; onCancel: () => void }) {
+function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; onConfirm: (q: string, precalculatedMacros?: any) => void; onCancel: () => void }) {
   const cleaned = cleanFoodName(foodName);
   const [profile, setProfile] = useState<FoodPortionProfile>(() => getCachedPortionProfile(cleaned) || inferFoodPortionDefaults(cleaned));
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(!getCachedPortionProfile(cleaned));
@@ -733,7 +733,7 @@ function QuantityPicker({ foodName, onConfirm, onCancel }: { foodName: string; o
 
   const confirm = () => {
     const qty = custom.trim() || selected;
-    if (qty) onConfirm(qty);
+    if (qty) onConfirm(qty, liveMacros);
   };
 
   return (
@@ -1973,7 +1973,13 @@ export default function DailyLog() {
     setEditingEntry(null);
   };
 
-  const logWithQuantity = async (mealType: MealType, foodName: string, quantity: string, isCustom = false) => {
+    const logWithQuantity = async (
+    mealType: MealType,
+    foodName: string,
+    quantity: string,
+    isCustom = false,
+    precalculatedMacros?: { calories: number; protein: number; carbs: number; fats: number; name?: string }
+  ) => {
     let finalFood = foodName;
     let finalQty = quantity;
 
@@ -1985,15 +1991,42 @@ export default function DailyLog() {
       }
     }
 
-    const key = mealType+":"+foodName; setEstimating(key); setPicker(null);
+    setPicker(null);
+
+    // Instant optimistic log if macros were already precalculated in the picker
+    if (precalculatedMacros && precalculatedMacros.calories > 0) {
+      const cleanName = precalculatedMacros.name || finalFood;
+      const { name: _, ...macroValues } = precalculatedMacros;
+      const entry: MacroEntry = {
+        id: Date.now().toString(),
+        name: cleanName.toUpperCase(),
+        quantity: finalQty || "1 serving",
+        loggedAt: new Date().toISOString(),
+        ...macroValues,
+      };
+      const newLog = { ...log, [mealType]: [...(log[mealType] || []), entry] };
+      setLog(newLog);
+      persist(newLog).catch(console.error);
+      return;
+    }
+
+    const key = mealType + ":" + foodName;
+    setEstimating(key);
     try {
       const macros = await estimateMacros(finalFood, finalQty, isCustom);
       const cleanName = (macros as any).name || finalFood;
       const { name: _, ...macroValues } = macros as any;
-      const entry: MacroEntry = { id: Date.now().toString(), name: cleanName.toUpperCase(), quantity: finalQty || "1 serving", loggedAt: new Date().toISOString(), ...macroValues };
-      const newLog = { ...log, [mealType]: [...(log[mealType]||[]), entry] };
-      setLog(newLog); await persist(newLog);
-    } catch(e: any){
+      const entry: MacroEntry = {
+        id: Date.now().toString(),
+        name: cleanName.toUpperCase(),
+        quantity: finalQty || "1 serving",
+        loggedAt: new Date().toISOString(),
+        ...macroValues,
+      };
+      const newLog = { ...log, [mealType]: [...(log[mealType] || []), entry] };
+      setLog(newLog);
+      await persist(newLog);
+    } catch (e: any) {
       console.error("[logWithQuantity] Error:", e);
       if (e?.message === "INVALID_FOOD") {
         setToast("Couldn't recognize that as food. Try being more specific!");
@@ -2001,7 +2034,9 @@ export default function DailyLog() {
         setToast("Something went wrong estimating macros. Try again!");
       }
       setTimeout(() => setToast(null), 3500);
-    } finally{setEstimating(null);}
+    } finally {
+      setEstimating(null);
+    }
   };
 
   const removeItem = async (mealType: MealType, id: string) => {
@@ -2098,7 +2133,7 @@ export default function DailyLog() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-5 w-full min-w-0 pb-2 sm:pb-4">
-      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={qty=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom)} onCancel={()=>setPicker(null)} />}
+      {picker && <QuantityPicker foodName={picker.foodName} onConfirm={(qty, macros)=>logWithQuantity(picker.mealType,picker.foodName,qty,picker.isCustom,macros)} onCancel={()=>setPicker(null)} />}
       {photoItems && <PhotoConfirm items={photoItems.items} onConfirm={confirmPhotoItems} onCancel={()=>setPhotoItems(null)} />}
       {editingEntry && (
         <EditLogItemModal

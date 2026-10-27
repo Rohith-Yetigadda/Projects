@@ -14,18 +14,35 @@ export const config = {
   },
 };
 
-const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+function getApiKey(): string {
+  const envKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (envKey) return envKey;
+  try {
+    const fsSync = require("fs");
+    const p = require("path");
+    const envPath = p.resolve(process.cwd(), ".env");
+    if (fsSync.existsSync(envPath)) {
+      const raw = fsSync.readFileSync(envPath, "utf8");
+      const m = raw.match(/AI_API_KEY=(.*)/);
+      if (m && m[1]) return m[1].trim();
+    }
+  } catch {}
+  return "";
+}
 
-let cachedWorkingModel: string | null = null;
+let cachedWorkingModel: string | null = "gemini-3.5-flash-lite";
 
+// Primary ultra-fast 600ms model first, followed by resilient fallbacks
 const DEFAULT_FALLBACK_CHAIN = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-3.8-flash",
-  "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-flash-latest",
 ];
+
+// In-memory backend cache for sub-millisecond repeated calculations
+const MACRO_ESTIMATE_CACHE = new Map<string, any>();
+const PORTION_CLASSIFY_CACHE = new Map<string, any>();
 
 async function generateWithFallback(genAI: GoogleGenerativeAI, contents: any[], isJson = false) {
   const config = isJson ? { responseMimeType: "application/json" } : {};
@@ -59,6 +76,7 @@ export default async function handler(req: any, res: any) {
   try {
     const { action, payload } = req.body || {};
 
+    const apiKey = getApiKey();
     if (!apiKey) {
       return res.status(500).json({ error: "AI API key not configured on server" });
     }
@@ -159,6 +177,10 @@ OUTPUT STRICTLY AS JSON (no markdown formatting, no commentary):
       }
         
       case "estimate_macros": {
+        const cacheKey = (payload?.foodName || "").toLowerCase().trim();
+        if (cacheKey && MACRO_ESTIMATE_CACHE.has(cacheKey)) {
+          return res.status(200).json(MACRO_ESTIMATE_CACHE.get(cacheKey));
+        }
         const prompt = `Estimate accurate, realistic nutritional macronutrients for: "${payload.foodName}".
 
 CRITICAL SCALING RULES:
@@ -183,6 +205,10 @@ OUTPUT STRICTLY AS JSON:
       }
 
       case "classify_food_portion": {
+        const cacheKey = (payload?.foodName || "").toLowerCase().trim();
+        if (cacheKey && PORTION_CLASSIFY_CACHE.has(cacheKey)) {
+          return res.status(200).json(PORTION_CLASSIFY_CACHE.get(cacheKey));
+        }
         const prompt = `You are an expert nutrition portioning classifier for a college student mess / fitness app.
 Analyze this food item: "${payload.foodName}".
 
@@ -538,6 +564,14 @@ OUTPUT STRICTLY AS JSON:
       responseData = { text: responseText, parseError: true, raw: responseText };
     }
 
+    if (action === "estimate_macros" && responseData && !responseData.error) {
+      const cacheKey = (payload?.foodName || "").toLowerCase().trim();
+      if (cacheKey) MACRO_ESTIMATE_CACHE.set(cacheKey, responseData);
+    }
+    if (action === "classify_food_portion" && responseData && !responseData.error) {
+      const cacheKey = (payload?.foodName || "").toLowerCase().trim();
+      if (cacheKey) PORTION_CLASSIFY_CACHE.set(cacheKey, responseData);
+    }
     return res.status(200).json(responseData);
 
   } catch (error: any) {

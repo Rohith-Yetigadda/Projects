@@ -1,16 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-  <!-- Dark Background Squircle -->
-  <rect width="64" height="64" rx="16" fill="#0a0b0e"/>
-  
-  <!-- Crisp Ceramic White Octagon -->
-  <polygon points="23,12 41,12 52,23 52,41 41,52 23,52 12,41 12,23" fill="#ffffff"/>
-  
-  <!-- 45° Negative-Space Precision Cut -->
-  <line x1="14" y1="50" x2="44" y2="20" stroke="#0a0b0e" stroke-width="4.5" stroke-linecap="square"/>
-  
-  <!-- Piercing Emerald Arrowhead (45° Zenith / Growth) -->
-  <polygon points="40,14 54,16 51,30 46,23 38,28" fill="#10b981"/>
-  
-  <!-- Notch Tail at Bottom-Left -->
-  <rect x="11.5" y="47.5" width="4.5" height="5" transform="rotate(45 13.75 50)" fill="#10b981"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+  <!-- Tier 1: Deep Forest Base -->
+  <rect x="6" y="6" width="36" height="36" rx="11" fill="#082b20"/>
+  <!-- Tier 2: Rich Jade Layer -->
+  <rect x="11.5" y="11.5" width="25" height="25" rx="8" fill="#0a7a53"/>
+  <!-- Tier 3: Luminous Mint Core -->
+  <rect x="17" y="17" width="14" height="14" rx="4.5" fill="#4ade80"/>
+  <!-- Specular Catchlight -->
+  <circle cx="20.5" cy="20.5" r="2.5" fill="#ffffff" fill-opacity="0.95"/>
 </svg>

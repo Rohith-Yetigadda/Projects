@@ -1,10 +1,11 @@
+import { CabochonLogo } from "@/components/brand/CabochonLogo";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { setDoc, doc, getDoc } from "firebase/firestore";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Compass, Eye, EyeOff, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -115,9 +116,7 @@ export default function Signup() {
         
         {/* Branding header */}
         <div className="text-center mb-6">
-          <Link to="/" className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white text-black shadow-lg shadow-white/10 mb-3 hover:scale-105 transition-transform duration-200">
-            <Compass className="w-6 h-6 stroke-[2.2]" />
-          </Link>
+          <Link to="/" className="inline-flex items-center justify-center mb-3 hover:scale-105 transition-transform duration-200"><CabochonLogo size={48} /></Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Create your account</h1>
           <p className="text-xs sm:text-sm text-white/50 mt-1">Start tracking hostel macros in minutes</p>
         </div>

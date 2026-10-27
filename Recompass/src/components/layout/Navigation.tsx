@@ -1,3 +1,4 @@
+import { CabochonLogo } from "@/components/brand/CabochonLogo";
 import { useState } from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -45,9 +46,7 @@ export function Sidebar() {
     <aside className="hidden lg:flex flex-col w-64 h-full border-r border-white/[0.06] bg-[#0c0e12]/95 backdrop-blur-2xl px-4 py-6 relative z-30 select-none">
       {/* Brand Header */}
       <div className="mb-8 px-2 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-black shadow-sm">
-          <Compass className="w-4 h-4 stroke-[2.2]" />
-        </div>
+        <CabochonLogo size={32} />
         <div>
           <h1 className="text-base font-bold tracking-tight text-white font-sans">RECOMPASS</h1>
           <p className="text-[10px] font-semibold text-white/35 tracking-wider uppercase">Health & Macros</p>
@@ -153,9 +152,7 @@ export function MobileHeader() {
         </button>
 
         <div className="font-bold text-sm tracking-tight flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shadow-sm">
-            <Compass className="w-3.5 h-3.5 text-black stroke-[2.2]" />
-          </div>
+          <CabochonLogo size={24} />
           <span className="text-white font-sans">RECOMPASS</span>
         </div>
 
