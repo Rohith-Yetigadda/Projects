@@ -240,7 +240,6 @@ Recompass was built with a **strict mobile-first philosophy** for students using
 
 - **Project**: Recompass &mdash; Campus Nutrition Operating System
 - **Developer**: Rohith Sanjeev Reddy Yetigadda ([@Rohith-Yetigadda](https://github.com/Rohith-Yetigadda))
-- **Course**: End-Term Software Engineering Project (October 2026)
 - **License**: MIT License
 
 ---
