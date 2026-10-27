@@ -21,7 +21,7 @@
 
   ---
 
-  [Live Demo](https://recompass-app.vercel.app/) &bull; [Key Workflows](#-key-core-workflows) &bull; [Architecture](#-system-architecture) &bull; [Getting Started](#-local-setup--development)
+  [Live Demo](https://recompass-tracker.vercel.app/) &bull; [Key Workflows](#-key-core-workflows) &bull; [Architecture](#-system-architecture) &bull; [Getting Started](#-local-setup--development)
 
 </div>
 
