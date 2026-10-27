@@ -1300,7 +1300,7 @@ Instructions:
 
           // 26. UPDATE_GOAL
           if (actionType === "UPDATE_GOAL") {
-            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { goal: actionData.goal }, { merge: true });
+            await setDoc(doc(db, "users", currentUser.uid, "profile", "main"), { goal: actionData.goal, targetOverrides: { enabled: false } }, { merge: true });
             await refreshProfile();
             executedActions.push({
               id: createActionId(),

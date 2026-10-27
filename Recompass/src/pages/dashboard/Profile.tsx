@@ -15,6 +15,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"vitals" | "targets">("vitals");
   
   const [data, setData] = useState({
     name: "",
@@ -163,9 +164,39 @@ export default function Profile() {
         </button>
       </header>
 
+      
+      {/* High-Density Segmented Tab Switcher (Reduces Mobile Scrolling by 50%) */}
+      <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#121418] border border-white/[0.06] gap-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("vitals")}
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "vitals"
+              ? "bg-white text-black shadow-md font-extrabold"
+              : "text-white/60 hover:text-white"
+          }`}
+        >
+          <User className="w-3.5 h-3.5" />
+          <span>Biometrics & Goal</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("targets")}
+          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "targets"
+              ? "bg-white text-black shadow-md font-extrabold"
+              : "text-white/60 hover:text-white"
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Targets & Budget</span>
+        </button>
+      </div>
+
       <div className="space-y-5">
-        
-        {/* Personal Details */}
+        {activeTab === "vitals" ? (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            {/* Personal Details */}
         <section className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-6 space-y-4">
           <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3.5">
             <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/80">
@@ -268,8 +299,7 @@ export default function Profile() {
             </div>
           </div>
         </section>
-
-        {/* Goal Settings */}
+            {/* Goal Settings */}
         <section className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-6 space-y-4">
           <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3.5">
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
@@ -311,55 +341,10 @@ export default function Profile() {
             {data.goal === "maintain" && "Maintenance • Energy balance (100% TDEE) with 1.6g/kg protein to sustain your current physique."}
           </p>
         </section>
-
-        {/* Monthly Grocery Budget - High-Density 2x2 Grid on Mobile */}
-        <section className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-6 space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Wallet className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Monthly Grocery & Food Budget</h2>
-              <p className="text-[10px] sm:text-[11px] text-white/40">Used for groceries restocking, protein staples, and meal recommendations</p>
-            </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-            {[
-              { id: "1500", label: "₹1,500 / mo", desc: "Lean essentials (eggs, bananas, bread, milk)" },
-              { id: "3000", label: "₹3,000 / mo", desc: "Whole-food protein (eggs, curd, oats, peanut butter, sattu)" },
-              { id: "5000", label: "₹5,000 / mo", desc: "Whey & essentials (1kg whey, eggs, oats, peanut butter)" },
-              { id: "8000", label: "₹8,000+ / mo", desc: "Athlete stack (premium whey, creatine, supplements)" }
-            ].map(b => {
-              const isSelected = data.budget === b.id;
-              return (
-                <button 
-                  key={b.id} 
-                  type="button"
-                  onClick={() => setData({...data, budget: b.id})}
-                  className={`p-3 rounded-xl sm:rounded-2xl text-left border transition-all flex flex-col justify-between cursor-pointer ${
-                    isSelected 
-                      ? "bg-white text-black border-white shadow-sm" 
-                      : "bg-white/[0.02] border-white/[0.06] text-white/70 hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-bold leading-tight">{b.label}</p>
-                    <p className={`text-[10px] mt-1 leading-normal ${isSelected ? "text-neutral-700 font-medium" : "text-white/40"}`}>{b.desc}</p>
-                  </div>
-                  {isSelected && (
-                    <div className="flex items-center gap-1 text-[9px] font-bold text-black mt-2">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      <span>Active</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Nutrition Targets */}
+        ) : (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            {/* Nutrition Targets */}
         <section className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-white/[0.06] pb-3.5">
             <div className="flex items-center gap-2.5">
@@ -534,7 +519,56 @@ export default function Profile() {
             </div>
           </div>
         </section>
-
+            {/* Monthly Grocery Budget - High-Density 2x2 Grid on Mobile */}
+        <section className="rounded-2xl sm:rounded-3xl bg-[#121418] border border-white/[0.06] p-4 sm:p-6 space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Wallet className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Monthly Grocery & Food Budget</h2>
+              <p className="text-[10px] sm:text-[11px] text-white/40">Used for groceries restocking, protein staples, and meal recommendations</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            {[
+              { id: "1500", label: "₹1,500 / mo", desc: "Lean essentials (eggs, bananas, bread, milk)" },
+              { id: "3000", label: "₹3,000 / mo", desc: "Whole-food protein (eggs, curd, oats, peanut butter, sattu)" },
+              { id: "5000", label: "₹5,000 / mo", desc: "Whey & essentials (1kg whey, eggs, oats, peanut butter)" },
+              { id: "8000", label: "₹8,000+ / mo", desc: "Athlete stack (premium whey, creatine, supplements)" }
+            ].map(b => {
+              const isSelected = data.budget === b.id;
+              return (
+                <button 
+                  key={b.id} 
+                  type="button"
+                  onClick={() => setData({...data, budget: b.id})}
+                  className={`p-3 rounded-xl sm:rounded-2xl text-left border transition-all flex flex-col justify-between cursor-pointer ${
+                    isSelected 
+                      ? "bg-white text-black border-white shadow-sm" 
+                      : "bg-white/[0.02] border-white/[0.06] text-white/70 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <div>
+                    <p className="text-xs font-bold leading-tight">{b.label}</p>
+                    <p className={`text-[10px] mt-1 leading-normal ${isSelected ? "text-neutral-700 font-medium" : "text-white/40"}`}>{b.desc}</p>
+                  </div>
+                  {isSelected && (
+                    <div className="flex items-center gap-1 text-[9px] font-bold text-black mt-2">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      <span>Active</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+          </div>
+        )}
+      </div>
+  
         {/* Save Button */}
         <div className="pt-1 pb-4">
           <button 
@@ -552,8 +586,6 @@ export default function Profile() {
             )}
           </button>
         </div>
-
-      </div>
 
       {/* Sign Out Confirmation Modal */}
       <ConfirmDialog
